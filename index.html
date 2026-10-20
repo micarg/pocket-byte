@@ -80,7 +80,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 #ejs .ejs_parent { background: #000 !important; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; background: rgba(12,16,10,.78); color: #e8f2d6; font: 12px/1.7 var(--display); z-index: 5; }
 .brand { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
-.brand b { font: 17px var(--display); color: var(--print); letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.25); }
+.brand-btn { font: 17px var(--display); color: var(--print); letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.25); background: none; border: 0; padding: 8px 10px; margin: -8px -10px; border-radius: 8px; cursor: pointer; touch-action: manipulation; }
+.brand-btn:active { background: rgba(0,0,0,.12); }
+.brand-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 .brand span#now { margin-left: auto; font: 10px var(--display); color: var(--print); opacity: .7; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; flex: none; }
 .led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
@@ -161,12 +163,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .help { color: var(--muted); font-size: 13.5px; line-height: 1.55; display: grid; gap: 10px; max-width: 65ch; }
 .help kbd { font: 11px var(--display); background: var(--desk-2); border: 1px solid #3a444a; border-radius: 4px; padding: 1px 5px; color: var(--ink); }
 .help a { color: var(--accent); }
-.fab { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px) * 0.5); z-index: 30; width: 52px; height: 52px; border-radius: 50%; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
-.fab svg { width: 24px; height: 24px; transition: transform .25s; }
-.fab[aria-expanded="true"] svg { transform: rotate(60deg); }
-.fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(8,10,12,.55); }
-.menu { position: fixed; z-index: 25; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(68px + env(safe-area-inset-bottom, 0px) * 0.5); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
+.menu { position: fixed; z-index: 25; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
 .menu > * { flex-shrink: 0; min-width: 0; }
 .mylist { display: flex; flex-direction: column; gap: 8px; }
 .mygame { display: flex; align-items: stretch; gap: 8px; }
@@ -199,7 +197,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <div class="overlay" id="overlay" hidden></div>
       </div>
     </div>
-    <div class="brand"><span class="led" id="led"></span><b>POCKET BYTE</b><span id="now">—</span></div>
+    <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu">POCKET BYTE</button><span id="now">—</span></div>
 
     <div class="controls" id="controls">
     <div class="pad-row">
@@ -250,10 +248,10 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   </section>
 </main>
 
-<button class="fab" id="fab" aria-label="Ρυθμίσεις" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 <div class="scrim" id="scrim" hidden></div>
 <div class="menu" id="menu" role="dialog" aria-label="Ρυθμίσεις" hidden>
   <div class="toolbar">
+    <button class="tool" id="closeMenu">✕ Κλείσιμο</button>
     <button class="tool primary" id="soundBtn">🔇 Ήχος: κλειστός</button>
     <button class="tool" id="hapticBtn">📳 Δόνηση: ανοιχτή</button>
     <button class="tool" id="pauseBtn">Παύση</button>
@@ -1619,7 +1617,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 /* ---- fit console to screen: fill the phone, and switch to roomier controls when there is spare height ---- */
-const stage = document.getElementById('stage'), fab = document.getElementById('fab');
+const stage = document.getElementById('stage'), menuBtn = document.getElementById('menuBtn');
 // [left, top, size] in px inside the face box; normal layout, then tall layout
 const LAYOUT = {
   gbB: [[8, 62, 68], [0, 108, 76]],   gbA: [[92, 28, 68], [84, 28, 76]],
@@ -1635,20 +1633,19 @@ function applyLayout(tall) {
   }
 }
 const safeProbe = document.createElement('div');
-safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
 document.body.appendChild(safeProbe);
-function safeTop() {
-  // inset already applied as page padding above the stage; add a little more only if the stage starts right at the top edge
-  const stTop = stage.getBoundingClientRect().top;
-  const inset = safeProbe.offsetHeight;
-  return Math.max(0, inset - stTop) + (stTop < 20 && isApple ? 10 : 0);
-}
 function fit() {
-  // keep the console above the settings button
-  const st = stage.getBoundingClientRect(), fb = fab.getBoundingClientRect();
-  // leave room under the status bar / Dynamic Island even where the safe-area inset reads as 0
-  const topPad = 14 + Math.max(safeTop(), 0);
-  const W = stage.clientWidth - 4, H = Math.max(200, fb.top - st.top - 12 - topPad);
+  // usable band: below the status bar / Dynamic Island, above the home indicator; same gap above and below
+  const st = stage.getBoundingClientRect();
+  const cs = getComputedStyle(safeProbe);
+  const insetTop = parseFloat(cs.height) || 0, safeB = parseFloat(cs.paddingBottom) || 0;
+  const vh = window.innerHeight;
+  let top = Math.max(st.top, insetTop + (isApple && insetTop === 0 && st.top < 20 ? 50 : 0));
+  let bottom = Math.min(st.bottom, vh - safeB);
+  const GAP = 12;
+  const H = Math.max(200, bottom - top - GAP * 2);
+  const W = stage.clientWidth - 4;
   consoleEl.style.minHeight = '';
   applyLayout(false);
   let base = consoleEl.offsetHeight;
@@ -1659,7 +1656,7 @@ function fit() {
     consoleEl.style.minHeight = Math.max(base, Math.min(H / s, consoleEl.offsetWidth * 2.3)) + 'px';
   }
   s = Math.max(0.4, Math.min(s, 1.8));
-  consoleEl.style.top = (topPad + H / 2) + 'px';
+  consoleEl.style.top = (top - st.top + GAP + H / 2) + 'px';
   consoleEl.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
@@ -1668,11 +1665,12 @@ fit(); document.fonts && document.fonts.ready.then(fit);
 /* ---- settings menu ---- */
 const menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
 function setMenu(open) {
-  menu.hidden = !open; scrim.hidden = !open; fab.setAttribute('aria-expanded', open);
+  menu.hidden = !open; scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
-fab.addEventListener('click', () => { unlockAudio(); setMenu(menu.hidden); });
+menuBtn.addEventListener('click', () => { unlockAudio(); haptic(); setMenu(menu.hidden); });
+document.getElementById('closeMenu').addEventListener('click', () => setMenu(false));
 scrim.addEventListener('click', () => setMenu(false));
 addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) setMenu(false); });
 
