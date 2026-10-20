@@ -96,9 +96,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .controls { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 4px; padding-bottom: 6px; }
 .pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; min-height: 160px; }
 .console.tall .pad-row { margin-top: 2px; }
-.console.tall .dpad { zoom: 1.18; }
-.console.tall .face { width: 160px; height: 200px; }
-.console.tall .drive-lbl { top: 58px; width: 120px; }
+.console.tall .dpad { zoom: 1.1; }
+.console.tall .face { width: 170px; height: 206px; }
+.console.tall .drive-lbl { top: 58px; left: 20px; width: 120px; }
 .console.tall .pill { width: 70px; height: 22px; }
 .console.tall .sys.only-n64 .pill { width: 62px; height: 26px; }
 .dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none; flex: none;
@@ -143,7 +143,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
 .gear { width: 36px; height: 36px; background: radial-gradient(circle at 38% 32%, #5a5f66, #33373c); box-shadow: 0 4px 0 #1d2023, 0 5px 8px rgba(0,0,0,.3); color: #e8eaec; font: 13px var(--display); }
 .round.brake { background: radial-gradient(circle at 38% 32%, #ef4a3c, #b8231a); box-shadow: 0 5px 0 #7a140e, 0 7px 10px rgba(0,0,0,.35); }
-.drive-lbl { position: absolute; left: 0; width: 120px; text-align: center; top: 42px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
+.drive-lbl { position: absolute; left: 16px; width: 108px; text-align: center; top: 42px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
 .btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
@@ -2027,14 +2027,15 @@ requestAnimationFrame(loop);
 /* ---- fit console to screen: fill the phone, and switch to roomier controls when there is spare height ---- */
 const stage = document.getElementById('stage'), menuBtn = document.getElementById('menuBtn');
 // [left, top, size] in px inside the face box; normal layout, then tall layout
+// [left, top, size] inside the face box: normal layout, then tall layout. The leftmost button keeps a clear gap from the joystick.
 const LAYOUT = {
-  gbB: [[8, 62, 68], [0, 96, 76]],   gbA: [[92, 28, 68], [84, 18, 76]],
-  mdA: [[0, 78, 54], [0, 124, 60]],   mdB: [[58, 48, 54], [50, 70, 60]],   mdC: [[116, 18, 54], [100, 16, 60]],
-  nCU: [[114, 4, 34], [96, 0, 36]],   nCL: [[80, 38, 34], [60, 36, 36]],   nCR: [[136, 38, 34], [124, 36, 36]], nCD: [[114, 72, 34], [96, 72, 36]],
-  nB: [[0, 58, 54], [0, 100, 60]],
-  dvG1: [[0, 4, 34], [0, 16, 36]], dvG2: [[40, 4, 34], [42, 16, 36]], dvG3: [[80, 4, 34], [84, 16, 36]],
-  dvBrake: [[0, 92, 56], [0, 120, 62]], dvGas: [[78, 62, 82], [70, 86, 90]],
-  arc1: [[0, 78, 54], [0, 124, 60]],  arc2: [[58, 48, 54], [50, 70, 60]],  arc3: [[116, 18, 54], [100, 16, 60]],    nA: [[38, 92, 60], [62, 132, 66]],
+  gbB: [[18, 66, 66], [14, 100, 74]],  gbA: [[100, 26, 66], [96, 22, 74]],
+  mdA: [[14, 92, 52], [12, 132, 58]],  mdB: [[66, 56, 52], [62, 80, 58]],  mdC: [[118, 20, 52], [112, 28, 58]],
+  arc1: [[14, 92, 52], [12, 132, 58]], arc2: [[66, 56, 52], [62, 80, 58]], arc3: [[118, 20, 52], [112, 28, 58]],
+  nCU: [[118, 4, 32], [108, 0, 36]],   nCL: [[86, 36, 32], [72, 36, 36]],   nCR: [[138, 36, 32], [134, 36, 36]], nCD: [[118, 68, 32], [108, 72, 36]],
+  nB: [[14, 72, 50], [12, 104, 58]],   nA: [[60, 102, 56], [70, 132, 64]],
+  dvG1: [[16, 4, 32], [20, 16, 36]],   dvG2: [[54, 4, 32], [62, 16, 36]],   dvG3: [[92, 4, 32], [104, 16, 36]],
+  dvBrake: [[14, 96, 52], [12, 124, 60]], dvGas: [[84, 64, 80], [82, 86, 88]],
 };
 function applyLayout(tall) {
   consoleEl.classList.toggle('tall', tall);
