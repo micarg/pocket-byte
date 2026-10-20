@@ -1616,8 +1616,6 @@ function mameDb() {
 // Neo Geo BIOS files the console supplies itself (see MAME_NEO_ALIASES)
 const MAME_SUPPLIED = new Set(['354029fc', '97cf998b', 'e09e253c']);
 // ---- Rebuilding newer arcade dumps into the layout MAME 2003 knows ----
-const CRC_T = (() => { const t = new Int32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[i] = c; } return t; })();
-function crc32(u) { let c = -1; for (let i = 0; i < u.length; i++) c = CRC_T[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; }
 function zipEntryList(u) {
   const dv = new DataView(u.buffer, u.byteOffset, u.byteLength), out = [], dec = new TextDecoder();
   let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
@@ -1631,49 +1629,30 @@ function zipEntryList(u) {
   }
   return out;
 }
-async function zipEntryData(u, en) {
-  const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
-  const start = en.lho + 30 + dv.getUint16(en.lho + 26, true) + dv.getUint16(en.lho + 28, true);
-  const data = u.subarray(start, start + en.csize);
-  if (en.method === 0) return data;
-  if (en.method !== 8) throw new Error('method');
-  const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  return new Uint8Array(await new Response(ds).arrayBuffer());
-}
-// Out Run: today's sets keep each sprite chip as its own file (8 chips, read 8 bytes at a time); MAME 2003's set has
-// the same bytes regrouped, every one of its files being two chips' halves interleaved. Which two chips and which
-// half go into each file is found by checksum, so a file is only built when it comes out byte-exact.
-const OUTRUN_NEW_SPR = ['7cc86208', 'b0d26ac9', '59b60bd7', '17a1b04a', 'b557078c', '8051e517', 'f3b8f318', 'a1062984'];
-const OUTRUN_OLD_SPR = [['10371', '0a1c98de'], ['10372', '1640ad1f'], ['10373', '339f8e64'], ['10374', '22744340'],
-  ['10375', '62a472bd'], ['10376', '8337ace7'], ['10377', 'c86daecb'], ['10378', '544068fd']];
+// Out Run: MAME 2003 knows an older dump of the 8 sprite chips with other checksums and short names (10371…). Its
+// renderer reads the chips in the same arrangement as FBNeo does with today's files (mpr-10371.9…), so those go in
+// under the old names; MAME only warns about the checksums. Program ROMs revision B are MAME 2003's "outruna".
+const OUTRUN_SPR = [['7cc86208', '10371', '0a1c98de'], ['b557078c', '10372', '1640ad1f'], ['b0d26ac9', '10373', '339f8e64'],
+  ['8051e517', '10374', '22744340'], ['59b60bd7', '10375', '62a472bd'], ['f3b8f318', '10376', '8337ace7'],
+  ['17a1b04a', '10377', 'c86daecb'], ['a1062984', '10378', '544068fd']];
+const OUTRUN_OLD_PROG = { outrun: [], outruna: ['434fadbc', '1ddcc04e', 'dcc586e7'] };
 async function mameConvert(dbm, set, u) {
-  if (!/^outrun/.test(set) || typeof DecompressionStream === 'undefined') return null;
+  if (!/^outrun/.test(set)) return null;
   const list = zipEntryList(u), byCrc = new Map(list.map(e => [e.crc, e]));
   const have = new Set(byCrc.keys());
   const target = have.has('434fadbc') ? 'outrun' : have.has('1f6cadad') ? 'outruna' : null;
-  if (!target) return null;
-  const extra = [];
-  const missing = OUTRUN_OLD_SPR.filter(([, c]) => !have.has(c));
-  if (missing.length) {
-    if (!OUTRUN_NEW_SPR.every(c => byCrc.has(c))) return null;
-    const chips = [];
-    for (const c of OUTRUN_NEW_SPR) { const d = await zipEntryData(u, byCrc.get(c)); if (d.length !== 0x20000) return null; chips.push(d); }
-    const buf = new Uint8Array(0x20000);
-    for (const [name, want] of missing) {
-      let found = null;
-      for (let a = 0; a < 8 && !found; a++) for (let b = 0; b < 8 && !found; b++) for (let h = 0; h < 2 && !found; h++) {
-        if (a === b) continue;
-        const A = chips[a], B = chips[b], o = h * 0x10000;
-        for (let k = 0; k < 0x10000; k++) { buf[2 * k] = A[o + k]; buf[2 * k + 1] = B[o + k]; }
-        const c = crc32(buf);
-        if (c.toString(16).padStart(8, '0') === want) found = { name, data: buf.slice(), crc: c };
-      }
-      if (!found) return null;
-      extra.push(found); have.add(want);
-    }
+  if (!target || !dbm.outrun) return null;
+  const aliases = [];
+  for (const [modern, oldName, oldCrc] of OUTRUN_SPR) {
+    if (have.has(oldCrc)) continue;
+    const en = byCrc.get(modern);
+    if (!en) return null;
+    aliases.push([oldName, [en.name]]); have.add(oldCrc);
   }
+  // the clone's own list is complete: it doesn't need the parent's program ROMs
+  for (const c of OUTRUN_OLD_PROG[target]) have.add(c);
   if (!mameCanRun(dbm, target, have)) return null;
-  const zip = zipBuild([{ u, keep: () => true }], null, extra);
+  const zip = zipBuild([{ u, keep: () => true }], aliases);
   return zip ? { zip, set: target } : null;
 }
 function mameCanRun(dbm, set, crcs, depth) {
