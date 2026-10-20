@@ -1453,6 +1453,18 @@ function storeAll() {
 }
 setInterval(() => { if (gb && gb.ramDirty) storeSave(); }, 2000);
 addEventListener('pagehide', storeAll);
+// note how long a game ran before iOS closed the page without warning, to help track down such crashes
+let runLog = null;
+try {
+  const r = JSON.parse(localStorage.getItem('pb-run') || 'null');
+  if (r && !r.clean && r.last - r.start > 5000 && Date.now() - r.last < 10 * 60000)
+    runLog = 'Το παιχνίδι έκλεισε απότομα μετά από ' + Math.max(1, Math.round((r.last - r.start) / 60000)) + "'.";
+  localStorage.removeItem('pb-run');
+} catch (e) {}
+function runBeat(start) {
+  try { localStorage.setItem('pb-run', JSON.stringify({ start, last: Date.now(), clean: false })); } catch (e) {}
+}
+addEventListener('pagehide', () => { try { const r = JSON.parse(localStorage.getItem('pb-run') || 'null'); if (r) { r.clean = true; localStorage.setItem('pb-run', JSON.stringify(r)); } } catch (e) {} });
 document.addEventListener('visibilitychange', () => { if (document.hidden) storeAll(); });
 
 /* ---- system detection ---- */
@@ -1549,6 +1561,8 @@ function bootEJS(entry) {
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      { const t0 = Date.now(); runBeat(t0); setInterval(() => { if (!document.hidden) runBeat(t0); }, 5000); }
+      if (runLog) { const m = runLog; runLog = null; setTimeout(() => toast(m, 5000), 2500); }
       setTimeout(fitGameScreen, 300);
       window.EJS_gameUrl = null; // drop our reference to the ROM data
       // If MAME 2003 could not load the set (a newer revision it never had), RetroArch sits in its own menu with no
@@ -1854,7 +1868,7 @@ function captureState() {
   if (ejsStarted) {
     try {
       if (!EJS_emulator.gameManager.supportsStates()) return null;
-      return { kind: 'ejs', core: window.EJS_core, state: EJS_emulator.gameManager.getState().slice() };
+      return { kind: 'ejs', core: window.EJS_core, state: EJS_emulator.gameManager.getState() }; // getState already returns a copy
     } catch (e) { return null; }
   }
   return null;
@@ -1872,14 +1886,19 @@ function applyState(rec, strict) {
 }
 // Periodic snapshot of whatever is playing, so closing the app or a reload never loses progress
 let autoStateTimer = null;
+let snapBusy = false;
 function snapshotState(force) {
   if ((paused && !force) || !current) return;
   const rec = captureState();
-  if (rec) dbPutState(current, rec);
+  if (!rec) return;
+  // one write at a time: on a slow phone, queued snapshots would pile up in memory
+  if (snapBusy) return;
+  snapBusy = true;
+  dbPutState(current, rec).finally(() => { snapBusy = false; });
 }
 function startAutoState(s) {
   clearInterval(autoStateTimer);
-  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, s === 'n64' ? 30000 : 12000);
+  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, s === 'n64' ? 40000 : 20000);
 }
 function resumeAuto(id, check) {
   dbGetState(id).then(r => {
@@ -2522,7 +2541,7 @@ function tx(stores, mode, fn) {
 const dbPut = item => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').put(item); t.objectStore('meta').put(metaOf(item)); }).then(() => true).catch(() => false);
 const dbDel = id => tx(['roms', 'meta', 'states'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); t.objectStore('states').delete(id); }).catch(() => {});
 const dbGet = id => tx('roms', 'readonly', t => t.objectStore('roms').get(id)).catch(() => null);
-const dbPutState = (id, rec) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, kind: rec.kind, state: rec.state, at: Date.now() })).then(() => true).catch(() => false);
+const dbPutState = (id, rec) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, kind: rec.kind, core: rec.core, state: rec.state, at: Date.now() })).then(() => true).catch(() => false);
 const dbGetState = id => tx('states', 'readonly', t => t.objectStore('states').get(id)).catch(() => null);
 const dbDelState = id => tx('states', 'readwrite', t => t.objectStore('states').delete(id)).catch(() => {});
 const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll()).catch(() => null);
