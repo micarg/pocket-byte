@@ -78,7 +78,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 #ejs { width: 100%; height: 100%; }
 #ejs .ejs_popup_container, #ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
 #ejs .ejs_parent { background: #000 !important; }
-.overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; background: rgba(12,16,10,.78); color: #e8f2d6; font: 12px/1.7 var(--display); z-index: 5; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; background: rgba(10,12,10,.88); color: #eef2e6; font: 600 15px/1.5 var(--body); letter-spacing: .02em; z-index: 5; text-wrap: balance; }
 .brand { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
 .brand-btn { display: inline-flex; align-items: center; gap: 8px; font: 17px var(--display); color: var(--print); letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.25); background: rgba(0,0,0,.1); border: 0; padding: 6px 12px 6px 9px; margin: -6px 0; border-radius: 9px; cursor: pointer; touch-action: manipulation; box-shadow: inset 0 1px 2px rgba(0,0,0,.18), 0 1px 0 rgba(255,255,255,.18); }
 .brand-btn .menu-ic { width: 16px; height: 16px; flex: none; opacity: .85; }
@@ -98,6 +98,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console.tall .pad-row { margin-top: 2px; }
 .console.tall .dpad { zoom: 1.18; }
 .console.tall .face { width: 160px; height: 200px; }
+.console.tall .drive-lbl { top: 58px; width: 120px; }
 .console.tall .pill { width: 70px; height: 22px; }
 .console.tall .sys.only-n64 .pill { width: 62px; height: 26px; }
 .dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none; flex: none;
@@ -142,7 +143,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
 .gear { width: 36px; height: 36px; background: radial-gradient(circle at 38% 32%, #5a5f66, #33373c); box-shadow: 0 4px 0 #1d2023, 0 5px 8px rgba(0,0,0,.3); color: #e8eaec; font: 13px var(--display); }
 .round.brake { background: radial-gradient(circle at 38% 32%, #ef4a3c, #b8231a); box-shadow: 0 5px 0 #7a140e, 0 7px 10px rgba(0,0,0,.35); }
-.drive-lbl { position: absolute; left: 0; top: -16px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
+.drive-lbl { position: absolute; left: 0; width: 120px; text-align: center; top: 42px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
 .btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
@@ -1413,10 +1414,10 @@ function bootEJS(entry) {
   ejsLoaded = true;
   current = entry.id;
   consoleEl.dataset.prof = entry.sys === 'arcade' ? arcadeProfile(entry.fileName) : '';
-  setSys(entry.sys); setNow(entry.name);
+  setSys(entry.sys); setNow(entry.sys === 'arcade' && entry.fileName ? arcadeName(entry.fileName) : entry.name);
   document.getElementById('led').classList.add('on');
   document.getElementById('ejs-host').hidden = false;
-  showOverlay('ΦΟΡΤΩΝΕΙ…');
+  showOverlay('Φορτώνει…');
   setLast(entry.id); markActive();
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
@@ -1453,7 +1454,7 @@ function bootEJS(entry) {
     window.EJS_pathtodata = EJS_CDN[i];
     const s = document.createElement('script');
     s.src = EJS_CDN[i] + 'loader.js';
-    s.onerror = () => { if (i + 1 < EJS_CDN.length) load(i + 1); else showOverlay('ΔΕΝ ΦΟΡΤΩΣΕ Ο ΕΞΟΜΟΙΩΤΗΣ. ΕΛΕΓΞΕ ΤΟ ΙΝΤΕΡΝΕΤ.'); };
+    s.onerror = () => { if (i + 1 < EJS_CDN.length) load(i + 1); else showOverlay('Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.'); };
     document.body.appendChild(s);
   };
   load(0);
@@ -1462,7 +1463,7 @@ function bootEJS(entry) {
 }
 const ARCADE_CORES = { mame2003_plus: 'MAME 2003-Plus', arcade: 'FBNeo' };
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
-const TAP_TO_START = 'ΠΑΤΑ ΟΠΟΙΟΔΗΠΟΤΕ ΚΟΥΜΠΙ ΓΙΑ ΝΑ ΣΥΝΕΧΙΣΕΙΣ';
+const TAP_TO_START = 'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις';
 function ejsAudioCtxs() {
   const set = new Set();
   try {
@@ -1659,8 +1660,8 @@ function setPaused(p) {
 }
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
-  if (paused && !pausedByMenu) showOverlay('ΠΑΥΣΗ');
-  else if (overlay.textContent === 'ΠΑΥΣΗ') showOverlay('');
+  if (paused && !pausedByMenu) showOverlay('Παύση');
+  else if (overlay.textContent === 'Παύση') showOverlay('');
 }
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
