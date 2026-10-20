@@ -140,6 +140,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .cbtn.cl::before { border-right-color: rgba(0,0,0,.45); margin-left: -3px; }
 .cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
 .gear { width: 36px; height: 36px; background: radial-gradient(circle at 38% 32%, #5a5f66, #33373c); box-shadow: 0 4px 0 #1d2023, 0 5px 8px rgba(0,0,0,.3); color: #e8eaec; font: 13px var(--display); }
+.round.brake { background: radial-gradient(circle at 38% 32%, #ef4a3c, #b8231a); box-shadow: 0 5px 0 #7a140e, 0 7px 10px rgba(0,0,0,.35); }
 .drive-lbl { position: absolute; left: 0; top: -16px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
 .btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
@@ -248,12 +249,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       </div>
 
       <div class="face only-arcade only-drive">
-        <span class="drive-lbl" id="gearLbl">ΤΑΧΥΤΗΤΕΣ</span>
+        <span class="drive-lbl" id="gearLbl">SHIFT</span>
         <button class="btn gear" id="dvG1" data-ej="8" aria-label="1η ταχύτητα">1</button>
         <button class="btn gear" id="dvG2" data-ej="1" aria-label="2η ταχύτητα">2</button>
         <button class="btn gear" id="dvG3" data-ej="9" aria-label="3η ταχύτητα">3</button>
-        <button class="btn round sm" id="dvBrake" data-ej="10" aria-label="Φρένο"><span class="t in">ΦΡΕΝΟ</span></button>
-        <button class="btn round" id="dvGas" data-ej="11" aria-label="Γκάζι"><span class="t in">ΓΚΑΖΙ</span></button>
+        <button class="btn round sm brake" id="dvBrake" data-ej="10" aria-label="Φρένο"></button>
+        <button class="btn round" id="dvGas" data-ej="11" aria-label="Γκάζι"></button>
       </div>
 
       <div class="face only-n64">
