@@ -161,12 +161,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .help { color: var(--muted); font-size: 13.5px; line-height: 1.55; display: grid; gap: 10px; max-width: 65ch; }
 .help kbd { font: 11px var(--display); background: var(--desk-2); border: 1px solid #3a444a; border-radius: 4px; padding: 1px 5px; color: var(--ink); }
 .help a { color: var(--accent); }
-.fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 52px; height: 52px; border-radius: 50%; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+.fab { position: fixed; right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px) * 0.5); z-index: 30; width: 52px; height: 52px; border-radius: 50%; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
 .fab svg { width: 24px; height: 24px; transition: transform .25s; }
 .fab[aria-expanded="true"] svg { transform: rotate(60deg); }
 .fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(8,10,12,.55); }
-.menu { position: fixed; z-index: 25; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
+.menu { position: fixed; z-index: 25; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(68px + env(safe-area-inset-bottom, 0px) * 0.5); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
 .menu > * { flex-shrink: 0; min-width: 0; }
 .mylist { display: flex; flex-direction: column; gap: 8px; }
 .mygame { display: flex; align-items: stretch; gap: 8px; }
@@ -1634,10 +1634,21 @@ function applyLayout(tall) {
     Object.assign(el.style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' });
   }
 }
+const safeProbe = document.createElement('div');
+safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+document.body.appendChild(safeProbe);
+function safeTop() {
+  // inset already applied as page padding above the stage; add a little more only if the stage starts right at the top edge
+  const stTop = stage.getBoundingClientRect().top;
+  const inset = safeProbe.offsetHeight;
+  return Math.max(0, inset - stTop) + (stTop < 20 && isApple ? 10 : 0);
+}
 function fit() {
   // keep the console above the settings button
   const st = stage.getBoundingClientRect(), fb = fab.getBoundingClientRect();
-  const W = stage.clientWidth - 4, H = Math.max(200, fb.top - st.top - 14);
+  // leave room under the status bar / Dynamic Island even where the safe-area inset reads as 0
+  const topPad = 14 + Math.max(safeTop(), 0);
+  const W = stage.clientWidth - 4, H = Math.max(200, fb.top - st.top - 12 - topPad);
   consoleEl.style.minHeight = '';
   applyLayout(false);
   let base = consoleEl.offsetHeight;
@@ -1648,7 +1659,7 @@ function fit() {
     consoleEl.style.minHeight = Math.max(base, Math.min(H / s, consoleEl.offsetWidth * 2.3)) + 'px';
   }
   s = Math.max(0.4, Math.min(s, 1.8));
-  consoleEl.style.top = (H / 2) + 'px';
+  consoleEl.style.top = (topPad + H / 2) + 'px';
   consoleEl.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
