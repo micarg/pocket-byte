@@ -1409,7 +1409,7 @@ function markActive() {
 }
 
 /* ---- ROM loading (incl. zip) ---- */
-const ARCADE_NAMES = { wboy: 'Wonder Boy', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
+const ARCADE_NAMES = { wboy: 'Wonder Boy', pbobble: 'Puzzle Bobble', pbobblen: 'Puzzle Bobble', pbobble2: 'Puzzle Bobble 2', pbobble3: 'Puzzle Bobble 3', bublbobl: 'Bubble Bobble', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
 function arcadeName(file) { const k = file.toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || k; }
 async function unzipFirstRom(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf);
@@ -1449,8 +1449,11 @@ document.getElementById('romFile').addEventListener('change', async e => {
     const buf = await f.arrayBuffer();
     bytes = new Uint8Array(buf);
     if (/\.zip$/i.test(f.name) || (bytes[0] === 0x50 && bytes[1] === 0x4b)) {
-      try { const r = await unzipFirstRom(buf); bytes = r.bytes; name = r.name; }
-      catch (err) { arcade = true; } // no console ROM inside: an arcade set, kept zipped
+      // a zip whose contents are not a recognisable console ROM is an arcade set (e.g. pbobble.zip with .bin chips), kept zipped
+      let inner = null;
+      try { inner = await unzipFirstRom(buf); } catch (err) {}
+      if (inner && detectSystem(inner.name, inner.bytes)) { bytes = inner.bytes; name = inner.name; }
+      else arcade = true;
     }
   } catch (err) { toast('Δεν μπόρεσα να διαβάσω αυτό το αρχείο.', 4000); return; }
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
