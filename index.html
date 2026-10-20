@@ -1433,7 +1433,7 @@ function bootEJS(entry) {
   entry.bytes = null; // the Blob/File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
-    EJS_core: entry.sys === 'arcade' ? (neoGeo ? 'arcade' : arcadeCore()) : SYSTEMS[entry.sys].core,
+    EJS_core: entry.sys === 'arcade' ? ((neoGeo && neoGeoNeedsFBNeo(entryNames)) ? 'arcade' : arcadeCore()) : SYSTEMS[entry.sys].core,
     EJS_gameUrl: arcadeBlobUrl || file,
     EJS_gameName: (arcadeBlobUrl || needsBios) ? (entry.fileName || 'game.zip') : entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
     EJS_CacheLimit: 0,
@@ -1562,6 +1562,13 @@ async function findNeoBios() {
     if (g && g.bytes && await harvestNeoBios(g.bytes)) return dbBiosGet();
   }
   return null;
+}
+// Neo Geo carts numbered 251 and up (KOF '99, Garou, Metal Slug 3/4/5…) are encrypted and only FBNeo runs them;
+// older ones (Metal Slug 1/2/X, KOF '98, Samurai Shodown…) also run on MAME 2003-Plus, which is far steadier on iPhone
+function neoGeoNeedsFBNeo(names) {
+  if (names.some(n => /(^|\/)neo-sma$|\.neo-sma$/.test(n))) return true;
+  const c1 = names.map(n => (n.match(/(?:^|\/)(\d{3})-c1/) || [])[1]).find(Boolean);
+  return c1 ? +c1 >= 251 : false;
 }
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
 const TAP_TO_START = 'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις';
