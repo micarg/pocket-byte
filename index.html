@@ -1350,6 +1350,7 @@ function bootEJS(entry) {
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
   const file = new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
+  entry.bytes = null; // the File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
     EJS_core: SYSTEMS[entry.sys].core,
@@ -1740,32 +1741,44 @@ for (const t of SHELLS) {
 /* ---- my games library (IndexedDB, this device only), grouped by console ---- */
 function romId(u) { let h = 2166136261 >>> 0; const step = u.length > 4e6 ? 997 : 7; for (let i = 0; i < u.length; i += step) { h ^= u[i]; h = Math.imul(h, 16777619) >>> 0; } return h.toString(16) + '-' + u.length.toString(16); }
 let dbP = null;
+// 'roms' holds the full entries (with bytes); 'meta' holds only names/systems so the list never loads every ROM into memory
+const metaOf = g => ({ id: g.id, name: g.name, sys: g.sys || 'gb', ext: g.ext, fileName: g.fileName, cgb: !!g.cgb, added: g.added || 0 });
 function db() {
   if (!dbP) dbP = new Promise((res, rej) => {
     try {
-      const r = indexedDB.open('pocket-byte', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('roms', { keyPath: 'id' });
+      const r = indexedDB.open('pocket-byte', 2);
+      r.onupgradeneeded = ev => {
+        const d = r.result, t = r.transaction;
+        if (!d.objectStoreNames.contains('roms')) d.createObjectStore('roms', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('meta')) {
+          const meta = d.createObjectStore('meta', { keyPath: 'id' });
+          t.objectStore('roms').openCursor().onsuccess = e2 => {
+            const c = e2.target.result; if (!c) return;
+            meta.put(metaOf(c.value)); c.continue();
+          };
+        }
+      };
       r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
     } catch (e) { rej(e); }
   });
   return dbP;
 }
-function tx(mode, fn) {
+function tx(stores, mode, fn) {
   return db().then(d => new Promise((res, rej) => {
-    const t = d.transaction('roms', mode), s = t.objectStore('roms');
-    const out = fn(s); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error);
+    const t = d.transaction(stores, mode);
+    const out = fn(t); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error);
   }));
 }
-const dbPut = item => tx('readwrite', s => s.put(item)).then(() => true).catch(() => false);
-const dbDel = id => tx('readwrite', s => s.delete(id)).catch(() => {});
-const dbGet = id => tx('readonly', s => s.get(id)).catch(() => null);
-const dbAll = () => tx('readonly', s => s.getAll()).catch(() => null);
+const dbPut = item => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').put(item); t.objectStore('meta').put(metaOf(item)); }).then(() => true).catch(() => false);
+const dbDel = id => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); }).catch(() => {});
+const dbGet = id => tx('roms', 'readonly', t => t.objectStore('roms').get(id)).catch(() => null);
+const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll()).catch(() => null);
 
 const mylist = document.getElementById('mylist');
 let renderSeq = 0;
 async function renderMine() {
   const seq = ++renderSeq;
-  const all = await dbAll();
+  const all = await dbMeta();
   if (seq !== renderSeq) return;
   mylist.innerHTML = '';
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
@@ -1785,7 +1798,11 @@ async function renderMine() {
       const n = document.createElement('span'); n.className = 'n'; n.textContent = g.name;
       const tag = document.createElement('small'); tag.textContent = key === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[key].tag;
       play.append(n, tag);
-      play.addEventListener('click', () => { unlockAudio(); setMenu(false); bootEntry(g); });
+      play.addEventListener('click', async () => {
+        unlockAudio(); setMenu(false);
+        const full = await dbGet(g.id);
+        if (full) bootEntry(full); else { toast('Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.', 3500); renderMine(); }
+      });
       const del = document.createElement('button'); del.className = 'del'; del.textContent = 'Σβήσε';
       del.setAttribute('aria-label', 'Σβήσε το ' + g.name);
       del.addEventListener('click', async () => {
