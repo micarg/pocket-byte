@@ -1648,7 +1648,8 @@ function fit() {
   const insetTop = parseFloat(cs.height) || 0, safeB = parseFloat(cs.paddingBottom) || 0;
   const vh = window.innerHeight;
   let top = Math.max(st.top, insetTop + (isApple && insetTop === 0 && st.top < 20 ? 50 : 0));
-  let bottom = Math.min(st.bottom, vh - safeB);
+  // the home indicator only needs a thin strip, so let the console reach down close to it
+  let bottom = vh - Math.max(6, safeB * 0.55);
   const GAP = 12;
   const H = Math.max(200, bottom - top - GAP * 2);
   const W = stage.clientWidth - 4;
