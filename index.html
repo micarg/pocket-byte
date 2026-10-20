@@ -1443,7 +1443,9 @@ function bootEJS(entry) {
     EJS_backgroundColor: '#000000',
     EJS_threads: false,
     EJS_fixedSaveInterval: 10000,
-    EJS_defaultOptions: { 'virtual-gamepad': 'disabled', 'menu-bar-button': 'hidden' },
+    EJS_defaultOptions: { 'virtual-gamepad': 'disabled', 'menu-bar-button': 'hidden',
+      // MAME 2003-Plus: skip the copyright and known-issue screens (they wait for a left-then-right joystick move)
+      'mame2003-plus_skip_disclaimer': 'enabled', 'mame2003-plus_skip_warnings': 'enabled' },
     EJS_Buttons: { playPause: false, restart: false, mute: false, settings: false, fullscreen: false, saveState: false, loadState: false,
       screenRecord: false, gamepad: false, cheat: false, volume: false, saveSavFiles: false, loadSavFiles: false, quickSave: false,
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
