@@ -66,8 +66,8 @@ body {
   user-select: none; -webkit-user-select: none;
   touch-action: none;
 }
-.bezel { background: var(--bezel-c); border-radius: 10px 10px 34px 10px; padding: 12px 18px 10px; }
-.bezel-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 10px var(--display); letter-spacing: .06em; margin-bottom: 8px; }
+.bezel { background: var(--bezel-c); border-radius: 10px 10px 34px 10px; padding: 7px 8px 12px; }
+.bezel-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 10px var(--display); letter-spacing: .06em; margin: 0 4px 6px; font-size: 9px; }
 .bezel-top .line { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--shell) 0 30%, var(--accent) 30% 60%, transparent 60%); opacity: .7; }
 .led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; }
 .led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
@@ -79,26 +79,35 @@ canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; max-width: 100%
 .brand span { font: 10px var(--display); color: var(--print); opacity: .7; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; }
-.dpad { position: relative; width: 132px; height: 132px; }
-.dpad::before, .dpad::after { content: ""; position: absolute; background: var(--btn); border-radius: 6px; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
-.dpad::before { left: 44px; top: 0; width: 44px; height: 132px; }
-.dpad::after { top: 44px; left: 0; width: 132px; height: 44px; }
-.dpad .hub { position: absolute; left: 52px; top: 52px; width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--btn-hi), var(--btn)); z-index: 2; }
-.dpad i { position: absolute; z-index: 2; width: 0; height: 0; border: 7px solid transparent; opacity: .55; }
-.dpad i.u { left: 59px; top: 10px; border-bottom-color: #8b9094; }
-.dpad i.d { left: 59px; bottom: 10px; border-top-color: #8b9094; }
-.dpad i.l { top: 59px; left: 10px; border-right-color: #8b9094; }
-.dpad i.r { top: 59px; right: 10px; border-left-color: #8b9094; }
-.dpad .lit { position: absolute; z-index: 1; background: var(--btn-hi); border-radius: 6px; display: none; }
+.dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none;
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.38) 0 58%, rgba(0,0,0,.22) 59% 100%);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.18); }
+.dpad .ring { position: absolute; inset: 14px; border-radius: 50%; background: var(--btn); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
+.dpad i { position: absolute; width: 0; height: 0; border: 6px solid transparent; opacity: .45; transition: opacity .1s; }
+.dpad i.u { left: 64px; top: 18px; border-bottom-color: #9aa0a5; }
+.dpad i.d { left: 64px; bottom: 18px; border-top-color: #9aa0a5; }
+.dpad i.l { top: 64px; left: 18px; border-right-color: #9aa0a5; }
+.dpad i.r { top: 64px; right: 18px; border-left-color: #9aa0a5; }
+.dpad i.on { opacity: 1; border-bottom-color: var(--accent); }
+.dpad i.d.on { border-color: transparent; border-top-color: var(--accent); }
+.dpad i.l.on { border-color: transparent; border-right-color: var(--accent); }
+.dpad i.r.on { border-color: transparent; border-left-color: var(--accent); }
+.dpad i.u.on { border-color: transparent; border-bottom-color: var(--accent); }
+.knob { position: absolute; left: 36px; top: 36px; width: 68px; height: 68px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 40% 32%, var(--btn-hi) 0, #34383c 45%, #1f2225 100%);
+  box-shadow: 0 6px 10px rgba(0,0,0,.5), inset 0 -3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12);
+  transition: transform .12s ease-out; }
+.knob::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: repeating-radial-gradient(circle, rgba(255,255,255,.07) 0 2px, transparent 2px 5px); }
+.knob.held { transition: none; }
 
-.ab { display: flex; gap: 14px; transform: rotate(-22deg); margin-right: 4px; margin-top: -10px; }
+.ab { display: flex; gap: 12px; transform: rotate(-22deg); margin-right: 4px; margin-top: -10px; }
 .ab .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .ab .b-wrap:first-child { margin-top: 26px; }
-.round { width: 58px; height: 58px; border-radius: 50%; border: 0; background: radial-gradient(circle at 38% 32%, var(--ab-1), var(--ab-2)); box-shadow: 0 5px 0 var(--ab-3), 0 7px 10px rgba(0,0,0,.35); }
+.round { width: 68px; height: 68px; border-radius: 50%; border: 0; background: radial-gradient(circle at 38% 32%, var(--ab-1), var(--ab-2)); box-shadow: 0 5px 0 var(--ab-3), 0 7px 10px rgba(0,0,0,.35); }
 .lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
 .sys { display: flex; justify-content: center; gap: 26px; margin-top: 26px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
-.pill { width: 54px; height: 14px; border-radius: 8px; border: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+.pill { width: 62px; height: 18px; border-radius: 10px; border: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
 .round.down, .pill.down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4); filter: brightness(1.2); }
 .speaker { display: flex; gap: 7px; justify-content: flex-end; margin-top: -6px; transform: rotate(-30deg); transform-origin: right; }
 .speaker span { width: 5px; height: 40px; border-radius: 3px; background: rgba(0,0,0,.25); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
@@ -166,9 +175,10 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
     <div class="brand"><b>POCKET BYTE</b><span id="now">—</span></div>
 
     <div class="pad-row">
-      <div class="dpad" id="dpad" aria-label="Σταυρός κατεύθυνσης">
-        <div class="lit" id="lit"></div>
-        <i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i><div class="hub"></div>
+      <div class="dpad" id="dpad" aria-label="Joystick">
+        <div class="ring"></div>
+        <i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i>
+        <div class="knob" id="knob"></div>
       </div>
       <div class="ab">
         <div class="b-wrap"><button class="round" data-key="B" aria-label="B"></button><span class="lbl">B</span></div>
@@ -1323,27 +1333,34 @@ document.querySelectorAll('[data-key]').forEach(btn => {
   btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
   btn.addEventListener('contextmenu', e => e.preventDefault());
 });
-const dpad = document.getElementById('dpad'), lit = document.getElementById('lit');
-const dpadPointers = new Map();
+const dpad = document.getElementById('dpad'), knob = document.getElementById('knob');
+const arrows = { [K.UP]: dpad.querySelector('i.u'), [K.DOWN]: dpad.querySelector('i.d'), [K.LEFT]: dpad.querySelector('i.l'), [K.RIGHT]: dpad.querySelector('i.r') };
+const dpadPointers = new Map(); // pointerId -> { m, x, y } (x, y in unscaled px)
+const STICK_TRAVEL = 34;
 function dpadFrom(e) {
   const r = dpad.getBoundingClientRect();
-  const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
-  const dz = r.width * 0.12; let m = 0;
-  if (Math.abs(x) > dz && Math.abs(x) > Math.abs(y) * 0.45) m |= x > 0 ? K.RIGHT : K.LEFT;
-  if (Math.abs(y) > dz && Math.abs(y) > Math.abs(x) * 0.45) m |= y > 0 ? K.DOWN : K.UP;
-  return m;
+  const scale = r.width / 140;
+  let x = (e.clientX - (r.left + r.width / 2)) / scale, y = (e.clientY - (r.top + r.height / 2)) / scale;
+  const d = Math.hypot(x, y);
+  let m = 0;
+  if (d > 16) {
+    const c = x / d, s = y / d, t = 0.383; // 8 equal sectors
+    if (c > t) m |= K.RIGHT; else if (c < -t) m |= K.LEFT;
+    if (s > t) m |= K.DOWN; else if (s < -t) m |= K.UP;
+  }
+  if (d > STICK_TRAVEL) { x = x / d * STICK_TRAVEL; y = y / d * STICK_TRAVEL; }
+  return { m, x, y };
 }
 function dpadUpdate() {
-  let m = 0; for (const v of dpadPointers.values()) m |= v;
+  let m = 0, first = null;
+  for (const v of dpadPointers.values()) { m |= v.m; if (!first) first = v; }
   held.dpad = m; applyKeys();
-  const s = lit.style; s.display = m ? 'block' : 'none';
-  if (m & K.UP) Object.assign(s, { left: '44px', top: '0', width: '44px', height: '44px' });
-  if (m & K.DOWN) Object.assign(s, { left: '44px', top: '88px', width: '44px', height: '44px' });
-  if (m & K.LEFT) Object.assign(s, { left: '0', top: '44px', width: '44px', height: '44px' });
-  if (m & K.RIGHT) Object.assign(s, { left: '88px', top: '44px', width: '44px', height: '44px' });
+  knob.classList.toggle('held', !!first);
+  knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
+  for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
 }
-dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const m = dpadFrom(e); if (m) haptic(); dpadPointers.set(e.pointerId, m); dpadUpdate(); });
-dpad.addEventListener('pointermove', e => { if (!dpadPointers.has(e.pointerId)) return; const m = dpadFrom(e); if (m && m !== dpadPointers.get(e.pointerId)) haptic(); dpadPointers.set(e.pointerId, m); dpadUpdate(); });
+dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
+dpad.addEventListener('pointermove', e => { if (!dpadPointers.has(e.pointerId)) return; const v = dpadFrom(e); if (v.m && v.m !== dpadPointers.get(e.pointerId).m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
 const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); };
 dpad.addEventListener('pointerup', dEnd); dpad.addEventListener('pointercancel', dEnd); dpad.addEventListener('lostpointercapture', dEnd);
 dpad.addEventListener('contextmenu', e => e.preventDefault());
