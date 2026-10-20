@@ -1384,7 +1384,7 @@ const CARTS = [
 ];
 const SYSTEMS = {
   gb: { name: 'Game Boy', tag: 'GB' },
-  nes: { name: 'NES', tag: 'NES', core: 'nes', ext: 'nes' },
+  nes: { name: 'NES', tag: 'NES', core: 'nestopia', ext: 'nes' }, // Nestopia: FCEUmm made iOS close the page mid-game
   gba: { name: 'Game Boy Advance', tag: 'GBA', core: 'gba', ext: 'gba' },
   md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
   n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
@@ -1542,7 +1542,7 @@ function bootEJS(entry) {
   entry.bytes = null; // the Blob/File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
-    EJS_core: entry.sys === 'arcade' ? (gameCoreOverride(entry.id) || ((neoGeo && neoGeoNeedsFBNeo(entryNames)) ? 'arcade' : arcadeCore())) : SYSTEMS[entry.sys].core,
+    EJS_core: entry.sys === 'arcade' ? (gameCoreOverride(entry.id) || ((neoGeo && neoGeoNeedsFBNeo(entryNames)) ? 'arcade' : arcadeCore())) : ((entry.sys === 'nes' && gameCoreOverride(entry.id)) || SYSTEMS[entry.sys].core),
     EJS_gameUrl: arcadeBlobUrl || file,
     EJS_gameName: (arcadeBlobUrl || needsBios) ? (entry.fileName || 'game.zip') : entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
     EJS_CacheLimit: 0,
@@ -2044,17 +2044,19 @@ document.addEventListener('pointerdown', () => { if (soundOn && audioCtx && audi
 
 /* ---- arcade emulator choice: per game while an arcade game is open, otherwise the default for all ---- */
 const arcCoreBtn = document.getElementById('arcCoreBtn');
-const coreInUse = () => (sys === 'arcade' && window.EJS_core) ? window.EJS_core : null;
+const coreInUse = () => ((sys === 'arcade' || sys === 'nes') && ejsLoaded && window.EJS_core) ? window.EJS_core : null;
+const NES_CORES = { nestopia: 'Nestopia', fceumm: 'FCEUmm' };
 function showArcCore() {
   const c = coreInUse();
+  if (c && sys === 'nes') { arcCoreBtn.textContent = 'Εξομοιωτής για αυτό το παιχνίδι: ' + NES_CORES[c]; return; }
   arcCoreBtn.textContent = c ? 'Εξομοιωτής για αυτό το παιχνίδι: ' + (ARCADE_CORES[c] || c) : 'Εξομοιωτής arcade: ' + ARCADE_CORES[arcadeCore()];
 }
 arcCoreBtn.addEventListener('click', () => {
   const c = coreInUse();
   if (c && current) {
-    const next = c === 'mame2003_plus' ? 'arcade' : 'mame2003_plus';
+    const next = sys === 'nes' ? (c === 'nestopia' ? 'fceumm' : 'nestopia') : c === 'mame2003_plus' ? 'arcade' : 'mame2003_plus';
     setGameCoreOverride(current, next);
-    toast('Αυτό το παιχνίδι θα παίζει με ' + ARCADE_CORES[next] + '…');
+    toast('Αυτό το παιχνίδι θα παίζει με ' + (ARCADE_CORES[next] || NES_CORES[next]) + '…');
     setLast(current); setTimeout(() => location.reload(), 900);
     return;
   }
