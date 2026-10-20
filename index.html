@@ -1515,7 +1515,10 @@ function bootEJS(entry) {
       if (entry.sys === 'arcade' && window.EJS_core === 'mame2003_plus') setTimeout(() => {
         // with no content loaded RetroArch reports an empty save-file path; a running game always has one
         let running = true;
-        try { running = !!EJS_emulator.gameManager.functions.getSaveFilePath(); } catch (e) { running = true; }
+        try {
+          const f = EJS_emulator.gameManager.functions;
+          running = !!f.getSaveFilePath() && !!f.getCoreOptions();
+        } catch (e) { running = true; }
         if (!running && !gameCoreOverride(entry.id)) {
           setGameCoreOverride(entry.id, 'arcade');
           toast('Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού. Το ανοίγω με FBNeo…', 3500);
@@ -1860,16 +1863,26 @@ function setSound(on) {
 document.getElementById('soundBtn').addEventListener('click', () => setSound(!soundOn));
 document.addEventListener('pointerdown', () => { if (soundOn && audioCtx && audioCtx.state !== 'running') audioCtx.resume().catch(() => {}); }, true);
 
-/* ---- arcade emulator choice ---- */
+/* ---- arcade emulator choice: per game while an arcade game is open, otherwise the default for all ---- */
 const arcCoreBtn = document.getElementById('arcCoreBtn');
-function showArcCore() { arcCoreBtn.textContent = 'Εξομοιωτής arcade: ' + ARCADE_CORES[arcadeCore()]; }
+const coreInUse = () => (sys === 'arcade' && window.EJS_core) ? window.EJS_core : null;
+function showArcCore() {
+  const c = coreInUse();
+  arcCoreBtn.textContent = c ? 'Εξομοιωτής για αυτό το παιχνίδι: ' + (ARCADE_CORES[c] || c) : 'Εξομοιωτής arcade: ' + ARCADE_CORES[arcadeCore()];
+}
 arcCoreBtn.addEventListener('click', () => {
+  const c = coreInUse();
+  if (c && current) {
+    const next = c === 'mame2003_plus' ? 'arcade' : 'mame2003_plus';
+    setGameCoreOverride(current, next);
+    toast('Αυτό το παιχνίδι θα παίζει με ' + ARCADE_CORES[next] + '…');
+    setLast(current); setTimeout(() => location.reload(), 900);
+    return;
+  }
   const next = arcadeCore() === 'mame2003_plus' ? 'arcade' : 'mame2003_plus';
   try { localStorage.setItem('pb-arcade-core', next); } catch (e) {}
-  if (current) setGameCoreOverride(current, null);
   showArcCore();
-  if (sys === 'arcade' && current) { toast('Αλλάζω εξομοιωτή…'); setLast(current); setTimeout(() => location.reload(), 600); }
-  else toast('Τα arcade θα παίζουν με ' + ARCADE_CORES[next] + '.');
+  toast('Τα arcade θα παίζουν με ' + ARCADE_CORES[next] + '.');
 });
 showArcCore();
 
@@ -2221,7 +2234,7 @@ async function renderSlots() {
 const menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
 function setMenu(open) {
   menu.hidden = !open; scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
-  if (open) renderSlots();
+  if (open) { renderSlots(); showArcCore(); }
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
