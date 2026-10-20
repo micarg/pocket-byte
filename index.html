@@ -1421,7 +1421,9 @@ function bootEJS(entry) {
   setLast(entry.id); markActive();
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
-  const neoGeo = entry.sys === 'arcade' && isNeoGeoSet(zipNames(entry.bytes));
+  const entryNames = entry.sys === 'arcade' ? zipNames(entry.bytes) : [];
+  const neoGeo = entry.sys === 'arcade' && isNeoGeoSet(entryNames);
+  const needsBios = neoGeo && !hasNeoBios(entryNames);
   // Arcade zips go in as a blob: URL, which EmulatorJS reads once (a File gets read twice and copied, which
   // for big sets like Metal Slug 3 is enough memory to make iOS close the page). The zip name then comes from
   // EJS_gameName, which is what MAME/FBNeo use to identify the set.
@@ -1457,6 +1459,7 @@ function bootEJS(entry) {
       if (paused) try { EJS_emulator.pause(); } catch (e) {}
     },
   });
+  const startLoader = () => load(0);
   const load = i => {
     window.EJS_pathtodata = EJS_CDN[i];
     const s = document.createElement('script');
@@ -1464,7 +1467,13 @@ function bootEJS(entry) {
     s.onerror = () => { if (i + 1 < EJS_CDN.length) load(i + 1); else showOverlay('Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.'); };
     document.body.appendChild(s);
   };
-  load(0);
+  if (needsBios) {
+    findNeoBios().then(b => {
+      if (b) { window.EJS_biosUrl = new File([b], 'neogeo.zip'); window.EJS_dontExtractBIOS = true; }
+      else toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
+      startLoader();
+    });
+  } else startLoader();
   if (entry.sys === 'n64') toast('Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.', 4500);
   return true;
 }
@@ -1488,6 +1497,59 @@ function zipNames(u) {
 // Neo Geo sets (sprite ROMs named *.c1, BIOS pieces like sfix / sm1 / 000-lo) are newer than MAME 2003; FBNeo runs them
 function isNeoGeoSet(names) {
   return names.some(n => /(^|\/)(sfix\.sfix|sm1\.sm1|000-lo\.lo|neo-sma)$/.test(n)) || (names.some(n => /\.c1$/.test(n)) && names.some(n => /\.p1$/.test(n)));
+}
+// Neo Geo BIOS pieces (as found in neogeo.zip, or bundled inside some game sets such as mslug3.zip)
+const NEO_BIOS_RE = /(^|\/)(sfix\.sfix|000-lo\.lo|sm1\.sm1|[^/]*\.sp1|sp1\.[^/]+|uni-bios[^/]*\.rom|asia-s3\.rom|japan-j3\.bin|vs-bios\.rom|v2\.bin|sp-1v1[^/]*\.bin|neo-epo\.bin|neodebug\.bin|sm1\.rom|sfix\.rom|000-lo\.rom)$/;
+function hasNeoBios(names) { return names.some(n => /(^|\/)sfix\.sfix$/.test(n)) && names.some(n => /(^|\/)000-lo\.lo$/.test(n)) && names.some(n => /\.sp1$|sp-s2|uni-bios/.test(n)); }
+// Copy the chosen entries of a zip into a new zip without decompressing them
+function zipSubset(u, keep) {
+  const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+  let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e <= 0) return null;
+  let cd = dv.getUint32(e + 16, true);
+  const dec = new TextDecoder(), locals = [], centrals = [];
+  let outLen = 0, count = 0;
+  while (cd + 46 < u.length && dv.getUint32(cd, true) === 0x02014b50) {
+    const n = dv.getUint16(cd + 28, true), x = dv.getUint16(cd + 30, true), c = dv.getUint16(cd + 32, true);
+    const name = dec.decode(u.subarray(cd + 46, cd + 46 + n)).toLowerCase();
+    const csize = dv.getUint32(cd + 20, true), lho = dv.getUint32(cd + 42, true);
+    if (keep(name)) {
+      const ln = dv.getUint16(lho + 26, true), lx = dv.getUint16(lho + 28, true), flags = dv.getUint16(lho + 6, true);
+      let end = lho + 30 + ln + lx + csize;
+      if (flags & 8) end += dv.getUint32(end, true) === 0x08074b50 ? 16 : 12;
+      const local = u.subarray(lho, end), central = u.slice(cd, cd + 46 + n + x + c);
+      new DataView(central.buffer).setUint32(42, outLen, true);
+      locals.push(local); centrals.push(central); outLen += local.length; count++;
+    }
+    cd += 46 + n + x + c;
+  }
+  if (!count) return null;
+  const cdLen = centrals.reduce((s, c) => s + c.length, 0);
+  const out = new Uint8Array(outLen + cdLen + 22), odv = new DataView(out.buffer);
+  let o = 0; for (const l of locals) { out.set(l, o); o += l.length; }
+  for (const c of centrals) { out.set(c, o); o += c.length; }
+  odv.setUint32(o, 0x06054b50, true); odv.setUint16(o + 8, count, true); odv.setUint16(o + 10, count, true);
+  odv.setUint32(o + 12, cdLen, true); odv.setUint32(o + 16, outLen, true);
+  return out;
+}
+const dbBiosGet = () => tx('roms', 'readonly', t => t.objectStore('roms').get('bios:neogeo')).then(r => r && r.bytes).catch(() => null);
+const dbBiosPut = bytes => tx('roms', 'readwrite', t => t.objectStore('roms').put({ id: 'bios:neogeo', bytes })).then(() => true).catch(() => false);
+// Keep a neogeo.zip on the device, cut from any of the player's own sets that carry the BIOS
+async function harvestNeoBios(u) {
+  const names = zipNames(u);
+  if (!hasNeoBios(names)) return false;
+  const bios = zipSubset(u, n => NEO_BIOS_RE.test(n));
+  return bios ? dbBiosPut(bios) : false;
+}
+async function findNeoBios() {
+  let b = await dbBiosGet();
+  if (b) return b;
+  const metas = (await dbMeta()) || [];
+  for (const m of metas.filter(m => m.sys === 'arcade')) {
+    const g = await dbGet(m.id);
+    if (g && g.bytes && await harvestNeoBios(g.bytes)) return dbBiosGet();
+  }
+  return null;
 }
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
 const TAP_TO_START = 'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις';
@@ -1624,6 +1686,13 @@ document.getElementById('romFile').addEventListener('change', async e => {
       else arcade = true;
     }
   } catch (err) { toast('Δεν μπόρεσα να διαβάσω αυτό το αρχείο.', 4000); return; }
+  if (arcade) {
+    const hadBios = await harvestNeoBios(bytes);
+    if (/^([0-9a-f]{6,}-)?neogeo(\s*\(\d+\))?\.zip$/i.test(f.name)) {
+      toast(hadBios ? 'Αποθηκεύτηκε το BIOS της Neo Geo. Τα παιχνίδια Neo Geo θα το βρίσκουν αυτόματα.' : 'Αυτό το neogeo.zip δεν έχει τα αρχεία BIOS που χρειάζονται.', 4500);
+      setMenu(false); return;
+    }
+  }
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
   if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis, N64 και arcade (.zip).', 4000); return; }
   const base = name.replace(/^.*\//, '');
