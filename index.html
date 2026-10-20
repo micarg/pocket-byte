@@ -365,7 +365,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 
   <section>
     <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
-    <div class="style-pick" id="stylePick"><button data-style="retro">RETRO</button><button data-style="modern">MODERN</button></div>
+    <div class="style-pick" id="stylePick"><button data-style="modern">MODERN</button><button data-style="retro">RETRO</button></div>
     <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
     <div class="swatches" id="swatches"></div>
     <div class="swatch-name" id="swatchName"></div>
@@ -2357,10 +2357,10 @@ async function renderMine() {
 /* ---- start ---- */
 try {
   applyShell(localStorage.getItem('pb-shell') || 'persimmon');
-  applyStyle(localStorage.getItem('pb-style') || 'retro');
+  applyStyle(localStorage.getItem('pb-style') || 'modern');
   setHaptics(localStorage.getItem('pb-haptic') !== '0');
   if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = '🔊 Ήχος: ανοιχτός'; }
-} catch (e) { applyShell('persimmon'); setHaptics(true); }
+} catch (e) { applyShell('persimmon'); applyStyle('modern'); setHaptics(true); }
 let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
 if (lastId && lastId.startsWith('user:')) {
   dbGet(lastId).then(g => {
