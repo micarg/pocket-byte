@@ -1,4 +1,4 @@
-const CACHE = 'pocket-byte-v46';
+const CACHE = 'pocket-byte-v47';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -8,7 +8,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (url.origin === location.origin) {
     // network first for the app itself so updates arrive; cache is the offline fallback
-    e.respondWith(fetch(e.request).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r; })
+    // 'no-cache' revalidates with GitHub every time instead of trusting the 10-minute browser cache
+    e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r; })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
   } else if (/fonts\.(googleapis|gstatic)\.com$|^cdn\.emulatorjs\.org$/.test(url.hostname)) {
     // fonts and versioned emulator files rarely change: cache first so Genesis/N64 also start offline
