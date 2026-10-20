@@ -1,18 +1,27 @@
-const CACHE = 'pocket-byte-v52';
+// App files live in a versioned cache that is replaced on every update.
+// Emulator files and fonts from CDNs live in their own cache that updates never clear, so Genesis / N64 / arcade
+// keep working offline once each system has been opened online.
+const CACHE = 'pocket-byte-v53';
+const CDN_CACHE = 'pocket-byte-cdn';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-const cacheFirst = req => caches.match(req).then(r => r || fetch(req).then(res => { if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; }));
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+});
+const cdnFirst = req => caches.open(CDN_CACHE).then(c => c.match(req, { ignoreVary: true }).then(hit => hit || fetch(req).then(res => {
+  if (res.ok || res.type === 'opaque') c.put(req, res.clone());
+  return res;
+})));
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin === location.origin) {
-    // network first for the app itself so updates arrive; cache is the offline fallback
     // 'no-cache' revalidates with GitHub every time instead of trusting the 10-minute browser cache
     e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r; })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
   } else if (/fonts\.(googleapis|gstatic)\.com$|^cdn\.emulatorjs\.org$/.test(url.hostname)) {
-    // fonts and versioned emulator files rarely change: cache first so Genesis/N64 also start offline
-    e.respondWith(cacheFirst(e.request));
+    // version.json is only an update check; answer it offline so it never blocks anything
+    if (/\/version\.json$/.test(url.pathname)) { e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'content-type': 'application/json' } }))); return; }
+    e.respondWith(cdnFirst(e.request));
   }
 });
