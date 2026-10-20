@@ -1422,13 +1422,18 @@ function bootEJS(entry) {
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
   const neoGeo = entry.sys === 'arcade' && isNeoGeoSet(zipNames(entry.bytes));
-  const file = new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
-  entry.bytes = null; // the File holds the data now; don't keep a second copy in memory
+  // Arcade zips go in as a blob: URL, which EmulatorJS reads once (a File gets read twice and copied, which
+  // for big sets like Metal Slug 3 is enough memory to make iOS close the page). The zip name then comes from
+  // EJS_gameName, which is what MAME/FBNeo use to identify the set.
+  const arcadeBlobUrl = entry.sys === 'arcade' ? URL.createObjectURL(new Blob([entry.bytes])) : null;
+  const file = arcadeBlobUrl ? null : new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
+  entry.bytes = null; // the Blob/File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
     EJS_core: entry.sys === 'arcade' ? (neoGeo ? 'arcade' : arcadeCore()) : SYSTEMS[entry.sys].core,
-    EJS_gameUrl: file,
-    EJS_gameName: entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
+    EJS_gameUrl: arcadeBlobUrl || file,
+    EJS_gameName: arcadeBlobUrl ? (entry.fileName || 'game.zip') : entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
+    EJS_CacheLimit: 0,
     EJS_language: 'en-US',
     EJS_startOnLoaded: true,
     EJS_volume: soundOn ? 0.8 : 0,
@@ -1442,6 +1447,7 @@ function bootEJS(entry) {
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      window.EJS_gameUrl = null; // drop our reference to the ROM data
       // iOS keeps the emulator's audio (and with it the emulator) suspended until a tap; say so in our own words
       setTimeout(() => { if (ejsSuspended()) showOverlay(TAP_TO_START); }, 400);
       // pick up where the player was if the page was closed or reloaded mid-game
