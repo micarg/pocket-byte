@@ -128,8 +128,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="arcade"]) .only-arcade,
 .console:not([data-prof="drive"]) .only-drive,
 .console[data-prof="drive"] .only-arcade-std { display: none !important; }
-.face { position: relative; width: 170px; height: 160px; flex: none; }
-.btn { position: absolute; border: 0; padding: 0; border-radius: 50%; touch-action: none; }
+.face { position: relative; width: 170px; height: 160px; flex: none; touch-action: none; }
+.btn { position: absolute; border: 0; padding: 0; border-radius: 50%; touch-action: none; pointer-events: none; }
+.sys .btn, .sys button { pointer-events: auto; }
 .btn .t { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font: 12px var(--display); color: var(--print); letter-spacing: .06em; pointer-events: none; white-space: nowrap; }
 .round { width: 68px; height: 68px; background: radial-gradient(circle at 38% 32%, var(--ab-1), var(--ab-2)); box-shadow: 0 5px 0 var(--ab-3), 0 7px 10px rgba(0,0,0,.35); }
 .round.sm { width: 54px; height: 54px; }
@@ -1694,26 +1695,66 @@ function applyKeys() {
   const all = held.touch | held.kbd | held.dpad;
   for (const bit of [1, 2, 4, 8, 16, 32, 64, 128]) gb.setKey(bit, !!(all & bit));
 }
-document.querySelectorAll('[data-gb],[data-ej]').forEach(btn => {
+// Buttons are pressed by reference count so two fingers (or a slide) never release a button another finger still holds.
+const btnCount = new Map();
+function pressBtn(btn) {
+  const n = (btnCount.get(btn) || 0) + 1; btnCount.set(btn, n);
+  if (n > 1) return;
+  btn.classList.add('down'); haptic();
   const gbBit = btn.dataset.gb ? K[btn.dataset.gb] : 0;
-  const ej = btn.dataset.ej !== undefined ? +btn.dataset.ej : -1;
-  const onVal = btn.dataset.analog ? 0x7fff : 1;
-  let isDown = false;
-  const down = e => {
+  if (gbBit) { held.touch |= gbBit; applyKeys(); }
+  if (btn.dataset.ej !== undefined) ejsInput(+btn.dataset.ej, btn.dataset.analog ? 0x7fff : 1);
+}
+function releaseBtn(btn) {
+  const n = (btnCount.get(btn) || 0) - 1;
+  if (n > 0) { btnCount.set(btn, n); return; }
+  btnCount.delete(btn);
+  btn.classList.remove('down');
+  const gbBit = btn.dataset.gb ? K[btn.dataset.gb] : 0;
+  if (gbBit) { held.touch &= ~gbBit; applyKeys(); }
+  if (btn.dataset.ej !== undefined) ejsInput(+btn.dataset.ej, 0);
+}
+// Face buttons: a finger can slide from one button to another (e.g. gas to brake) without lifting.
+document.querySelectorAll('.face').forEach(face => {
+  const fingers = new Map(); // pointerId -> button currently under it
+  const hit = e => {
+    let best = null, bestD = Infinity;
+    for (const b of face.querySelectorAll('.btn')) {
+      const r = b.getBoundingClientRect(); if (!r.width) continue;
+      const pad = r.width * 0.12;
+      if (e.clientX < r.left - pad || e.clientX > r.right + pad || e.clientY < r.top - pad || e.clientY > r.bottom + pad) continue;
+      const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+      if (d < bestD) { bestD = d; best = b; }
+    }
+    return best;
+  };
+  face.addEventListener('pointerdown', e => {
+    const b = hit(e); if (!b) return;
     e.preventDefault(); unlockAudio();
-    if (btn.setPointerCapture) try { btn.setPointerCapture(e.pointerId); } catch (_) {}
-    if (isDown) return; isDown = true;
-    btn.classList.add('down'); haptic();
-    if (gbBit) { held.touch |= gbBit; applyKeys(); }
-    if (ej >= 0) ejsInput(ej, onVal);
-  };
-  const up = () => {
-    if (!isDown) return; isDown = false;
-    btn.classList.remove('down');
-    if (gbBit) { held.touch &= ~gbBit; applyKeys(); }
-    if (ej >= 0) ejsInput(ej, 0);
-  };
-  btn.addEventListener('pointerdown', down);
+    try { face.setPointerCapture(e.pointerId); } catch (_) {}
+    fingers.set(e.pointerId, b); pressBtn(b);
+  });
+  face.addEventListener('pointermove', e => {
+    if (!fingers.has(e.pointerId)) return;
+    const was = fingers.get(e.pointerId), now = hit(e);
+    if (now === was) return;
+    if (was) releaseBtn(was);
+    if (now) pressBtn(now);
+    fingers.set(e.pointerId, now);
+  });
+  const end = e => { if (!fingers.has(e.pointerId)) return; const b = fingers.get(e.pointerId); fingers.delete(e.pointerId); if (b) releaseBtn(b); };
+  face.addEventListener('pointerup', end); face.addEventListener('pointercancel', end); face.addEventListener('lostpointercapture', end);
+  face.addEventListener('contextmenu', e => e.preventDefault());
+});
+// Select / Start / Mode / L / Z / R pills: plain press and hold
+document.querySelectorAll('.sys [data-gb], .sys [data-ej]').forEach(btn => {
+  let isDown = false;
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    if (isDown) return; isDown = true; pressBtn(btn);
+  });
+  const up = () => { if (!isDown) return; isDown = false; releaseBtn(btn); };
   btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
   btn.addEventListener('contextmenu', e => e.preventDefault());
 });
@@ -1798,7 +1839,7 @@ addEventListener('keydown', e => {
   e.preventDefault(); unlockAudio(); held.kbd |= b; applyKeys();
 });
 addEventListener('keyup', e => { const b = KEYMAP[e.code]; if (!b) return; held.kbd &= ~b; applyKeys(); });
-addEventListener('blur', () => { held.kbd = 0; held.touch = 0; dpadPointers.clear(); dpadUpdate(); });
+addEventListener('blur', () => { held.kbd = 0; for (const b of [...btnCount.keys()]) { btnCount.set(b, 1); releaseBtn(b); } held.touch = 0; dpadPointers.clear(); dpadUpdate(); });
 
 /* ---- Game Boy main loop ---- */
 const FRAME_MS = 70224 / 4194304 * 1000;
