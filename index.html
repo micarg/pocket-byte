@@ -1573,16 +1573,26 @@ const arrows = { [K.UP]: dpad.querySelector('i.u'), [K.DOWN]: dpad.querySelector
 const dpadPointers = new Map(); // pointerId -> { m, x, y } (x, y in unscaled px)
 const STICK_TRAVEL = 34;
 let lastEjDigital = 0;
-function dpadFrom(e) {
+// Direction from the thumb's position relative to the stick centre.
+// Cardinal directions get 60° sectors and diagonals 30°, so a slightly-off push still reads as a clean up/down/left/right;
+// hysteresis keeps a direction held until the thumb clearly leaves it, so the edges don't flicker.
+const DEAD_ON = 9, DEAD_OFF = 6;       // px of thumb travel (unscaled) to start / stop
+const AXIS_ON = 0.5, AXIS_OFF = 0.38;  // cos of the angle from an axis: 0.5 = 60°, 0.38 ≈ 67°
+function dpadFrom(e, prev) {
   const r = dpad.getBoundingClientRect();
   const scale = r.width / 140;
   let x = (e.clientX - (r.left + r.width / 2)) / scale, y = (e.clientY - (r.top + r.height / 2)) / scale;
   const d = Math.hypot(x, y);
+  const pm = prev ? prev.m : 0;
   let m = 0;
-  if (d > 16) {
-    const c = x / d, s = y / d, t = 0.383; // 8 equal sectors
-    if (c > t) m |= K.RIGHT; else if (c < -t) m |= K.LEFT;
-    if (s > t) m |= K.DOWN; else if (s < -t) m |= K.UP;
+  if (d > (pm ? DEAD_OFF : DEAD_ON)) {
+    const c = x / d, s = y / d;
+    const on = (bit, v) => v > ((pm & bit) ? AXIS_OFF : AXIS_ON);
+    if (on(K.RIGHT, c)) m |= K.RIGHT; else if (on(K.LEFT, -c)) m |= K.LEFT;
+    if (on(K.DOWN, s)) m |= K.DOWN; else if (on(K.UP, -s)) m |= K.UP;
+    if (!m) { // never fall into a gap: pick the nearest axis
+      if (Math.abs(c) >= Math.abs(s)) m = c > 0 ? K.RIGHT : K.LEFT; else m = s > 0 ? K.DOWN : K.UP;
+    }
   }
   if (d > STICK_TRAVEL) { x = x / d * STICK_TRAVEL; y = y / d * STICK_TRAVEL; }
   return { m, x, y };
@@ -1608,8 +1618,16 @@ function dpadUpdate() {
     ejsInput(18, ay > 0 ? v(ay) : 0); ejsInput(19, ay < 0 ? v(-ay) : 0);
   }
 }
-dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
-dpad.addEventListener('pointermove', e => { if (!dpadPointers.has(e.pointerId)) return; const v = dpadFrom(e); if (v.m && v.m !== dpadPointers.get(e.pointerId).m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
+dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e, null); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
+function dpadMove(e) {
+  const prev = dpadPointers.get(e.pointerId); if (!prev) return;
+  e.preventDefault();
+  const v = dpadFrom(e, prev);
+  if (v.m && v.m !== prev.m) haptic();
+  dpadPointers.set(e.pointerId, v); dpadUpdate();
+}
+// pointerrawupdate (where supported) delivers moves without waiting for the next frame
+dpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', dpadMove);
 const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); };
 dpad.addEventListener('pointerup', dEnd); dpad.addEventListener('pointercancel', dEnd); dpad.addEventListener('lostpointercapture', dEnd);
 dpad.addEventListener('contextmenu', e => e.preventDefault());
