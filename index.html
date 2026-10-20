@@ -1660,7 +1660,8 @@ function fit() {
   if (base * s > H) s = H / base;
   else {
     if (H / s - base > 90) { applyLayout(true); base = consoleEl.offsetHeight; if (base * s > H) s = H / base; }
-    consoleEl.style.minHeight = Math.max(base, Math.min(H / s, consoleEl.offsetWidth * 2.3)) + 'px';
+    // only a little extra height: the roomy layout already fills it, more just stretches the shell
+    consoleEl.style.minHeight = Math.max(base, Math.min(H / s, base + 30)) + 'px';
   }
   s = Math.max(0.4, Math.min(s, 1.8));
   consoleEl.style.top = (top - st.top + GAP + H / 2) + 'px';
