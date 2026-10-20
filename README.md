@@ -17,5 +17,5 @@
 
 Ο πηγαίος κώδικας κάθε παιχνιδιού βρίσκεται στους παραπάνω συνδέσμους.
 
-## Genesis και Nintendo 64
-Τα παιχνίδια Sega Genesis / Mega Drive και Nintendo 64 τρέχουν με το [EmulatorJS](https://github.com/EmulatorJS/EmulatorJS) (GPLv3), που φορτώνεται από το CDN του την πρώτη φορά και μετά μένει αποθηκευμένο στη συσκευή.
+## Genesis, Nintendo 64 και arcade
+Τα παιχνίδια Sega Genesis / Mega Drive, Nintendo 64 και arcade τρέχουν με το [EmulatorJS](https://github.com/EmulatorJS/EmulatorJS) (GPLv3), που φορτώνεται από το CDN του την πρώτη φορά και μετά μένει αποθηκευμένο στη συσκευή.

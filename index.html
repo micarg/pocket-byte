@@ -124,7 +124,8 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 /* per-system controls */
 .console:not([data-sys="gb"]) .only-gb,
 .console:not([data-sys="md"]) .only-md,
-.console:not([data-sys="n64"]) .only-n64 { display: none !important; }
+.console:not([data-sys="n64"]) .only-n64,
+.console:not([data-sys="arcade"]) .only-arcade { display: none !important; }
 .face { position: relative; width: 170px; height: 160px; flex: none; }
 .btn { position: absolute; border: 0; padding: 0; border-radius: 50%; touch-action: none; }
 .btn .t { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font: 12px var(--display); color: var(--print); letter-spacing: .06em; pointer-events: none; white-space: nowrap; }
@@ -224,6 +225,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <button class="btn round sm" id="mdC" data-ej="8" aria-label="C"><span class="t">C</span></button>
       </div>
 
+      <div class="face only-arcade">
+        <button class="btn round sm" id="arc1" data-ej="0" aria-label="Κουμπί 1"><span class="t">1</span></button>
+        <button class="btn round sm" id="arc2" data-ej="8" aria-label="Κουμπί 2"><span class="t">2</span></button>
+        <button class="btn round sm" id="arc3" data-ej="1" aria-label="Κουμπί 3"><span class="t">3</span></button>
+      </div>
+
       <div class="face only-n64">
         <span class="n64-c-label">C</span>
         <button class="btn cbtn cu" id="nCU" data-ej="23" data-analog="1" aria-label="C πάνω"></button>
@@ -241,6 +248,10 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     </div>
     <div class="sys only-md">
       <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Mode"></button><span class="lbl">MODE</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+    </div>
+    <div class="sys only-arcade">
+      <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Κέρμα"></button><span class="lbl">COIN</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
     </div>
     <div class="sys only-n64">
@@ -284,9 +295,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 
   <section class="help">
     <h2>ΠΩΣ ΠΑΙΖΕΙΣ</h2>
-    <div>Παίζει Game Boy και Game Boy Color (.gb, .gbc), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64), καθώς και αρχεία .zip που περιέχουν κάποιο από αυτά. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
+    <div>Παίζει Game Boy και Game Boy Color (.gb, .gbc), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64) και arcade (σετ MAME/FBNeo σε .zip, π.χ. wboy.zip), καθώς και .zip που περιέχουν ROM κονσόλας. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
     <div>Στον υπολογιστή, στο Game Boy: βελάκια για κατεύθυνση, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select.</div>
-    <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα Genesis και N64 τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
+    <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα Genesis, N64 και arcade τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
     <div>Οι κασέτες Game Boy είναι δωρεάν παιχνίδια ανοιχτού κώδικα:
       <a href="https://github.com/pinobatch/libbet" target="_blank" rel="noopener">Libbet</a> (Damian Yerrick, zlib),
       <a href="https://github.com/AntonioND/geometrix" target="_blank" rel="noopener">Geometrix</a> και
@@ -1243,6 +1254,7 @@ const SYSTEMS = {
   gb: { name: 'Game Boy', tag: 'GB' },
   md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
   n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
+  arcade: { name: 'Arcade', tag: 'ARC', core: 'arcade', ext: 'zip' },
 };
 const EJS_CDN = ['https://cdn.emulatorjs.org/4.2.3/data/', 'https://cdn.emulatorjs.org/stable/data/'];
 // The page needs to load EmulatorJS from its CDN; the Claude preview blocks that, the GitHub site allows it.
@@ -1336,7 +1348,8 @@ function bootEJS(entry) {
   showOverlay('ΦΟΡΤΩΝΕΙ…');
   setLast(entry.id); markActive();
 
-  const file = new File([entry.bytes], 'game.' + (entry.ext || SYSTEMS[entry.sys].ext));
+  // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
+  const file = new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
   Object.assign(window, {
     EJS_player: '#ejs',
     EJS_core: SYSTEMS[entry.sys].core,
@@ -1396,6 +1409,8 @@ function markActive() {
 }
 
 /* ---- ROM loading (incl. zip) ---- */
+const ARCADE_NAMES = { wboy: 'Wonder Boy', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
+function arcadeName(file) { const k = file.toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || k; }
 async function unzipFirstRom(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf);
   let p = 0;
@@ -1429,18 +1444,24 @@ async function unzipFirstRom(buf) {
 document.getElementById('loadBtn').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 document.getElementById('romFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  let bytes, name = f.name;
+  let bytes, name = f.name, arcade = false;
   try {
     const buf = await f.arrayBuffer();
     bytes = new Uint8Array(buf);
-    if (/\.zip$/i.test(f.name) || (bytes[0] === 0x50 && bytes[1] === 0x4b)) { const r = await unzipFirstRom(buf); bytes = r.bytes; name = r.name; }
-  } catch (err) { toast('Μέσα στο zip δεν βρέθηκε παιχνίδι Game Boy, Genesis ή N64.', 4000); return; }
-  const s = detectSystem(name, bytes);
-  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis και N64.', 4000); return; }
+    if (/\.zip$/i.test(f.name) || (bytes[0] === 0x50 && bytes[1] === 0x4b)) {
+      try { const r = await unzipFirstRom(buf); bytes = r.bytes; name = r.name; }
+      catch (err) { arcade = true; } // no console ROM inside: an arcade set, kept zipped
+    }
+  } catch (err) { toast('Δεν μπόρεσα να διαβάσω αυτό το αρχείο.', 4000); return; }
+  const s = arcade ? 'arcade' : detectSystem(name, bytes);
+  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis, N64 και arcade (.zip).', 4000); return; }
   const base = name.replace(/^.*\//, '');
-  const label = base.replace(/\.[a-z0-9]+$/i, '');
+  const arcFile = arcade ? base.toLowerCase().replace(/\s*\(\d+\)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
+  const label = arcade ? arcadeName(arcFile) : base.replace(/\.[a-z0-9]+$/i, '');
   const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
-  const entry = { id: 'user:' + romId(bytes), name: label, sys: s, ext: (s !== 'gb' && ext) ? ext : undefined, cgb: s === 'gb' ? !!(bytes[0x143] & 0x80) : false, added: Date.now(), bytes };
+  const entry = { id: 'user:' + romId(bytes), name: label, sys: s, ext: (s !== 'gb' && ext) ? ext : undefined,
+    fileName: arcFile,
+    cgb: s === 'gb' ? !!(bytes[0x143] & 0x80) : false, added: Date.now(), bytes };
   const stored = await dbPut(entry);
   setMenu(false);
   toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (' + SYSTEMS[s].name + '): ' + label : 'Φορτώθηκε: ' + label + ' (δεν αποθηκεύτηκε σε αυτόν τον browser)', 3500);
@@ -1569,7 +1590,7 @@ function dpadUpdate() {
   knob.classList.toggle('held', !!first);
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
-  if (sys === 'md') {
+  if (sys === 'md' || sys === 'arcade') {
     // Genesis D-pad: RetroPad up/down/left/right = 4/5/6/7
     const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
     for (const [bit, idx] of map) if ((m & bit) !== (lastEjDigital & bit)) ejsInput(idx, m & bit ? 1 : 0);
@@ -1629,7 +1650,8 @@ const LAYOUT = {
   gbB: [[8, 62, 68], [0, 96, 76]],   gbA: [[92, 28, 68], [84, 18, 76]],
   mdA: [[0, 78, 54], [0, 124, 60]],   mdB: [[58, 48, 54], [50, 70, 60]],   mdC: [[116, 18, 54], [100, 16, 60]],
   nCU: [[114, 4, 34], [96, 0, 36]],   nCL: [[80, 38, 34], [60, 36, 36]],   nCR: [[136, 38, 34], [124, 36, 36]], nCD: [[114, 72, 34], [96, 72, 36]],
-  nB: [[0, 58, 54], [0, 100, 60]],    nA: [[38, 92, 60], [62, 132, 66]],
+  nB: [[0, 58, 54], [0, 100, 60]],
+  arc1: [[0, 78, 54], [0, 124, 60]],  arc2: [[58, 48, 54], [50, 70, 60]],  arc3: [[116, 18, 54], [100, 16, 60]],    nA: [[38, 92, 60], [62, 132, 66]],
 };
 function applyLayout(tall) {
   consoleEl.classList.toggle('tall', tall);
@@ -1746,7 +1768,7 @@ async function renderMine() {
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
   if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
   all.sort((a, b) => a.name.localeCompare(b.name, 'el'));
-  for (const key of ['gb', 'md', 'n64']) {
+  for (const key of ['gb', 'md', 'n64', 'arcade']) {
     const group = all.filter(g => (g.sys || 'gb') === key);
     if (!group.length) continue;
     const h = document.createElement('h3');
