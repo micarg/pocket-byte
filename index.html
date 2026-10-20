@@ -1310,7 +1310,7 @@ function detectSystem(name, b) {
   if (b.length > 0x200 && (at(0x100) === 'SEGA' || at(0x101) === 'SEGA')) return 'md';
   if (b.length > 0x200 && b[8] === 0xaa && b[9] === 0xbb) return 'md'; // .smd interleaved
   if (['gb', 'gbc'].includes(ext)) return 'gb';
-  if (['md', 'gen', 'smd', 'sg', 'bin'].includes(ext)) return 'md';
+  if (['md', 'gen', 'smd', 'sg'].includes(ext)) return 'md'; // .bin only counts with a real SEGA header (checked above)
   if (['n64', 'z64', 'v64'].includes(ext)) return 'n64';
   return null;
 }
