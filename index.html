@@ -76,6 +76,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="gb"]) canvas#lcd { display: none; }
 #ejs-host { position: absolute; inset: 0; }
 #ejs { width: 100%; height: 100%; }
+#ejs.fill { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; }
 #ejs .ejs_popup_container, #ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
 #ejs .ejs_parent { background: #000 !important; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; background: rgba(10,12,10,.88); color: #eef2e6; font: 600 15px/1.5 var(--body); letter-spacing: .02em; z-index: 5; text-wrap: balance; }
@@ -366,6 +367,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <section>
     <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
     <div class="style-pick" id="stylePick"><button data-style="modern">MODERN</button><button data-style="retro">RETRO</button></div>
+    <h2>ΟΘΟΝΗ ΠΑΙΧΝΙΔΙΟΥ</h2>
+    <div class="style-pick" id="fillPick"><button data-fill="1">ΓΕΜΑΤΗ</button><button data-fill="0">ΚΑΝΟΝΙΚΗ</button></div>
     <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
     <div class="swatches" id="swatches"></div>
     <div class="swatch-name" id="swatchName"></div>
@@ -1511,6 +1514,7 @@ function bootEJS(entry) {
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      setTimeout(fitGameScreen, 300);
       window.EJS_gameUrl = null; // drop our reference to the ROM data
       // If MAME 2003 could not load the set (a newer revision it never had), RetroArch sits in its own menu with no
       // game running. Detect that and switch this one game to FBNeo, remembering the choice.
@@ -2300,6 +2304,36 @@ function fit() {
   consoleEl.style.top = (top - st.top + GAP + H / 2) + 'px';
   consoleEl.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
+/* ---- "full" game screen: stretch the picture over the black bars (only when that distorts it modestly) ---- */
+let fillOn = true;
+try { fillOn = localStorage.getItem('pb-fill') !== '0'; } catch (e) {}
+function fitGameScreen() {
+  const host = document.getElementById('ejs-host'), el = document.getElementById('ejs');
+  let a = 0;
+  if (fillOn && ejsStarted && window.EJS_emulator) try { a = +EJS_emulator.gameManager.getVideoDimensions('aspect') || 0; } catch (e) {}
+  const W = host.clientWidth, H = host.clientHeight;
+  // a vertical arcade game in a wide screen (or the reverse) would look squashed, so leave those as they are
+  if (!a || !W || !H || Math.max(a / (W / H), (W / H) / a) > 1.4 || Math.abs(a / (W / H) - 1) < 0.02) {
+    if (el.classList.contains('fill')) { el.classList.remove('fill'); el.style.width = el.style.height = el.style.transform = ''; }
+    return;
+  }
+  let w = W, h = W / a;
+  if (h > H) { h = H; w = H * a; }
+  el.classList.add('fill');
+  el.style.width = w + 'px'; el.style.height = h + 'px';
+  el.style.transform = `translate(-50%, -50%) scale(${(W / w).toFixed(4)}, ${(H / h).toFixed(4)})`;
+}
+function setFill(on) {
+  fillOn = on;
+  try { localStorage.setItem('pb-fill', on ? '1' : '0'); } catch (e) {}
+  document.querySelectorAll('#fillPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.fill === '1') === on)));
+  fitGameScreen();
+}
+document.querySelectorAll('#fillPick button').forEach(b => b.addEventListener('click', () => setFill(b.dataset.fill === '1')));
+setFill(fillOn);
+// the picture size can change mid-game (menus, resolution switches), so check now and then
+setInterval(() => { if (ejsStarted && !document.hidden) fitGameScreen(); }, 1500);
+addEventListener('resize', () => setTimeout(fitGameScreen, 50));
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit(); document.fonts && document.fonts.ready.then(fit);
 
