@@ -1423,7 +1423,8 @@ function bootEJS(entry) {
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
   const entryNames = entry.sys === 'arcade' ? zipNames(entry.bytes) : [];
   const neoGeo = entry.sys === 'arcade' && isNeoGeoSet(entryNames);
-  const needsBios = neoGeo && !hasNeoBios(entryNames);
+  const neoMame = neoGeo && !neoGeoNeedsFBNeo(entryNames) && arcadeCore() === 'mame2003_plus';
+  const needsBios = neoGeo && (neoMame || !hasNeoBios(entryNames));
   // Arcade zips go in as a blob: URL, which EmulatorJS reads once (a File gets read twice and copied, which
   // for big sets like Metal Slug 3 is enough memory to make iOS close the page). The zip name then comes from
   // EJS_gameName, which is what MAME/FBNeo use to identify the set.
@@ -1479,14 +1480,12 @@ function bootEJS(entry) {
     // EmulatorJS 4.2.3 hangs on "Download Game BIOS" when given a BIOS file, so put the BIOS inside the game zip,
     // the same way sets like mslug3.zip ship it (FBNeo finds the BIOS pieces by checksum)
     const gameBytes = pendingBytes; pendingBytes = null;
-    findNeoBios().then(b => {
+    (hasNeoBios(entryNames) && !neoMame ? Promise.resolve(null) : findNeoBios()).then(b => {
       let zip = gameBytes;
-      if (b) {
-        mameNeoBiosKnown = zipNames(b).some(n => /(^|\/)mame\.sm1$/.test(n));
-        window.EJS_core = neoGeoNeedsFBNeo(entryNames) ? 'arcade' : arcadeCore();
-        zip = zipBuild([{ u: gameBytes, keep: () => true }, { u: b, keep: () => true }]) || gameBytes;
-      }
-      else toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
+      const srcs = [{ u: gameBytes, keep: () => true }];
+      if (b) srcs.push({ u: b, keep: () => true });
+      else if (!hasNeoBios(entryNames)) toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
+      zip = zipBuild(srcs, neoMame ? MAME_NEO_ALIASES : null) || gameBytes;
       window.EJS_gameUrl = URL.createObjectURL(new Blob([zip]));
       startLoader();
     });
@@ -1518,10 +1517,10 @@ function isNeoGeoSet(names) {
 // Neo Geo BIOS pieces (as found in neogeo.zip, or bundled inside some game sets such as mslug3.zip)
 const NEO_BIOS_RE = /(^|\/)(sfix\.sfix|000-lo\.lo|sm1\.sm1|[^/]*\.sp1|sp1\.[^/]+|uni-bios[^/]*\.rom|asia-s3\.rom|japan-j3\.bin|vs-bios\.rom|v2\.bin|sp-1v1[^/]*\.bin|neo-epo\.bin|neodebug\.bin|neodebug\.rom|sm1\.rom|sfix\.rom|sfix\.sfx|000-lo\.rom|mame\.sm1|mamelo\.lo|usa_2slt\.bin)$/;
 function hasNeoBios(names) { return names.some(n => /(^|\/)sfix\.sfix?$/.test(n)) && names.some(n => /(^|\/)000-lo\.lo$/.test(n)) && names.some(n => /\.sp1$|sp-s2|uni-bios/.test(n)); }
-// Build a zip from entries of one or more zips, copying the compressed data as-is (no decompression)
-function zipBuild(sources) { // sources: [{ u, keep(name) }]
-  const dec = new TextDecoder(), locals = [], centrals = [], seen = new Set();
-  let outLen = 0;
+// Build a zip from entries of one or more zips, copying the compressed data as-is (no decompression).
+// aliases: [[newName, [sourceName, ...]], ...] adds a renamed copy of the first source entry present, if newName is missing.
+function zipBuild(sources, aliases) {
+  const dec = new TextDecoder(), enc = new TextEncoder(), entries = new Map();
   for (const { u, keep } of sources) {
     const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
     let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
@@ -1530,20 +1529,42 @@ function zipBuild(sources) { // sources: [{ u, keep(name) }]
     while (cd + 46 < u.length && dv.getUint32(cd, true) === 0x02014b50) {
       const n = dv.getUint16(cd + 28, true), x = dv.getUint16(cd + 30, true), c = dv.getUint16(cd + 32, true);
       const name = dec.decode(u.subarray(cd + 46, cd + 46 + n)).toLowerCase();
-      const csize = dv.getUint32(cd + 20, true), lho = dv.getUint32(cd + 42, true);
-      if (!seen.has(name) && keep(name)) {
-        seen.add(name);
+      if (!entries.has(name) && keep(name)) {
+        const csize = dv.getUint32(cd + 20, true), lho = dv.getUint32(cd + 42, true);
         const ln = dv.getUint16(lho + 26, true), lx = dv.getUint16(lho + 28, true), flags = dv.getUint16(lho + 6, true);
         let end = lho + 30 + ln + lx + csize;
         if (flags & 8) end += dv.getUint32(end, true) === 0x08074b50 ? 16 : 12;
-        const local = u.subarray(lho, end), central = u.slice(cd, cd + 46 + n + x + c);
-        new DataView(central.buffer).setUint32(42, outLen, true);
-        locals.push(local); centrals.push(central); outLen += local.length;
+        entries.set(name, { u, cd, n, x, c, lho, ln, lx, end, rename: null });
       }
       cd += 46 + n + x + c;
     }
   }
-  if (!locals.length) return null;
+  for (const [to, froms] of aliases || []) {
+    if (entries.has(to)) continue;
+    const from = froms.find(f => entries.has(f));
+    if (from) entries.set(to, Object.assign({}, entries.get(from), { rename: to }));
+  }
+  if (!entries.size) return null;
+  const locals = [], centrals = [];
+  let outLen = 0;
+  for (const en of entries.values()) {
+    const { u, cd, n, x, c, lho, ln, lx, end } = en;
+    let local, central;
+    if (!en.rename) {
+      local = u.subarray(lho, end);
+      central = u.slice(cd, cd + 46 + n + x + c);
+    } else {
+      const nm = enc.encode(en.rename);
+      local = new Uint8Array(30 + nm.length + (end - lho - 30 - ln));
+      local.set(u.subarray(lho, lho + 30), 0); local.set(nm, 30); local.set(u.subarray(lho + 30 + ln, end), 30 + nm.length);
+      new DataView(local.buffer).setUint16(26, nm.length, true);
+      central = new Uint8Array(46 + nm.length + x + c);
+      central.set(u.subarray(cd, cd + 46), 0); central.set(nm, 46); central.set(u.subarray(cd + 46 + n, cd + 46 + n + x + c), 46 + nm.length);
+      new DataView(central.buffer).setUint16(28, nm.length, true);
+    }
+    new DataView(central.buffer, central.byteOffset).setUint32(42, outLen, true);
+    locals.push(local); centrals.push(central); outLen += local.length;
+  }
   const cdLen = centrals.reduce((s, c) => s + c.length, 0);
   const out = new Uint8Array(outLen + cdLen + 22), odv = new DataView(out.buffer);
   let o = 0; for (const l of locals) { out.set(l, o); o += l.length; }
@@ -1552,6 +1573,13 @@ function zipBuild(sources) { // sources: [{ u, keep(name) }]
   odv.setUint32(o + 12, cdLen, true); odv.setUint32(o + 16, outLen, true);
   return out;
 }
+// MAME 2003's Neo Geo BIOS file names, filled from a modern BIOS set: mame.sm1 is overwritten by the game's own
+// sound ROM right after loading, mamelo.lo is the first half of 000-lo.lo; MAME only warns about the checksums
+const MAME_NEO_ALIASES = [
+  ['mame.sm1', ['sm1.sm1', 'sm1.rom', 'sp-s2.sp1']], // any 128 KB file will do: its contents are replaced
+  ['mamelo.lo', ['000-lo.lo', '000-lo.rom']],
+  ['sfix.sfx', ['sfix.sfix', 'sfix.rom']],
+];
 const zipSubset = (u, keep) => zipBuild([{ u, keep }]);
 const dbBiosGet = () => tx('roms', 'readonly', t => t.objectStore('roms').get('bios:neogeo')).then(r => r && r.bytes).catch(() => null);
 const dbBiosPut = bytes => tx('roms', 'readwrite', t => t.objectStore('roms').put({ id: 'bios:neogeo', bytes })).then(() => true).catch(() => false);
@@ -1574,10 +1602,7 @@ async function findNeoBios() {
 }
 // Neo Geo carts numbered 251 and up (KOF '99, Garou, Metal Slug 3/4/5…) are encrypted and only FBNeo runs them;
 // older ones (Metal Slug 1/2/X, KOF '98, Samurai Shodown…) also run on MAME 2003-Plus, which is far steadier on iPhone
-// MAME 2003 also needs its own era's BIOS files (mame.sm1); modern BIOS sets lack it, so then FBNeo is the only option
-let mameNeoBiosKnown = false;
 function neoGeoNeedsFBNeo(names) {
-  if (!mameNeoBiosKnown && !names.some(n => /(^|\/)mame\.sm1$/.test(n))) return true;
   if (names.some(n => /(^|\/)neo-sma$|\.neo-sma$/.test(n))) return true;
   const c1 = names.map(n => (n.match(/(?:^|\/)(\d{3})-c1/) || [])[1]).find(Boolean);
   return c1 ? +c1 >= 251 : false;
