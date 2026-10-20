@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Fira+Sans:wght@400;500;700&display=swap">
 <style>
-/* Layout: one handheld centred like an object on a desk, cartridge shelf beneath it. Single deliberate look (dark desk, persimmon plastic). */
+/* Layout: one handheld centred like an object on a desk; everything else lives in the settings menu. Single deliberate look (dark desk, coloured plastic). */
 :root {
   --desk: #1d2226;
   --desk-2: #262d32;
@@ -26,7 +26,6 @@
   --shell: #d9573b;
   --shell-hi: #ea7457;
   --shell-lo: #a83c25;
-  --bezel: #2a2f33;
   --lcd-off: #9bab7c;
   --btn: #2b2e31;
   --btn-hi: #44484c;
@@ -34,6 +33,9 @@
   --ab-1: #8a2f45;
   --ab-2: #5d1a2c;
   --ab-3: #3a0f1b;
+  --c-1: #f2c641;
+  --c-2: #c99a17;
+  --c-3: #7d5e08;
   --print: #3b1810;
   --bezel-c: #2a2f33;
   --accent: #f4c36b;
@@ -61,38 +63,43 @@ body {
   width: 360px;
   background: linear-gradient(160deg, var(--shell-hi), var(--shell) 35%, var(--shell-lo));
   border-radius: 18px 18px 64px 18px;
-  padding: 18px 18px 26px;
+  padding: 14px 14px 24px;
   box-shadow: inset 0 2px 0 rgba(255,255,255,.25), inset 0 -4px 0 rgba(0,0,0,.18), 0 18px 40px rgba(0,0,0,.45);
   user-select: none; -webkit-user-select: none;
   touch-action: none;
 }
-.bezel { background: var(--bezel-c); border-radius: 10px 10px 34px 10px; padding: 7px 8px 12px; }
-.bezel-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 10px var(--display); letter-spacing: .06em; margin: 0 4px 6px; font-size: 9px; }
-.bezel-top .line { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--shell) 0 30%, var(--accent) 30% 60%, transparent 60%); opacity: .7; }
-.led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; }
-.led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
-.screen-wrap { position: relative; width: 100%; background: var(--lcd-off); border-radius: 2px; line-height: 0; }
-canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; max-width: 100%; display: block; border-radius: 2px; image-rendering: pixelated; image-rendering: crisp-edges; }
-.overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px; background: rgba(20,28,16,.72); color: #e8f2d6; font: 12px/1.6 var(--display); }
-.brand { margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline; }
+.bezel { background: var(--bezel-c); border-radius: 10px 10px 36px 10px; padding: 4px; }
+.screen-wrap { position: relative; width: 100%; background: #000; border-radius: 7px 7px 32px 7px; overflow: hidden; line-height: 0; }
+.console[data-sys="gb"] .screen-wrap { background: var(--lcd-off); }
+.console:not([data-sys="gb"]) .screen-wrap { aspect-ratio: 4 / 3; }
+canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.console:not([data-sys="gb"]) canvas#lcd { display: none; }
+#ejs-host { position: absolute; inset: 0; }
+#ejs { width: 100%; height: 100%; }
+#ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
+#ejs .ejs_parent { background: #000 !important; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; background: rgba(12,16,10,.78); color: #e8f2d6; font: 12px/1.7 var(--display); z-index: 5; }
+.brand { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
 .brand b { font: 17px var(--display); color: var(--print); letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.25); }
-.brand span { font: 10px var(--display); color: var(--print); opacity: .7; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand span#now { margin-left: auto; font: 10px var(--display); color: var(--print); opacity: .7; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; flex: none; }
+.led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
 
-.pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; }
-.dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none;
+.pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; min-height: 160px; }
+.dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none; flex: none;
   background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.38) 0 58%, rgba(0,0,0,.22) 59% 100%);
   box-shadow: inset 0 3px 8px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.18); }
 .dpad .ring { position: absolute; inset: 14px; border-radius: 50%; background: var(--btn); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
-.dpad i { position: absolute; width: 0; height: 0; border: 6px solid transparent; opacity: .45; transition: opacity .1s; }
+.dpad i { position: absolute; width: 0; height: 0; border: 6px solid transparent; opacity: .45; }
 .dpad i.u { left: 64px; top: 18px; border-bottom-color: #9aa0a5; }
 .dpad i.d { left: 64px; bottom: 18px; border-top-color: #9aa0a5; }
 .dpad i.l { top: 64px; left: 18px; border-right-color: #9aa0a5; }
 .dpad i.r { top: 64px; right: 18px; border-left-color: #9aa0a5; }
-.dpad i.on { opacity: 1; border-bottom-color: var(--accent); }
-.dpad i.d.on { border-color: transparent; border-top-color: var(--accent); }
-.dpad i.l.on { border-color: transparent; border-right-color: var(--accent); }
-.dpad i.r.on { border-color: transparent; border-left-color: var(--accent); }
-.dpad i.u.on { border-color: transparent; border-bottom-color: var(--accent); }
+.dpad i.on { opacity: 1; }
+.dpad i.u.on { border-bottom-color: var(--accent); }
+.dpad i.d.on { border-top-color: var(--accent); }
+.dpad i.l.on { border-right-color: var(--accent); }
+.dpad i.r.on { border-left-color: var(--accent); }
 .knob { position: absolute; left: 36px; top: 36px; width: 68px; height: 68px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle at 40% 32%, var(--btn-hi) 0, #34383c 45%, #1f2225 100%);
   box-shadow: 0 6px 10px rgba(0,0,0,.5), inset 0 -3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12);
@@ -100,27 +107,43 @@ canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; max-width: 100%
 .knob::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: repeating-radial-gradient(circle, rgba(255,255,255,.07) 0 2px, transparent 2px 5px); }
 .knob.held { transition: none; }
 
-.ab { display: flex; gap: 12px; transform: rotate(-22deg); margin-right: 4px; margin-top: -10px; }
-.ab .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.ab .b-wrap:first-child { margin-top: 26px; }
-.round { width: 68px; height: 68px; border-radius: 50%; border: 0; background: radial-gradient(circle at 38% 32%, var(--ab-1), var(--ab-2)); box-shadow: 0 5px 0 var(--ab-3), 0 7px 10px rgba(0,0,0,.35); }
-.lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
-.sys { display: flex; justify-content: center; gap: 26px; margin-top: 26px; }
+/* per-system controls */
+.console:not([data-sys="gb"]) .only-gb,
+.console:not([data-sys="md"]) .only-md,
+.console:not([data-sys="n64"]) .only-n64 { display: none !important; }
+.face { position: relative; width: 170px; height: 160px; flex: none; }
+.btn { position: absolute; border: 0; padding: 0; border-radius: 50%; touch-action: none; }
+.btn .t { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font: 12px var(--display); color: var(--print); letter-spacing: .06em; pointer-events: none; white-space: nowrap; }
+.round { width: 68px; height: 68px; background: radial-gradient(circle at 38% 32%, var(--ab-1), var(--ab-2)); box-shadow: 0 5px 0 var(--ab-3), 0 7px 10px rgba(0,0,0,.35); }
+.round.sm { width: 54px; height: 54px; }
+.cbtn { width: 34px; height: 34px; background: radial-gradient(circle at 38% 32%, var(--c-1), var(--c-2)); box-shadow: 0 4px 0 var(--c-3), 0 5px 8px rgba(0,0,0,.3); }
+.cbtn::before { content: ""; position: absolute; left: 50%; top: 50%; width: 0; height: 0; border: 6px solid transparent; transform: translate(-50%, -50%); }
+.cbtn.cu::before { border-bottom-color: rgba(0,0,0,.45); margin-top: -3px; }
+.cbtn.cd::before { border-top-color: rgba(0,0,0,.45); margin-top: 3px; }
+.cbtn.cl::before { border-right-color: rgba(0,0,0,.45); margin-left: -3px; }
+.cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
+.n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
+.sys { display: flex; justify-content: center; gap: 22px; margin-top: 22px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
-.pill { width: 62px; height: 18px; border-radius: 10px; border: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); }
-.round.down, .pill.down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4); filter: brightness(1.2); }
-.speaker { display: flex; gap: 7px; justify-content: flex-end; margin-top: -6px; transform: rotate(-30deg); transform-origin: right; }
+.sys.only-n64 { gap: 12px; }
+.sys.only-n64 .b-wrap { transform: none; }
+.pill { width: 62px; height: 18px; border-radius: 10px; border: 0; padding: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); touch-action: none; }
+.sys.only-n64 .pill { width: 58px; height: 22px; }
+.lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
+.down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4) !important; filter: brightness(1.2); }
+.speaker { display: flex; gap: 7px; justify-content: flex-end; margin-top: -10px; transform: rotate(-30deg); transform-origin: right; }
 .speaker span { width: 5px; height: 40px; border-radius: 3px; background: rgba(0,0,0,.25); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
 
-/* ---------- toolbar ---------- */
+/* ---------- menu content ---------- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 .tool { flex: 1 1 auto; min-height: 42px; padding: 0 14px; border-radius: 10px; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); font: 500 14px var(--body); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .tool:hover { border-color: var(--muted); }
 .tool:focus-visible, .cart:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tool.primary { background: var(--accent); color: #2a1d06; border-color: var(--accent); }
-
-/* ---------- shelf ---------- */
-h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); margin: 0 0 12px; text-wrap: balance; }
+h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); margin: 0 0 10px; text-wrap: balance; }
+h3 { font: 500 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+h3:first-child { margin-top: 0; }
+h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); border-radius: 10px; padding: 1px 7px; color: var(--ink); }
 .shelf { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cart { position: relative; text-align: left; cursor: pointer; border: 0; padding: 0; background: none; color: inherit; font: inherit; }
 .cart .body { background: #3a4147; border-radius: 6px 6px 3px 3px; padding: 12px 10px 10px; clip-path: polygon(0 0, 88% 0, 100% 9%, 100% 100%, 0 100%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
@@ -132,7 +155,6 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
 .help { color: var(--muted); font-size: 13.5px; line-height: 1.55; display: grid; gap: 10px; max-width: 65ch; }
 .help kbd { font: 11px var(--display); background: var(--desk-2); border: 1px solid #3a444a; border-radius: 4px; padding: 1px 5px; color: var(--ink); }
 .help a { color: var(--accent); }
-/* ---------- settings menu ---------- */
 .fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 52px; height: 52px; border-radius: 50%; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
 .fab svg { width: 24px; height: 24px; transition: transform .25s; }
 .fab[aria-expanded="true"] svg { transform: rotate(60deg); }
@@ -155,7 +177,6 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
 .swatch[aria-pressed="true"] { border-color: var(--ink); outline: 2px solid var(--accent); outline-offset: 2px; }
 .swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .swatch-name { color: var(--muted); font-size: 13px; margin-top: 8px; }
-.menu h2 { margin-bottom: 10px; }
 .toast { position: fixed; z-index: 40; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--desk); padding: 9px 14px; border-radius: 8px; font-weight: 500; font-size: 14px; max-width: calc(100% - 32px); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -164,15 +185,15 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
 
 
 <main class="stage" id="stage">
-  <section class="console" id="console" aria-label="Κονσόλα">
+  <section class="console" id="console" data-sys="gb" aria-label="Κονσόλα">
     <div class="bezel">
-      <div class="bezel-top"><span class="led" id="led"></span><span>BATTERY</span><span class="line"></span></div>
-      <div class="screen-wrap">
+      <div class="screen-wrap" id="screenWrap">
         <canvas id="lcd" width="160" height="144" aria-label="Οθόνη παιχνιδιού"></canvas>
+        <div id="ejs-host" hidden><div id="ejs"></div></div>
         <div class="overlay" id="overlay" hidden></div>
       </div>
     </div>
-    <div class="brand"><b>POCKET BYTE</b><span id="now">—</span></div>
+    <div class="brand"><span class="led" id="led"></span><b>POCKET BYTE</b><span id="now">—</span></div>
 
     <div class="pad-row">
       <div class="dpad" id="dpad" aria-label="Joystick">
@@ -180,19 +201,47 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
         <i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i>
         <div class="knob" id="knob"></div>
       </div>
-      <div class="ab">
-        <div class="b-wrap"><button class="round" data-key="B" aria-label="B"></button><span class="lbl">B</span></div>
-        <div class="b-wrap"><button class="round" data-key="A" aria-label="A"></button><span class="lbl">A</span></div>
+
+      <div class="face only-gb">
+        <button class="btn round" data-gb="B" style="left:8px;top:62px" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round" data-gb="A" style="left:92px;top:28px" aria-label="A"><span class="t">A</span></button>
+      </div>
+
+      <div class="face only-md">
+        <button class="btn round sm" data-ej="1" style="left:0;top:78px" aria-label="A"><span class="t">A</span></button>
+        <button class="btn round sm" data-ej="0" style="left:58px;top:48px" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round sm" data-ej="8" style="left:116px;top:18px" aria-label="C"><span class="t">C</span></button>
+      </div>
+
+      <div class="face only-n64">
+        <span class="n64-c-label">C</span>
+        <button class="btn cbtn cu" data-ej="23" data-analog="1" style="left:114px;top:4px" aria-label="C πάνω"></button>
+        <button class="btn cbtn cl" data-ej="21" data-analog="1" style="left:80px;top:38px" aria-label="C αριστερά"></button>
+        <button class="btn cbtn cr" data-ej="20" data-analog="1" style="left:136px;top:38px" aria-label="C δεξιά"></button>
+        <button class="btn cbtn cd" data-ej="22" data-analog="1" style="left:114px;top:72px" aria-label="C κάτω"></button>
+        <button class="btn round sm" data-ej="1" style="left:0;top:58px" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round" data-ej="0" style="left:38px;top:92px;width:60px;height:60px" aria-label="A"><span class="t" style="top:auto;bottom:0;transform:translate(-50%,0);left:auto;right:-14px">A</span></button>
       </div>
     </div>
-    <div class="sys">
-      <div class="b-wrap"><button class="pill" data-key="SELECT" aria-label="Select"></button><span class="lbl">SELECT</span></div>
-      <div class="b-wrap"><button class="pill" data-key="START" aria-label="Start"></button><span class="lbl">START</span></div>
+
+    <div class="sys only-gb">
+      <div class="b-wrap"><button class="pill" data-gb="SELECT" aria-label="Select"></button><span class="lbl">SELECT</span></div>
+      <div class="b-wrap"><button class="pill" data-gb="START" aria-label="Start"></button><span class="lbl">START</span></div>
+    </div>
+    <div class="sys only-md">
+      <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Mode"></button><span class="lbl">MODE</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+    </div>
+    <div class="sys only-n64">
+      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="12" aria-label="Z"></button><span class="lbl">Z</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
-
 </main>
+
 <button class="fab" id="fab" aria-label="Ρυθμίσεις" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 <div class="scrim" id="scrim" hidden></div>
 <div class="menu" id="menu" role="dialog" aria-label="Ρυθμίσεις" hidden>
@@ -202,8 +251,13 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
     <button class="tool" id="pauseBtn">Παύση</button>
     <button class="tool" id="resetBtn">Επανεκκίνηση</button>
     <button class="tool" id="loadBtn">Φόρτωσε δικό σου ROM</button>
-    <input type="file" id="romFile" accept=".gb,.gbc,.zip" hidden>
+    <input type="file" id="romFile" hidden>
   </div>
+
+  <section>
+    <h2>ΤΑ ΠΑΙΧΝΙΔΙΑ ΜΟΥ</h2>
+    <div class="mylist" id="mylist"></div>
+  </section>
 
   <section>
     <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
@@ -212,20 +266,16 @@ h2 { font: 13px var(--display); letter-spacing: .08em; color: var(--accent); mar
   </section>
 
   <section>
-    <h2>ΤΑ ΠΑΙΧΝΙΔΙΑ ΜΟΥ</h2>
-    <div class="mylist" id="mylist"></div>
-  </section>
-
-  <section>
-    <h2>ΚΑΣΕΤΕΣ</h2>
+    <h2>ΔΩΡΕΑΝ ΚΑΣΕΤΕΣ GAME BOY</h2>
     <div class="shelf" id="shelf"></div>
   </section>
 
   <section class="help">
     <h2>ΠΩΣ ΠΑΙΖΕΙΣ</h2>
-    <div>Στο κινητό πατάς τα κουμπιά της κονσόλας. Στον υπολογιστή: βελάκια για κατεύθυνση, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select.</div>
-    <div>Παίζει παιχνίδια Game Boy (.gb) και Game Boy Color (.gbc), και αρχεία .zip που περιέχουν ROM. Οι αποθηκεύσεις των παιχνιδιών μένουν σε αυτή τη συσκευή.</div>
-    <div>Οι τέσσερις κασέτες είναι δωρεάν παιχνίδια ανοιχτού κώδικα από ανεξάρτητους δημιουργούς:
+    <div>Παίζει Game Boy και Game Boy Color (.gb, .gbc), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64), καθώς και αρχεία .zip που περιέχουν κάποιο από αυτά. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
+    <div>Στον υπολογιστή, στο Game Boy: βελάκια για κατεύθυνση, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select.</div>
+    <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα Genesis και N64 τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
+    <div>Οι κασέτες Game Boy είναι δωρεάν παιχνίδια ανοιχτού κώδικα:
       <a href="https://github.com/pinobatch/libbet" target="_blank" rel="noopener">Libbet</a> (Damian Yerrick, zlib),
       <a href="https://github.com/AntonioND/geometrix" target="_blank" rel="noopener">Geometrix</a> και
       <a href="https://github.com/AntonioND/ucity" target="_blank" rel="noopener">µCity</a> (AntonioND, GPLv3),
@@ -1177,61 +1227,160 @@ const CARTS = [
   { id: 'ucity', name: 'µCity', desc: 'Χτίσε και διοίκησε τη δική σου πόλη.', tag: 'GBC', bg: '#2f6e8f', fg: '#eaf6ff' },
   { id: 'g2048', name: '2048', desc: 'Σύρε τα πλακάκια και φτάσε στο 2048.', tag: 'GB', bg: '#b8c98d', fg: '#1d2a12' },
 ];
+const SYSTEMS = {
+  gb: { name: 'Game Boy', tag: 'GB' },
+  md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
+  n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
+};
+const EJS_CDN = ['https://cdn.emulatorjs.org/4.2.3/data/', 'https://cdn.emulatorjs.org/stable/data/'];
+// The page needs to load EmulatorJS from its CDN; the Claude preview blocks that, the GitHub site allows it.
+const EJS_ALLOWED = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
+const APP_URL = 'micarg.github.io/pocket-byte';
 
+const consoleEl = document.getElementById('console');
 const lcd = document.getElementById('lcd');
 const ctx2d = lcd.getContext('2d');
 const img = ctx2d.createImageData(160, 144);
 const img32 = new Uint32Array(img.data.buffer);
 const overlay = document.getElementById('overlay');
 const toastEl = document.getElementById('toast');
-let gb = null, current = null, paused = false, soundOn = false, saveKey = null;
+let sys = 'gb';            // which control layout / emulator is active
+let gb = null, current = null, paused = false, soundOn = false, saveKey = null, pausedByMenu = false;
+let ejsLoaded = false, ejsStarted = false;
 let audioCtx = null, node = null;
 const SR = (() => { try { const C = window.AudioContext || window.webkitAudioContext; audioCtx = new C(); return audioCtx.sampleRate; } catch (e) { return 48000; } })();
 
-function toast(msg) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.hidden = true, 2600); }
+function toast(msg, ms) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.hidden = true, ms || 2600); }
 function b64ToBytes(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
 function bytesToB64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+function setLast(id) { try { localStorage.setItem('pb-last', id || ''); } catch (e) {} }
+function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
+function setSys(s) { sys = s; consoleEl.dataset.sys = s; requestAnimationFrame(fit); }
+function setNow(label) { document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, ''); }
 
-/* ---- saves ---- */
+/* ---- Game Boy saves ---- */
 function storeSave() {
   if (!gb || !saveKey || !gb.battery) return;
   try { localStorage.setItem(saveKey, JSON.stringify({ ram: bytesToB64(gb.eram), rtcBase: gb.rtcBase, rtc4: gb.rtc[4] })); gb.ramDirty = false; } catch (e) {}
 }
 function restoreSave() {
-  try {
-    const s = JSON.parse(localStorage.getItem(saveKey) || 'null');
-    if (s) gb.loadSave(b64ToBytes(s.ram), s.rtcBase, s.rtc4);
-  } catch (e) {}
+  try { const s = JSON.parse(localStorage.getItem(saveKey) || 'null'); if (s) gb.loadSave(b64ToBytes(s.ram), s.rtcBase, s.rtc4); } catch (e) {}
+}
+function storeAll() {
+  storeSave();
+  try { if (ejsStarted && window.EJS_emulator) EJS_emulator.gameManager.saveSaveFiles(); } catch (e) {}
 }
 setInterval(() => { if (gb && gb.ramDirty) storeSave(); }, 2000);
-addEventListener('pagehide', storeSave);
+addEventListener('pagehide', storeAll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) storeAll(); });
 
-/* ---- boot ---- */
-function boot(bytes, label, cartId) {
+/* ---- system detection ---- */
+function detectSystem(name, b) {
+  const ext = (name.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase() || '';
+  if (b.length >= 4) {
+    const m = (b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3]) >>> 0;
+    if (m === 0x80371240 || m === 0x37804012 || m === 0x40123780) return 'n64';
+  }
+  if (b.length > 0x150 && b[0x104] === 0xce && b[0x105] === 0xed && b[0x106] === 0x66 && b[0x107] === 0x66) return 'gb';
+  const at = o => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
+  if (b.length > 0x200 && (at(0x100) === 'SEGA' || at(0x101) === 'SEGA')) return 'md';
+  if (b.length > 0x200 && b[8] === 0xaa && b[9] === 0xbb) return 'md'; // .smd interleaved
+  if (['gb', 'gbc'].includes(ext)) return 'gb';
+  if (['md', 'gen', 'smd', 'sg', 'bin'].includes(ext)) return 'md';
+  if (['n64', 'z64', 'v64'].includes(ext)) return 'n64';
+  return null;
+}
+const ROM_EXT = /\.(gbc?|md|gen|smd|sg|bin|n64|z64|v64)$/i;
+
+/* ---- Game Boy boot ---- */
+function bootGB(bytes, label, id) {
+  if (ejsLoaded) { setLast(id); location.reload(); return; }
   if (gb) storeSave();
-  if (bytes.length < 0x150) { toast('Αυτό το αρχείο δεν είναι ROM Game Boy.'); return; }
   gb = new GBCore(bytes, { sampleRate: SR });
   let sum = 0; for (let i = 0x134; i < 0x150; i++) sum = (sum * 31 + bytes[i]) >>> 0;
   saveKey = 'pb-save-' + gb.title + '-' + sum;
   restoreSave();
-  current = cartId || null;
-  if (typeof renderMine === 'function') renderMine();
-  document.querySelectorAll('.cart').forEach(c => c.classList.toggle('active', c.dataset.id === current));
-  document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, '');
+  current = id || null;
+  setSys('gb'); setNow(label);
   document.getElementById('led').classList.add('on');
-  paused = false; updatePause(); overlay.hidden = true;
-  try { localStorage.setItem('pb-last', cartId || ''); } catch (e) {}
+  paused = false; pausedByMenu = false; updatePause(); showOverlay('');
+  setLast(id); markActive();
 }
-function bootCart(id) { const c = CARTS.find(c => c.id === id); boot(b64ToBytes(ROMS[id]), c.name, id); }
+function bootCart(id) { const c = CARTS.find(c => c.id === id); bootGB(b64ToBytes(ROMS[id]), c.name, id); }
 
-/* ---- shelf ---- */
+/* ---- Genesis / N64 via EmulatorJS ---- */
+function bootEJS(entry) {
+  if (!EJS_ALLOWED) {
+    toast('Τα ' + SYSTEMS[entry.sys].name + ' παίζουν μόνο στην εφαρμογή: ' + APP_URL, 5000);
+    return false;
+  }
+  if (ejsLoaded) { setLast(entry.id); location.reload(); return true; }
+  if (gb) { storeSave(); gb = null; }
+  ejsLoaded = true;
+  current = entry.id;
+  setSys(entry.sys); setNow(entry.name);
+  document.getElementById('led').classList.add('on');
+  document.getElementById('ejs-host').hidden = false;
+  showOverlay('ΦΟΡΤΩΝΕΙ…');
+  setLast(entry.id); markActive();
+
+  const file = new File([entry.bytes], 'game.' + (entry.ext || SYSTEMS[entry.sys].ext));
+  Object.assign(window, {
+    EJS_player: '#ejs',
+    EJS_core: SYSTEMS[entry.sys].core,
+    EJS_gameUrl: file,
+    EJS_gameName: entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
+    EJS_language: 'en-US',
+    EJS_startOnLoaded: true,
+    EJS_volume: soundOn ? 0.8 : 0,
+    EJS_color: '#f4c36b',
+    EJS_backgroundColor: '#000000',
+    EJS_threads: false,
+    EJS_fixedSaveInterval: 10000,
+    EJS_defaultOptions: { 'virtual-gamepad': 'disabled', 'menu-bar-button': 'hidden' },
+    EJS_Buttons: { playPause: false, restart: false, mute: false, settings: false, fullscreen: false, saveState: false, loadState: false,
+      screenRecord: false, gamepad: false, cheat: false, volume: false, saveSavFiles: false, loadSavFiles: false, quickSave: false,
+      quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
+    EJS_onGameStart: () => {
+      ejsStarted = true; showOverlay('');
+      try { EJS_emulator.setVolume(soundOn ? 0.8 : 0); } catch (e) {}
+      if (paused) try { EJS_emulator.pause(); } catch (e) {}
+    },
+  });
+  const load = i => {
+    window.EJS_pathtodata = EJS_CDN[i];
+    const s = document.createElement('script');
+    s.src = EJS_CDN[i] + 'loader.js';
+    s.onerror = () => { if (i + 1 < EJS_CDN.length) load(i + 1); else showOverlay('ΔΕΝ ΦΟΡΤΩΣΕ Ο ΕΞΟΜΟΙΩΤΗΣ. ΕΛΕΓΞΕ ΤΟ ΙΝΤΕΡΝΕΤ.'); };
+    document.body.appendChild(s);
+  };
+  load(0);
+  if (entry.sys === 'n64') toast('Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.', 4500);
+  return true;
+}
+function ejsInput(index, value) {
+  if (!ejsStarted || !window.EJS_emulator) return;
+  try { EJS_emulator.gameManager.simulateInput(0, index, value); } catch (e) {}
+}
+
+function bootEntry(g) {
+  const s = g.sys || 'gb';
+  if (s === 'gb') bootGB(new Uint8Array(g.bytes), g.name, g.id);
+  else bootEJS({ ...g, sys: s });
+}
+
+/* ---- shelf (bundled Game Boy carts) ---- */
 const shelf = document.getElementById('shelf');
 for (const c of CARTS) {
   const b = document.createElement('button');
   b.className = 'cart'; b.dataset.id = c.id;
   b.innerHTML = `<div class="body"><span class="tag">${c.tag}</span><div class="label" style="background:${c.bg};color:${c.fg}"><b>${c.name}</b><small>${c.desc}</small></div></div>`;
-  b.addEventListener('click', () => { unlockAudio(); pausedByMenu = false; bootCart(c.id); setMenu(false); });
+  b.addEventListener('click', () => { unlockAudio(); setMenu(false); bootCart(c.id); });
   shelf.appendChild(b);
+}
+function markActive() {
+  document.querySelectorAll('.cart').forEach(c => c.classList.toggle('active', c.dataset.id === current));
+  renderMine();
 }
 
 /* ---- ROM loading (incl. zip) ---- */
@@ -1244,7 +1393,7 @@ async function unzipFirstRom(buf) {
     const nlen = dv.getUint16(p + 26, true), xlen = dv.getUint16(p + 28, true);
     const name = new TextDecoder().decode(u.subarray(p + 30, p + 30 + nlen));
     const start = p + 30 + nlen + xlen;
-    if (flags & 8 || csize === 0) { // sizes in central directory
+    if (flags & 8 || csize === 0) {
       let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
       let cd = dv.getUint32(e + 16, true);
       while (dv.getUint32(cd, true) === 0x02014b50) {
@@ -1254,7 +1403,7 @@ async function unzipFirstRom(buf) {
       }
     }
     const data = u.subarray(start, start + csize);
-    if (/\.gbc?$/i.test(name)) {
+    if (ROM_EXT.test(name)) {
       if (method === 0) return { name, bytes: data.slice() };
       if (method === 8) {
         const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
@@ -1267,23 +1416,28 @@ async function unzipFirstRom(buf) {
 }
 document.getElementById('loadBtn').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 document.getElementById('romFile').addEventListener('change', async e => {
-  const f = e.target.files[0]; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let bytes, name = f.name;
   try {
     const buf = await f.arrayBuffer();
-    let bytes = new Uint8Array(buf), name = f.name;
-    if (/\.zip$/i.test(f.name)) { const r = await unzipFirstRom(buf); bytes = r.bytes; name = r.name; }
-    const label = name.replace(/^.*\//, '').replace(/\.(gbc?|zip)$/i, '');
-    if (bytes.length < 0x150) { toast('Αυτό το αρχείο δεν είναι ROM Game Boy.'); return; }
-    const id = 'user:' + romId(bytes);
-    const stored = await dbPut({ id, name: label, cgb: !!(bytes[0x143] & 0x80), added: Date.now(), bytes });
-    pausedByMenu = false; boot(bytes, label, id); setMenu(false);
-    toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου: ' + label : 'Φορτώθηκε: ' + label + ' (δεν αποθηκεύτηκε σε αυτόν τον browser)');
-  } catch (err) { toast('Δεν βρέθηκε αρχείο .gb ή .gbc μέσα στο zip.'); }
-  e.target.value = '';
+    bytes = new Uint8Array(buf);
+    if (/\.zip$/i.test(f.name) || (bytes[0] === 0x50 && bytes[1] === 0x4b)) { const r = await unzipFirstRom(buf); bytes = r.bytes; name = r.name; }
+  } catch (err) { toast('Μέσα στο zip δεν βρέθηκε παιχνίδι Game Boy, Genesis ή N64.', 4000); return; }
+  const s = detectSystem(name, bytes);
+  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis και N64.', 4000); return; }
+  const base = name.replace(/^.*\//, '');
+  const label = base.replace(/\.[a-z0-9]+$/i, '');
+  const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
+  const entry = { id: 'user:' + romId(bytes), name: label, sys: s, ext: (s !== 'gb' && ext) ? ext : undefined, cgb: s === 'gb' ? !!(bytes[0x143] & 0x80) : false, added: Date.now(), bytes };
+  const stored = await dbPut(entry);
+  setMenu(false);
+  toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (' + SYSTEMS[s].name + '): ' + label : 'Φορτώθηκε: ' + label + ' (δεν αποθηκεύτηκε σε αυτόν τον browser)', 3500);
+  setTimeout(() => bootEntry(entry), stored ? 300 : 0);
 });
 
-/* ---- audio ---- */
+/* ---- audio (Game Boy) ---- */
 function unlockAudio() {
+  if (audioCtx && audioCtx.state !== 'running' && soundOn) audioCtx.resume().catch(() => {});
   if (!audioCtx || node) return;
   try {
     node = audioCtx.createScriptProcessor(1024, 0, 2);
@@ -1301,21 +1455,49 @@ function unlockAudio() {
 }
 function setSound(on) {
   soundOn = on; unlockAudio();
-  if (on && audioCtx) audioCtx.resume();
+  if (on && audioCtx) audioCtx.resume().catch(() => {});
+  try { if (ejsStarted) EJS_emulator.setVolume(on ? 0.8 : 0); } catch (e) {}
   document.getElementById('soundBtn').textContent = on ? '🔊 Ήχος: ανοιχτός' : '🔇 Ήχος: κλειστός';
   try { localStorage.setItem('pb-sound', on ? '1' : '0'); } catch (e) {}
 }
 document.getElementById('soundBtn').addEventListener('click', () => setSound(!soundOn));
-document.addEventListener('pointerdown', () => { if (soundOn && audioCtx && audioCtx.state !== 'running') audioCtx.resume(); }, true);
+document.addEventListener('pointerdown', () => { if (soundOn && audioCtx && audioCtx.state !== 'running') audioCtx.resume().catch(() => {}); }, true);
 
 /* ---- pause / reset ---- */
+function setPaused(p) {
+  paused = p;
+  try { if (ejsStarted) p ? EJS_emulator.pause() : EJS_emulator.play(); } catch (e) {}
+  updatePause();
+}
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
-  overlay.hidden = !paused || pausedByMenu; if (paused) overlay.textContent = 'ΠΑΥΣΗ';
+  if (paused && !pausedByMenu) showOverlay('ΠΑΥΣΗ');
+  else if (overlay.textContent === 'ΠΑΥΣΗ') showOverlay('');
 }
-document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; } else { paused = !paused; } updatePause(); });
-document.getElementById('resetBtn').addEventListener('click', () => { if (!gb) return; setMenu(false); storeSave(); gb.reset(); restoreSave(); toast('Το παιχνίδι ξεκίνησε από την αρχή.'); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) storeSave(); });
+document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  setMenu(false);
+  if (gb) { storeSave(); gb.reset(); restoreSave(); }
+  else if (ejsStarted) { try { EJS_emulator.gameManager.restart(); } catch (e) {} }
+  else return;
+  toast('Το παιχνίδι ξεκίνησε από την αρχή.');
+});
+
+/* ---- haptics: Vibration API on Android, switch-control tick on iPhone ---- */
+let hapticsOn = true;
+const hapLabel = document.getElementById('hapLabel');
+const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function haptic() {
+  if (!hapticsOn) return;
+  if (!isApple && navigator.vibrate) { try { if (navigator.vibrate(12)) return; } catch (e) {} }
+  try { hapLabel.click(); } catch (e) {}
+}
+function setHaptics(on) {
+  hapticsOn = on;
+  document.getElementById('hapticBtn').textContent = on ? '📳 Δόνηση: ανοιχτή' : '📴 Δόνηση: κλειστή';
+  try { localStorage.setItem('pb-haptic', on ? '1' : '0'); } catch (e) {}
+}
+document.getElementById('hapticBtn').addEventListener('click', () => { setHaptics(!hapticsOn); if (hapticsOn) haptic(); });
 
 /* ---- input ---- */
 const K = GBCore.KEYS;
@@ -1325,18 +1507,35 @@ function applyKeys() {
   const all = held.touch | held.kbd | held.dpad;
   for (const bit of [1, 2, 4, 8, 16, 32, 64, 128]) gb.setKey(bit, !!(all & bit));
 }
-document.querySelectorAll('[data-key]').forEach(btn => {
-  const bit = K[btn.dataset.key];
-  const down = e => { e.preventDefault(); unlockAudio(); btn.setPointerCapture && btn.setPointerCapture(e.pointerId); held.touch |= bit; btn.classList.add('down'); applyKeys(); haptic(); };
-  const up = e => { held.touch &= ~bit; btn.classList.remove('down'); applyKeys(); };
+document.querySelectorAll('[data-gb],[data-ej]').forEach(btn => {
+  const gbBit = btn.dataset.gb ? K[btn.dataset.gb] : 0;
+  const ej = btn.dataset.ej !== undefined ? +btn.dataset.ej : -1;
+  const onVal = btn.dataset.analog ? 0x7fff : 1;
+  let isDown = false;
+  const down = e => {
+    e.preventDefault(); unlockAudio();
+    if (btn.setPointerCapture) try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    if (isDown) return; isDown = true;
+    btn.classList.add('down'); haptic();
+    if (gbBit) { held.touch |= gbBit; applyKeys(); }
+    if (ej >= 0) ejsInput(ej, onVal);
+  };
+  const up = () => {
+    if (!isDown) return; isDown = false;
+    btn.classList.remove('down');
+    if (gbBit) { held.touch &= ~gbBit; applyKeys(); }
+    if (ej >= 0) ejsInput(ej, 0);
+  };
   btn.addEventListener('pointerdown', down);
   btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
   btn.addEventListener('contextmenu', e => e.preventDefault());
 });
+
 const dpad = document.getElementById('dpad'), knob = document.getElementById('knob');
 const arrows = { [K.UP]: dpad.querySelector('i.u'), [K.DOWN]: dpad.querySelector('i.d'), [K.LEFT]: dpad.querySelector('i.l'), [K.RIGHT]: dpad.querySelector('i.r') };
 const dpadPointers = new Map(); // pointerId -> { m, x, y } (x, y in unscaled px)
 const STICK_TRAVEL = 34;
+let lastEjDigital = 0;
 function dpadFrom(e) {
   const r = dpad.getBoundingClientRect();
   const scale = r.width / 140;
@@ -1358,6 +1557,19 @@ function dpadUpdate() {
   knob.classList.toggle('held', !!first);
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
+  if (sys === 'md') {
+    // Genesis D-pad: RetroPad up/down/left/right = 4/5/6/7
+    const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
+    for (const [bit, idx] of map) if ((m & bit) !== (lastEjDigital & bit)) ejsInput(idx, m & bit ? 1 : 0);
+    lastEjDigital = m;
+  } else if (sys === 'n64') {
+    // N64 analog stick: 16 = right, 17 = left, 18 = down, 19 = up (0..0x7fff)
+    let ax = first ? first.x / STICK_TRAVEL : 0, ay = first ? first.y / STICK_TRAVEL : 0;
+    if (Math.hypot(ax, ay) < 0.12) { ax = 0; ay = 0; }
+    const v = n => Math.round(Math.min(1, n) * 0x7fff);
+    ejsInput(16, ax > 0 ? v(ax) : 0); ejsInput(17, ax < 0 ? v(-ax) : 0);
+    ejsInput(18, ay > 0 ? v(ay) : 0); ejsInput(19, ay < 0 ? v(-ay) : 0);
+  }
 }
 dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
 dpad.addEventListener('pointermove', e => { if (!dpadPointers.has(e.pointerId)) return; const v = dpadFrom(e); if (v.m && v.m !== dpadPointers.get(e.pointerId).m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
@@ -1369,14 +1581,14 @@ document.getElementById('stage').addEventListener('touchmove', e => e.preventDef
 const KEYMAP = { ArrowUp: K.UP, ArrowDown: K.DOWN, ArrowLeft: K.LEFT, ArrowRight: K.RIGHT, KeyW: K.UP, KeyS: K.DOWN, KeyA: K.LEFT, KeyD: K.RIGHT,
   KeyX: K.A, KeyK: K.A, KeyZ: K.B, KeyJ: K.B, Enter: K.START, ShiftLeft: K.SELECT, ShiftRight: K.SELECT, Backspace: K.SELECT };
 addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (sys !== 'gb' || e.target.tagName === 'INPUT') return;
   const b = KEYMAP[e.code]; if (!b) return;
   e.preventDefault(); unlockAudio(); held.kbd |= b; applyKeys();
 });
 addEventListener('keyup', e => { const b = KEYMAP[e.code]; if (!b) return; held.kbd &= ~b; applyKeys(); });
 addEventListener('blur', () => { held.kbd = 0; held.touch = 0; dpadPointers.clear(); dpadUpdate(); });
 
-/* ---- main loop ---- */
+/* ---- Game Boy main loop ---- */
 const FRAME_MS = 70224 / 4194304 * 1000;
 let last = performance.now(), acc = 0;
 function loop(now) {
@@ -1385,7 +1597,6 @@ function loop(now) {
   if (!gb || paused || document.hidden) return;
   if (dt > 100) dt = FRAME_MS;
   acc += dt;
-  // keep audio buffer near 60-120ms
   if (soundOn && node) {
     const buffered = gb.audioAvailable() / SR * 1000;
     if (buffered > 140) acc -= FRAME_MS * 0.5;
@@ -1394,14 +1605,13 @@ function loop(now) {
   let n = 0;
   while (acc >= FRAME_MS && n < 4) { gb.runFrame(); acc -= FRAME_MS; n++; }
   if (n === 4) acc = 0;
-  if (!soundOn) { gb.audioR = gb.audioW; }
+  if (!soundOn) gb.audioR = gb.audioW;
   if (n) { img32.set(gb.fb); ctx2d.putImageData(img, 0, 0); }
 }
 requestAnimationFrame(loop);
 
-
 /* ---- fit console to screen ---- */
-const stage = document.getElementById('stage'), consoleEl = document.getElementById('console');
+const stage = document.getElementById('stage');
 function fit() {
   const w = stage.clientWidth - 8, h = stage.clientHeight - 76;
   const s = Math.max(0.4, Math.min(w / consoleEl.offsetWidth, h / consoleEl.offsetHeight, 1.6));
@@ -1412,16 +1622,14 @@ fit(); document.fonts && document.fonts.ready.then(fit);
 
 /* ---- settings menu ---- */
 const fab = document.getElementById('fab'), menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
-let pausedByMenu = false;
 function setMenu(open) {
   menu.hidden = !open; scrim.hidden = !open; fab.setAttribute('aria-expanded', open);
-  if (open && !paused) { paused = true; pausedByMenu = true; updatePause(); }
-  if (!open && pausedByMenu) { paused = false; pausedByMenu = false; updatePause(); }
+  if (open && !paused) { pausedByMenu = true; setPaused(true); }
+  if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
 fab.addEventListener('click', () => { unlockAudio(); setMenu(menu.hidden); });
 scrim.addEventListener('click', () => setMenu(false));
 addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) setMenu(false); });
-
 
 /* ---- console colour themes ---- */
 const SHELLS = [
@@ -1452,12 +1660,9 @@ for (const t of SHELLS) {
   b.addEventListener('click', () => applyShell(t.id));
   swWrap.appendChild(b);
 }
-let savedShell = 'persimmon'; try { savedShell = localStorage.getItem('pb-shell') || savedShell; } catch (e) {}
-applyShell(savedShell);
 
-
-/* ---- my games library (IndexedDB, this device only) ---- */
-function romId(u) { let h = 2166136261 >>> 0; for (let i = 0; i < u.length; i += 7) { h ^= u[i]; h = Math.imul(h, 16777619) >>> 0; } return h.toString(16) + '-' + u.length.toString(16); }
+/* ---- my games library (IndexedDB, this device only), grouped by console ---- */
+function romId(u) { let h = 2166136261 >>> 0; const step = u.length > 4e6 ? 997 : 7; for (let i = 0; i < u.length; i += step) { h ^= u[i]; h = Math.imul(h, 16777619) >>> 0; } return h.toString(16) + '-' + u.length.toString(16); }
 let dbP = null;
 function db() {
   if (!dbP) dbP = new Promise((res, rej) => {
@@ -1481,58 +1686,57 @@ const dbGet = id => tx('readonly', s => s.get(id)).catch(() => null);
 const dbAll = () => tx('readonly', s => s.getAll()).catch(() => null);
 
 const mylist = document.getElementById('mylist');
+let renderSeq = 0;
 async function renderMine() {
+  const seq = ++renderSeq;
   const all = await dbAll();
+  if (seq !== renderSeq) return;
   mylist.innerHTML = '';
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
-  if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα εμφανιστεί εδώ, για να το ξεκινάς με ένα πάτημα.</div>'; return; }
-  all.sort((a, b) => b.added - a.added);
-  for (const g of all) {
-    const row = document.createElement('div');
-    row.className = 'mygame' + (g.id === current ? ' active' : '');
-    const play = document.createElement('button'); play.className = 'play';
-    const n = document.createElement('span'); n.className = 'n'; n.textContent = g.name;
-    const tag = document.createElement('small'); tag.textContent = g.cgb ? 'GBC' : 'GB';
-    play.append(n, tag);
-    play.addEventListener('click', () => { unlockAudio(); pausedByMenu = false; boot(new Uint8Array(g.bytes), g.name, g.id); setMenu(false); });
-    const del = document.createElement('button'); del.className = 'del'; del.textContent = 'Σβήσε';
-    del.setAttribute('aria-label', 'Σβήσε το ' + g.name);
-    del.addEventListener('click', async () => {
-      if (!del.classList.contains('confirm')) { del.classList.add('confirm'); del.textContent = 'Σίγουρα;'; setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Σβήσε'; }, 3000); return; }
-      await dbDel(g.id);
-      toast('Σβήστηκε: ' + g.name);
-      renderMine();
-    });
-    row.append(play, del);
-    mylist.appendChild(row);
+  if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
+  all.sort((a, b) => a.name.localeCompare(b.name, 'el'));
+  for (const key of ['gb', 'md', 'n64']) {
+    const group = all.filter(g => (g.sys || 'gb') === key);
+    if (!group.length) continue;
+    const h = document.createElement('h3');
+    h.innerHTML = `<span></span><span class="count"></span>`;
+    h.firstChild.textContent = SYSTEMS[key].name; h.lastChild.textContent = group.length;
+    mylist.appendChild(h);
+    for (const g of group) {
+      const row = document.createElement('div');
+      row.className = 'mygame' + (g.id === current ? ' active' : '');
+      const play = document.createElement('button'); play.className = 'play';
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = g.name;
+      const tag = document.createElement('small'); tag.textContent = key === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[key].tag;
+      play.append(n, tag);
+      play.addEventListener('click', () => { unlockAudio(); setMenu(false); bootEntry(g); });
+      const del = document.createElement('button'); del.className = 'del'; del.textContent = 'Σβήσε';
+      del.setAttribute('aria-label', 'Σβήσε το ' + g.name);
+      del.addEventListener('click', async () => {
+        if (!del.classList.contains('confirm')) { del.classList.add('confirm'); del.textContent = 'Σίγουρα;'; setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Σβήσε'; }, 3000); return; }
+        await dbDel(g.id);
+        toast('Σβήστηκε: ' + g.name);
+        renderMine();
+      });
+      row.append(play, del);
+      mylist.appendChild(row);
+    }
   }
 }
-renderMine();
-
-
-/* ---- haptics: Vibration API on Android, switch-control tick on iPhone ---- */
-let hapticsOn = true;
-const hapLabel = document.getElementById('hapLabel');
-const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function haptic() {
-  if (!hapticsOn) return;
-  if (!isApple && navigator.vibrate) { try { if (navigator.vibrate(12)) return; } catch (e) {} }
-  try { hapLabel.click(); } catch (e) {}
-}
-function setHaptics(on) {
-  hapticsOn = on;
-  document.getElementById('hapticBtn').textContent = on ? '📳 Δόνηση: ανοιχτή' : '📴 Δόνηση: κλειστή';
-  try { localStorage.setItem('pb-haptic', on ? '1' : '0'); } catch (e) {}
-}
-document.getElementById('hapticBtn').addEventListener('click', () => { setHaptics(!hapticsOn); if (hapticsOn) haptic(); });
-try { setHaptics(localStorage.getItem('pb-haptic') !== '0'); } catch (e) { setHaptics(true); }
 
 /* ---- start ---- */
-let lastCart = 'libbet';
-try { const l = localStorage.getItem('pb-last'); if (l && ROMS[l]) lastCart = l; if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = '🔊 Ήχος: ανοιχτός'; } } catch (e) {}
-let lastUser = null; try { const l = localStorage.getItem('pb-last'); if (l && l.startsWith('user:')) lastUser = l; } catch (e) {}
-bootCart(lastCart);
-if (lastUser) dbGet(lastUser).then(g => { if (g) boot(new Uint8Array(g.bytes), g.name, g.id); });
+try {
+  applyShell(localStorage.getItem('pb-shell') || 'persimmon');
+  setHaptics(localStorage.getItem('pb-haptic') !== '0');
+  if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = '🔊 Ήχος: ανοιχτός'; }
+} catch (e) { applyShell('persimmon'); setHaptics(true); }
+let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
+if (lastId && lastId.startsWith('user:')) {
+  dbGet(lastId).then(g => {
+    if (g && ((g.sys || 'gb') === 'gb' || EJS_ALLOWED)) bootEntry(g); else bootCart('libbet');
+  });
+} else bootCart(lastId && ROMS[lastId] ? lastId : 'libbet');
+renderMine();
 </script>
 
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
