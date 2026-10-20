@@ -71,8 +71,8 @@ body {
 .bezel { background: var(--bezel-c); border-radius: 10px; padding: 4px; }
 .screen-wrap { position: relative; width: 100%; background: #000; border-radius: 7px; overflow: hidden; line-height: 0; }
 .console[data-sys="gb"] .screen-wrap { background: var(--lcd-off); }
-.console:not([data-sys="gb"]) .screen-wrap { aspect-ratio: 4 / 3; }
-canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.screen-wrap { aspect-ratio: 10 / 9; }
+canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 .console:not([data-sys="gb"]) canvas#lcd { display: none; }
 #ejs-host { position: absolute; inset: 0; }
 #ejs { width: 100%; height: 100%; }
@@ -1619,7 +1619,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 /* ---- fit console to screen: fill the phone, and switch to roomier controls when there is spare height ---- */
-const stage = document.getElementById('stage');
+const stage = document.getElementById('stage'), fab = document.getElementById('fab');
 // [left, top, size] in px inside the face box; normal layout, then tall layout
 const LAYOUT = {
   gbB: [[8, 62, 68], [0, 108, 76]],   gbA: [[92, 28, 68], [84, 28, 76]],
@@ -1635,7 +1635,9 @@ function applyLayout(tall) {
   }
 }
 function fit() {
-  const W = stage.clientWidth - 4, H = stage.clientHeight - 68;
+  // keep the console above the settings button
+  const st = stage.getBoundingClientRect(), fb = fab.getBoundingClientRect();
+  const W = stage.clientWidth - 4, H = Math.max(200, fb.top - st.top - 14);
   consoleEl.style.minHeight = '';
   applyLayout(false);
   let base = consoleEl.offsetHeight;
@@ -1646,13 +1648,14 @@ function fit() {
     consoleEl.style.minHeight = Math.max(base, Math.min(H / s, consoleEl.offsetWidth * 2.3)) + 'px';
   }
   s = Math.max(0.4, Math.min(s, 1.8));
-  consoleEl.style.transform = `translate(-50%, calc(-50% - 32px)) scale(${s})`;
+  consoleEl.style.top = (H / 2) + 'px';
+  consoleEl.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit(); document.fonts && document.fonts.ready.then(fit);
 
 /* ---- settings menu ---- */
-const fab = document.getElementById('fab'), menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
+const menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
 function setMenu(open) {
   menu.hidden = !open; scrim.hidden = !open; fab.setAttribute('aria-expanded', open);
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
