@@ -274,6 +274,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <button class="tool" id="pauseBtn">Παύση</button>
     <button class="tool" id="resetBtn">Επανεκκίνηση</button>
     <button class="tool" id="loadBtn">Φόρτωσε δικό σου ROM</button>
+    <button class="tool" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
     <input type="file" id="romFile" hidden>
   </div>
 
@@ -1254,7 +1255,7 @@ const SYSTEMS = {
   gb: { name: 'Game Boy', tag: 'GB' },
   md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
   n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
-  arcade: { name: 'Arcade', tag: 'ARC', core: 'arcade', ext: 'zip' },
+  arcade: { name: 'Arcade', tag: 'ARC', core: 'mame2003_plus', ext: 'zip' },
 };
 const EJS_CDN = ['https://cdn.emulatorjs.org/4.2.3/data/', 'https://cdn.emulatorjs.org/stable/data/'];
 // The page needs to load EmulatorJS from its CDN; the Claude preview blocks that, the GitHub site allows it.
@@ -1354,7 +1355,7 @@ function bootEJS(entry) {
   entry.bytes = null; // the File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
-    EJS_core: SYSTEMS[entry.sys].core,
+    EJS_core: entry.sys === 'arcade' ? arcadeCore() : SYSTEMS[entry.sys].core,
     EJS_gameUrl: file,
     EJS_gameName: entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
     EJS_language: 'en-US',
@@ -1395,6 +1396,8 @@ function bootEJS(entry) {
   if (entry.sys === 'n64') toast('Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.', 4500);
   return true;
 }
+const ARCADE_CORES = { mame2003_plus: 'MAME 2003-Plus', arcade: 'FBNeo' };
+function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
 const TAP_TO_START = 'ΠΑΤΑ ΟΠΟΙΟΔΗΠΟΤΕ ΚΟΥΜΠΙ ΓΙΑ ΝΑ ΣΥΝΕΧΙΣΕΙΣ';
 function ejsAudioCtxs() {
   const set = new Set();
@@ -1544,6 +1547,18 @@ function setSound(on) {
 }
 document.getElementById('soundBtn').addEventListener('click', () => setSound(!soundOn));
 document.addEventListener('pointerdown', () => { if (soundOn && audioCtx && audioCtx.state !== 'running') audioCtx.resume().catch(() => {}); }, true);
+
+/* ---- arcade emulator choice ---- */
+const arcCoreBtn = document.getElementById('arcCoreBtn');
+function showArcCore() { arcCoreBtn.textContent = 'Εξομοιωτής arcade: ' + ARCADE_CORES[arcadeCore()]; }
+arcCoreBtn.addEventListener('click', () => {
+  const next = arcadeCore() === 'mame2003_plus' ? 'arcade' : 'mame2003_plus';
+  try { localStorage.setItem('pb-arcade-core', next); } catch (e) {}
+  showArcCore();
+  if (sys === 'arcade' && current) { toast('Αλλάζω εξομοιωτή…'); setLast(current); setTimeout(() => location.reload(), 600); }
+  else toast('Τα arcade θα παίζουν με ' + ARCADE_CORES[next] + '.');
+});
+showArcCore();
 
 /* ---- pause / reset ---- */
 function setPaused(p) {
