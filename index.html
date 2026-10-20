@@ -1421,11 +1421,12 @@ function bootEJS(entry) {
   setLast(entry.id); markActive();
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
+  const neoGeo = entry.sys === 'arcade' && isNeoGeoSet(zipNames(entry.bytes));
   const file = new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
   entry.bytes = null; // the File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
-    EJS_core: entry.sys === 'arcade' ? arcadeCore() : SYSTEMS[entry.sys].core,
+    EJS_core: entry.sys === 'arcade' ? (neoGeo ? 'arcade' : arcadeCore()) : SYSTEMS[entry.sys].core,
     EJS_gameUrl: file,
     EJS_gameName: entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
     EJS_language: 'en-US',
@@ -1462,6 +1463,26 @@ function bootEJS(entry) {
   return true;
 }
 const ARCADE_CORES = { mame2003_plus: 'MAME 2003-Plus', arcade: 'FBNeo' };
+// File names inside a zip, read from its central directory (no decompression)
+function zipNames(u) {
+  try {
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength), names = [];
+    let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e <= 0) return names;
+    let cd = dv.getUint32(e + 16, true);
+    const dec = new TextDecoder();
+    while (cd + 46 < u.length && dv.getUint32(cd, true) === 0x02014b50) {
+      const n = dv.getUint16(cd + 28, true), x = dv.getUint16(cd + 30, true), c = dv.getUint16(cd + 32, true);
+      names.push(dec.decode(u.subarray(cd + 46, cd + 46 + n)).toLowerCase());
+      cd += 46 + n + x + c;
+    }
+    return names;
+  } catch (e) { return []; }
+}
+// Neo Geo sets (sprite ROMs named *.c1, BIOS pieces like sfix / sm1 / 000-lo) are newer than MAME 2003; FBNeo runs them
+function isNeoGeoSet(names) {
+  return names.some(n => /(^|\/)(sfix\.sfix|sm1\.sm1|000-lo\.lo|neo-sma)$/.test(n)) || (names.some(n => /\.c1$/.test(n)) && names.some(n => /\.p1$/.test(n)));
+}
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
 const TAP_TO_START = 'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις';
 function ejsAudioCtxs() {
@@ -1546,7 +1567,7 @@ function markActive() {
 }
 
 /* ---- ROM loading (incl. zip) ---- */
-const ARCADE_NAMES = { crusnusa: "Cruis'n USA", crusnwld: "Cruis'n World", offroadc: 'Off Road Challenge', outrun: 'Out Run', chasehq: 'Chase H.Q.', harddriv: "Hard Drivin'", wboy: 'Wonder Boy', pbobble: 'Puzzle Bobble', pbobblen: 'Puzzle Bobble', pbobble2: 'Puzzle Bobble 2', pbobble3: 'Puzzle Bobble 3', bublbobl: 'Bubble Bobble', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
+const ARCADE_NAMES = { mslug: 'Metal Slug', mslug2: 'Metal Slug 2', mslug3: 'Metal Slug 3', mslug4: 'Metal Slug 4', mslug5: 'Metal Slug 5', mslugx: 'Metal Slug X', kof2002: "The King of Fighters 2002", samsho2: 'Samurai Shodown II', garou: 'Garou: Mark of the Wolves', crusnusa: "Cruis'n USA", crusnwld: "Cruis'n World", offroadc: 'Off Road Challenge', outrun: 'Out Run', chasehq: 'Chase H.Q.', harddriv: "Hard Drivin'", wboy: 'Wonder Boy', pbobble: 'Puzzle Bobble', pbobblen: 'Puzzle Bobble', pbobble2: 'Puzzle Bobble 2', pbobble3: 'Puzzle Bobble 3', bublbobl: 'Bubble Bobble', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
 // Driving games: MAME 2003-Plus reads the gas pedal from R, the brake from L and steering from the analog stick
 const DRIVING_SETS = new Set(['crusnusa', 'crusnu40', 'crusnu21', 'crusnwld', 'crusnw20', 'crusnw17', 'crusnw13', 'offroadc', 'offroadc4', 'offroadc3', 'offroadc1',
   'outrun', 'outruna', 'outrunb', 'toutrun', 'toutruna', 'chasehq', 'chasehqj', 'harddriv', 'harddrvc', 'hdrivair', 'racedriv', 'racedrvc', 'stunrun', 'roadblst', 'pdrift', 'hangon', 'superhng', 'enduror', 'contcirc', 'nightstr', 'sci', 'topspeed', 'scud', 'daytona', 'srallyc', 'rdft']);
