@@ -1462,12 +1462,17 @@ function bootEJS(entry) {
       if (paused) try { EJS_emulator.pause(); } catch (e) {}
     },
   });
-  const startLoader = () => load(0);
+  // FBNeo crashes on iPhone with the 4.2.3 build; try the newest EmulatorJS build (with newer cores) first for it
+  let cdns = EJS_CDN;
+  const startLoader = () => {
+    if (window.EJS_core === 'arcade') cdns = [EJS_CDN[1], EJS_CDN[0]];
+    load(0);
+  };
   const load = i => {
-    window.EJS_pathtodata = EJS_CDN[i];
+    window.EJS_pathtodata = cdns[i];
     const s = document.createElement('script');
-    s.src = EJS_CDN[i] + 'loader.js';
-    s.onerror = () => { if (i + 1 < EJS_CDN.length) load(i + 1); else showOverlay('Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.'); };
+    s.src = cdns[i] + 'loader.js';
+    s.onerror = () => { if (i + 1 < cdns.length) load(i + 1); else showOverlay('Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.'); };
     document.body.appendChild(s);
   };
   if (needsBios) {
@@ -1476,7 +1481,11 @@ function bootEJS(entry) {
     const gameBytes = pendingBytes; pendingBytes = null;
     findNeoBios().then(b => {
       let zip = gameBytes;
-      if (b) zip = zipBuild([{ u: gameBytes, keep: () => true }, { u: b, keep: () => true }]) || gameBytes;
+      if (b) {
+        mameNeoBiosKnown = zipNames(b).some(n => /(^|\/)mame\.sm1$/.test(n));
+        window.EJS_core = neoGeoNeedsFBNeo(entryNames) ? 'arcade' : arcadeCore();
+        zip = zipBuild([{ u: gameBytes, keep: () => true }, { u: b, keep: () => true }]) || gameBytes;
+      }
       else toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
       window.EJS_gameUrl = URL.createObjectURL(new Blob([zip]));
       startLoader();
@@ -1507,8 +1516,8 @@ function isNeoGeoSet(names) {
   return names.some(n => /(^|\/)(sfix\.sfix|sm1\.sm1|000-lo\.lo|neo-sma)$/.test(n)) || (names.some(n => /\.c1$/.test(n)) && names.some(n => /\.p1$/.test(n)));
 }
 // Neo Geo BIOS pieces (as found in neogeo.zip, or bundled inside some game sets such as mslug3.zip)
-const NEO_BIOS_RE = /(^|\/)(sfix\.sfix|000-lo\.lo|sm1\.sm1|[^/]*\.sp1|sp1\.[^/]+|uni-bios[^/]*\.rom|asia-s3\.rom|japan-j3\.bin|vs-bios\.rom|v2\.bin|sp-1v1[^/]*\.bin|neo-epo\.bin|neodebug\.bin|sm1\.rom|sfix\.rom|000-lo\.rom)$/;
-function hasNeoBios(names) { return names.some(n => /(^|\/)sfix\.sfix$/.test(n)) && names.some(n => /(^|\/)000-lo\.lo$/.test(n)) && names.some(n => /\.sp1$|sp-s2|uni-bios/.test(n)); }
+const NEO_BIOS_RE = /(^|\/)(sfix\.sfix|000-lo\.lo|sm1\.sm1|[^/]*\.sp1|sp1\.[^/]+|uni-bios[^/]*\.rom|asia-s3\.rom|japan-j3\.bin|vs-bios\.rom|v2\.bin|sp-1v1[^/]*\.bin|neo-epo\.bin|neodebug\.bin|neodebug\.rom|sm1\.rom|sfix\.rom|sfix\.sfx|000-lo\.rom|mame\.sm1|mamelo\.lo|usa_2slt\.bin)$/;
+function hasNeoBios(names) { return names.some(n => /(^|\/)sfix\.sfix?$/.test(n)) && names.some(n => /(^|\/)000-lo\.lo$/.test(n)) && names.some(n => /\.sp1$|sp-s2|uni-bios/.test(n)); }
 // Build a zip from entries of one or more zips, copying the compressed data as-is (no decompression)
 function zipBuild(sources) { // sources: [{ u, keep(name) }]
   const dec = new TextDecoder(), locals = [], centrals = [], seen = new Set();
@@ -1565,7 +1574,10 @@ async function findNeoBios() {
 }
 // Neo Geo carts numbered 251 and up (KOF '99, Garou, Metal Slug 3/4/5…) are encrypted and only FBNeo runs them;
 // older ones (Metal Slug 1/2/X, KOF '98, Samurai Shodown…) also run on MAME 2003-Plus, which is far steadier on iPhone
+// MAME 2003 also needs its own era's BIOS files (mame.sm1); modern BIOS sets lack it, so then FBNeo is the only option
+let mameNeoBiosKnown = false;
 function neoGeoNeedsFBNeo(names) {
+  if (!mameNeoBiosKnown && !names.some(n => /(^|\/)mame\.sm1$/.test(n))) return true;
   if (names.some(n => /(^|\/)neo-sma$|\.neo-sma$/.test(n))) return true;
   const c1 = names.map(n => (n.match(/(?:^|\/)(\d{3})-c1/) || [])[1]).find(Boolean);
   return c1 ? +c1 >= 251 : false;
