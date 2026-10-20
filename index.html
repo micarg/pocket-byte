@@ -76,7 +76,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="gb"]) canvas#lcd { display: none; }
 #ejs-host { position: absolute; inset: 0; }
 #ejs { width: 100%; height: 100%; }
-#ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
+#ejs .ejs_popup_container, #ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
 #ejs .ejs_parent { background: #000 !important; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; background: rgba(12,16,10,.78); color: #e8f2d6; font: 12px/1.7 var(--display); z-index: 5; }
 .brand { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
@@ -1369,6 +1369,8 @@ function bootEJS(entry) {
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      // iOS keeps the emulator's audio (and with it the emulator) suspended until a tap; say so in our own words
+      setTimeout(() => { if (ejsSuspended()) showOverlay(TAP_TO_START); }, 400);
       try { EJS_emulator.setVolume(soundOn ? 0.8 : 0); } catch (e) {}
       if (paused) try { EJS_emulator.pause(); } catch (e) {}
     },
@@ -1384,6 +1386,26 @@ function bootEJS(entry) {
   if (entry.sys === 'n64') toast('Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.', 4500);
   return true;
 }
+const TAP_TO_START = 'ΠΑΤΑ ΟΠΟΙΟΔΗΠΟΤΕ ΚΟΥΜΠΙ ΓΙΑ ΝΑ ΣΥΝΕΧΙΣΕΙΣ';
+function ejsAudioCtxs() {
+  const set = new Set();
+  try {
+    const AL = EJS_emulator.Module.AL;
+    if (AL && AL.currentCtx) {
+      (AL.currentCtx.sources || []).forEach(s => { if (s && s.gain && s.gain.context) set.add(s.gain.context); });
+      if (AL.currentCtx.audioCtx) set.add(AL.currentCtx.audioCtx);
+    }
+  } catch (e) {}
+  return [...set];
+}
+function ejsSuspended() { return ejsAudioCtxs().some(c => c.state === 'suspended'); }
+function ejsResume() {
+  if (!ejsStarted) return;
+  ejsAudioCtxs().forEach(c => { if (c.state === 'suspended') c.resume().catch(() => {}); });
+  if (overlay.textContent === TAP_TO_START) setTimeout(() => { if (!ejsSuspended()) showOverlay(''); }, 150);
+}
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(t => document.addEventListener(t, ejsResume, true));
+overlay.addEventListener('click', ejsResume);
 function ejsInput(index, value) {
   if (!ejsStarted || !window.EJS_emulator) return;
   try { EJS_emulator.gameManager.simulateInput(0, index, value); } catch (e) {}
