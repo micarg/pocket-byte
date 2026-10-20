@@ -1727,7 +1727,8 @@ document.getElementById('romFile').addEventListener('change', async e => {
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
   if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis, N64 και arcade (.zip).', 4000); return; }
   const base = name.replace(/^.*\//, '');
-  const arcFile = arcade ? base.toLowerCase().replace(/\s*\(\d+\)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
+  // the emulator identifies an arcade set by its zip name, so undo download renames like 'mslug2 (1).zip', 'mslug2_2.zip', 'mslug2 2.zip'
+  const arcFile = arcade ? base.toLowerCase().replace(/(\s*\(\d+\)|_\d+|\s+\d+)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
   const label = arcade ? arcadeName(arcFile) : base.replace(/\.[a-z0-9]+$/i, '');
   const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
   const entry = { id: 'user:' + romId(bytes), name: label, sys: s, ext: (s !== 'gb' && ext) ? ext : undefined,
