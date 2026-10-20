@@ -2091,11 +2091,20 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 let hapticsOn = true;
 const hapLabel = document.getElementById('hapLabel');
 const isApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let lastTick = 0;
 function haptic() {
   if (!hapticsOn) return;
   if (!isApple && navigator.vibrate) { try { if (navigator.vibrate(12)) return; } catch (e) {} }
+  if (performance.now() - lastTick < 80) return; // the touchstart below already ticked for this press
+  lastTick = performance.now();
   try { hapLabel.click(); } catch (e) {}
 }
+// iPhone only gives the switch tick when the click happens inside a touch event Safari counts as a real tap;
+// a pointerdown from a finger doesn't count, touchstart does, so tick there for every control on the console
+if (isApple) document.addEventListener('touchstart', e => {
+  if (!hapticsOn || !e.target.closest || !e.target.closest('.btn, .pill, #dpad, #menuBtn, .tool, .style-pick button')) return;
+  lastTick = 0; haptic();
+}, { capture: true, passive: true });
 function setHaptics(on) {
   hapticsOn = on;
   document.getElementById('hapticBtn').textContent = on ? '📳 Δόνηση: ανοιχτή' : '📴 Δόνηση: κλειστή';
