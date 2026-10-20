@@ -1600,13 +1600,9 @@ async function findNeoBios() {
   }
   return null;
 }
-// Neo Geo carts numbered 251 and up (KOF '99, Garou, Metal Slug 3/4/5…) are encrypted and only FBNeo runs them;
-// older ones (Metal Slug 1/2/X, KOF '98, Samurai Shodown…) also run on MAME 2003-Plus, which is far steadier on iPhone
-function neoGeoNeedsFBNeo(names) {
-  if (names.some(n => /(^|\/)neo-sma$|\.neo-sma$/.test(n))) return true;
-  const c1 = names.map(n => (n.match(/(?:^|\/)(\d{3})-c1/) || [])[1]).find(Boolean);
-  return c1 ? +c1 >= 251 : false;
-}
+// MAME 2003-Plus runs Neo Geo carts too, including encrypted ones such as Metal Slug 3 (it is far steadier than FBNeo
+// on iPhone); FBNeo only when the player picks it in the menu
+function neoGeoNeedsFBNeo(names) { return false; }
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
 const TAP_TO_START = 'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις';
 function ejsAudioCtxs() {
