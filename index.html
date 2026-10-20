@@ -123,6 +123,16 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
   transition: transform .12s ease-out; }
 .knob::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: repeating-radial-gradient(circle, rgba(255,255,255,.07) 0 2px, transparent 2px 5px); }
 .knob.held { transition: none; }
+/* cross-shaped D-pad (per game, chosen in the menu) */
+.dpad .cross { display: none; position: absolute; inset: 8px; pointer-events: none; transition: transform .06s ease-out; }
+.dpad .cross span { position: absolute; background: radial-gradient(circle at 40% 30%, var(--btn-hi) 0, #34383c 60%, #26292c 100%); }
+.dpad .cross .cv { left: 41px; top: 0; width: 42px; height: 124px; border-radius: 8px; box-shadow: 0 5px 8px rgba(0,0,0,.5), inset 0 -3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12); }
+.dpad .cross .ch { left: 0; top: 41px; width: 124px; height: 42px; border-radius: 8px; box-shadow: 0 5px 8px rgba(0,0,0,.5), inset 0 -3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12); }
+.dpad .cross .cc { left: 41px; top: 41px; width: 42px; height: 42px; background: radial-gradient(circle, rgba(0,0,0,.28) 0 9px, #34383c 10px); }
+.dpad.cross-on .cross { display: block; }
+.dpad.cross-on .ring, .dpad.cross-on .knob { display: none; }
+.dpad.cross-on i { z-index: 1; opacity: .6; }
+.dpad.cross-on i.on { opacity: 1; }
 
 /* per-system controls */
 .console:not([data-sys="gb"]) .only-gb,
@@ -180,6 +190,7 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .style-pick { display: flex; gap: 8px; margin-bottom: 14px; }
 .style-pick button { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); font: 13px var(--display); letter-spacing: .08em; cursor: pointer; }
 .style-pick button[aria-pressed="true"] { background: var(--accent); color: #2a1d06; border-color: var(--accent); }
+.style-pick.disabled { opacity: .4; pointer-events: none; }
 .style-pick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- menu content ---------- */
@@ -255,6 +266,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="pad-row">
       <div class="dpad" id="dpad" aria-label="Joystick">
         <div class="ring"></div>
+        <div class="cross" id="cross"><span class="cv"></span><span class="ch"></span><span class="cc"></span></div>
         <i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i>
         <div class="knob" id="knob"></div>
       </div>
@@ -367,6 +379,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <section>
     <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
     <div class="style-pick" id="stylePick"><button data-style="modern">MODERN</button><button data-style="retro">RETRO</button></div>
+    <h2>ΧΕΙΡΙΣΤΗΡΙΟ (ΓΙΑ ΑΥΤΟ ΤΟ ΠΑΙΧΝΙΔΙ)</h2>
+    <div class="style-pick" id="padPick"><button data-pad="stick">JOYSTICK</button><button data-pad="cross">ΣΤΑΥΡΟΣ</button></div>
     <h2>ΟΘΟΝΗ ΠΑΙΧΝΙΔΙΟΥ</h2>
     <div class="style-pick" id="fillPick"><button data-fill="1">ΓΕΜΑΤΗ</button><button data-fill="0">ΚΑΝΟΝΙΚΗ</button></div>
     <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
@@ -1400,7 +1414,28 @@ function b64ToBytes(s) { const bin = atob(s); const u = new Uint8Array(bin.lengt
 function bytesToB64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
 function setLast(id) { try { localStorage.setItem('pb-last', id || ''); } catch (e) {} }
 function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
-function setSys(s) { sys = s; consoleEl.dataset.sys = s; requestAnimationFrame(fit); }
+function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); requestAnimationFrame(fit); }
+/* ---- joystick or cross-shaped D-pad, remembered per game (N64 and driving games always use the stick) ---- */
+let crossOn = false;
+const crossEl = document.getElementById('cross');
+const padKey = () => 'pb-pad-' + (current || 'none');
+function padModeAllowed() { return sys !== 'n64' && consoleEl.dataset.prof !== 'drive'; }
+function applyPadMode() {
+  let want = false;
+  try { want = localStorage.getItem(padKey()) === 'cross'; } catch (e) {}
+  crossOn = want && padModeAllowed();
+  document.getElementById('dpad').classList.toggle('cross-on', crossOn);
+  document.getElementById('dpad').setAttribute('aria-label', crossOn ? 'Σταυρός' : 'Joystick');
+  crossEl.style.transform = '';
+  document.querySelectorAll('#padPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.pad === 'cross') === crossOn)));
+  const pick = document.getElementById('padPick');
+  if (pick) pick.classList.toggle('disabled', !padModeAllowed() || !current);
+}
+function setPadMode(cross) {
+  if (!current || !padModeAllowed()) return;
+  try { if (cross) localStorage.setItem(padKey(), 'cross'); else localStorage.removeItem(padKey()); } catch (e) {}
+  applyPadMode();
+}
 function setNow(label) { document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, ''); }
 
 /* ---- Game Boy saves ---- */
@@ -2138,7 +2173,8 @@ function dpadFrom(e, prev) {
   let m = 0;
   if (d > (pm ? DEAD_OFF : DEAD_ON)) {
     const c = x / d, s = y / d;
-    const on = (bit, v) => v > ((pm & bit) ? AXIS_OFF : AXIS_ON);
+    const ax_on = crossOn ? 0.62 : AXIS_ON, ax_off = crossOn ? 0.5 : AXIS_OFF; // the cross: diagonals only in a narrow band
+    const on = (bit, v) => v > ((pm & bit) ? ax_off : ax_on);
     if (on(K.RIGHT, c)) m |= K.RIGHT; else if (on(K.LEFT, -c)) m |= K.LEFT;
     if (on(K.DOWN, s)) m |= K.DOWN; else if (on(K.UP, -s)) m |= K.UP;
     if (!m) { // never fall into a gap: pick the nearest axis
@@ -2154,6 +2190,10 @@ function dpadUpdate() {
   for (const v of dpadPointers.values()) { m |= v.m; if (!first) first = v; }
   held.dpad = m; applyKeys();
   knob.classList.toggle('held', !!first);
+  if (crossOn) { // tilt the cross toward the pressed arm
+    const tx = (m & K.RIGHT ? 1 : 0) - (m & K.LEFT ? 1 : 0), ty = (m & K.DOWN ? 1 : 0) - (m & K.UP ? 1 : 0);
+    crossEl.style.transform = (tx || ty) ? `perspective(300px) rotateY(${tx * 10}deg) rotateX(${-ty * 10}deg)` : '';
+  }
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
   if (sys === 'md' || sys === 'arcade' || sys === 'gba' || sys === 'nes') {
@@ -2334,6 +2374,7 @@ function setFill(on) {
   document.querySelectorAll('#fillPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.fill === '1') === on)));
   fitGameScreen();
 }
+document.querySelectorAll('#padPick button').forEach(b => b.addEventListener('click', () => setPadMode(b.dataset.pad === 'cross')));
 document.querySelectorAll('#fillPick button').forEach(b => b.addEventListener('click', () => setFill(b.dataset.fill === '1')));
 setFill(fillOn);
 // the picture size can change mid-game (menus, resolution switches), so check now and then
