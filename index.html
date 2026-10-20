@@ -125,7 +125,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="gb"]) .only-gb,
 .console:not([data-sys="md"]) .only-md,
 .console:not([data-sys="n64"]) .only-n64,
-.console:not([data-sys="arcade"]) .only-arcade { display: none !important; }
+.console:not([data-sys="arcade"]) .only-arcade,
+.console:not([data-prof="drive"]) .only-drive,
+.console[data-prof="drive"] .only-arcade-std { display: none !important; }
 .face { position: relative; width: 170px; height: 160px; flex: none; }
 .btn { position: absolute; border: 0; padding: 0; border-radius: 50%; touch-action: none; }
 .btn .t { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); font: 12px var(--display); color: var(--print); letter-spacing: .06em; pointer-events: none; white-space: nowrap; }
@@ -137,6 +139,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .cbtn.cd::before { border-top-color: rgba(0,0,0,.45); margin-top: 3px; }
 .cbtn.cl::before { border-right-color: rgba(0,0,0,.45); margin-left: -3px; }
 .cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
+.gear { width: 36px; height: 36px; background: radial-gradient(circle at 38% 32%, #5a5f66, #33373c); box-shadow: 0 4px 0 #1d2023, 0 5px 8px rgba(0,0,0,.3); color: #e8eaec; font: 13px var(--display); }
+.drive-lbl { position: absolute; left: 0; top: -16px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
+.btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
@@ -236,10 +241,19 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <button class="btn round sm" id="mdC" data-ej="8" aria-label="C"><span class="t">C</span></button>
       </div>
 
-      <div class="face only-arcade">
+      <div class="face only-arcade only-arcade-std">
         <button class="btn round sm" id="arc1" data-ej="0" aria-label="Κουμπί 1"><span class="t">1</span></button>
         <button class="btn round sm" id="arc2" data-ej="8" aria-label="Κουμπί 2"><span class="t">2</span></button>
         <button class="btn round sm" id="arc3" data-ej="1" aria-label="Κουμπί 3"><span class="t">3</span></button>
+      </div>
+
+      <div class="face only-arcade only-drive">
+        <span class="drive-lbl" id="gearLbl">ΤΑΧΥΤΗΤΕΣ</span>
+        <button class="btn gear" id="dvG1" data-ej="8" aria-label="1η ταχύτητα">1</button>
+        <button class="btn gear" id="dvG2" data-ej="1" aria-label="2η ταχύτητα">2</button>
+        <button class="btn gear" id="dvG3" data-ej="9" aria-label="3η ταχύτητα">3</button>
+        <button class="btn round sm" id="dvBrake" data-ej="10" aria-label="Φρένο"><span class="t in">ΦΡΕΝΟ</span></button>
+        <button class="btn round" id="dvGas" data-ej="11" aria-label="Γκάζι"><span class="t in">ΓΚΑΖΙ</span></button>
       </div>
 
       <div class="face only-n64">
@@ -1396,6 +1410,7 @@ function bootEJS(entry) {
   if (gb) { storeSave(); gb = null; }
   ejsLoaded = true;
   current = entry.id;
+  consoleEl.dataset.prof = entry.sys === 'arcade' ? arcadeProfile(entry.fileName) : '';
   setSys(entry.sys); setNow(entry.name);
   document.getElementById('led').classList.add('on');
   document.getElementById('ejs-host').hidden = false;
@@ -1528,7 +1543,11 @@ function markActive() {
 }
 
 /* ---- ROM loading (incl. zip) ---- */
-const ARCADE_NAMES = { wboy: 'Wonder Boy', pbobble: 'Puzzle Bobble', pbobblen: 'Puzzle Bobble', pbobble2: 'Puzzle Bobble 2', pbobble3: 'Puzzle Bobble 3', bublbobl: 'Bubble Bobble', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
+const ARCADE_NAMES = { crusnusa: "Cruis'n USA", crusnwld: "Cruis'n World", offroadc: 'Off Road Challenge', outrun: 'Out Run', chasehq: 'Chase H.Q.', harddriv: "Hard Drivin'", wboy: 'Wonder Boy', pbobble: 'Puzzle Bobble', pbobblen: 'Puzzle Bobble', pbobble2: 'Puzzle Bobble 2', pbobble3: 'Puzzle Bobble 3', bublbobl: 'Bubble Bobble', wbml: 'Wonder Boy in Monster Land', sf2: 'Street Fighter II', pacman: 'Pac-Man', mspacman: 'Ms. Pac-Man', galaga: 'Galaga', dkong: 'Donkey Kong', 1942: '1942', mslug: 'Metal Slug', kof98: 'The King of Fighters \'98', tmnt: 'Teenage Mutant Ninja Turtles', simpsons: 'The Simpsons', ddragon: 'Double Dragon', ffight: 'Final Fight', outrun: 'Out Run' };
+// Driving games: MAME 2003-Plus reads the gas pedal from R, the brake from L and steering from the analog stick
+const DRIVING_SETS = new Set(['crusnusa', 'crusnu40', 'crusnu21', 'crusnwld', 'crusnw20', 'crusnw17', 'crusnw13', 'offroadc', 'offroadc4', 'offroadc3', 'offroadc1',
+  'outrun', 'outruna', 'outrunb', 'toutrun', 'toutruna', 'chasehq', 'chasehqj', 'harddriv', 'harddrvc', 'hdrivair', 'racedriv', 'racedrvc', 'stunrun', 'roadblst', 'pdrift', 'hangon', 'superhng', 'enduror', 'contcirc', 'nightstr', 'sci', 'topspeed', 'scud', 'daytona', 'srallyc', 'rdft']);
+function arcadeProfile(fileName) { return DRIVING_SETS.has((fileName || '').toLowerCase().replace(/\.zip$/, '')) ? 'drive' : 'std'; }
 function arcadeName(file) { const k = file.toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || k; }
 async function unzipFirstRom(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf);
@@ -1739,6 +1758,13 @@ function dpadUpdate() {
     const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
     for (const [bit, idx] of map) if ((m & bit) !== (lastEjDigital & bit)) ejsInput(idx, m & bit ? 1 : 0);
     lastEjDigital = m;
+    if (consoleEl.dataset.prof === 'drive') {
+      // proportional steering on the analog stick (16 = right, 17 = left)
+      let ax = first ? first.x / STICK_TRAVEL : 0;
+      if (Math.abs(ax) < 0.1) ax = 0;
+      const v = n => Math.round(Math.min(1, n) * 0x7fff);
+      ejsInput(16, ax > 0 ? v(ax) : 0); ejsInput(17, ax < 0 ? v(-ax) : 0);
+    }
   } else if (sys === 'n64') {
     // N64 analog stick: 16 = right, 17 = left, 18 = down, 19 = up (0..0x7fff)
     let ax = first ? first.x / STICK_TRAVEL : 0, ay = first ? first.y / STICK_TRAVEL : 0;
@@ -1803,6 +1829,8 @@ const LAYOUT = {
   mdA: [[0, 78, 54], [0, 124, 60]],   mdB: [[58, 48, 54], [50, 70, 60]],   mdC: [[116, 18, 54], [100, 16, 60]],
   nCU: [[114, 4, 34], [96, 0, 36]],   nCL: [[80, 38, 34], [60, 36, 36]],   nCR: [[136, 38, 34], [124, 36, 36]], nCD: [[114, 72, 34], [96, 72, 36]],
   nB: [[0, 58, 54], [0, 100, 60]],
+  dvG1: [[0, 4, 34], [0, 16, 36]], dvG2: [[40, 4, 34], [42, 16, 36]], dvG3: [[80, 4, 34], [84, 16, 36]],
+  dvBrake: [[0, 92, 56], [0, 120, 62]], dvGas: [[78, 62, 82], [70, 86, 90]],
   arc1: [[0, 78, 54], [0, 124, 60]],  arc2: [[58, 48, 54], [50, 70, 60]],  arc3: [[116, 18, 54], [100, 16, 60]],    nA: [[38, 92, 60], [62, 132, 66]],
 };
 function applyLayout(tall) {
