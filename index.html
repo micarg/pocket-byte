@@ -93,6 +93,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; flex: none; }
 .led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
 
+.controls-panel { flex: 1; display: flex; flex-direction: column; }
 .controls { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 4px; padding-bottom: 6px; }
 .pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; min-height: 160px; }
 .console.tall .pad-row { margin-top: 2px; }
@@ -158,6 +159,24 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4) !important; filter: brightness(1.2); }
 .speaker { position: absolute; right: 26px; bottom: 30px; display: flex; gap: 7px; transform: rotate(-30deg); transform-origin: right; pointer-events: none; }
 .speaker span { width: 5px; height: 40px; border-radius: 3px; background: rgba(0,0,0,.25); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
+
+/* ---------- MODERN style: full-screen, screen on black above a full-width control panel ---------- */
+.console.modern { position: fixed; inset: 0; left: 0 !important; top: 0 !important; width: auto; min-height: 0 !important; transform: none !important;
+  border-radius: 0; padding: 0; background: #000; box-shadow: none; z-index: 1; }
+.console.modern .bezel { flex: 1 1 auto; min-height: 0; border-radius: 0; background: #000; display: flex; align-items: center; justify-content: center;
+  padding: env(safe-area-inset-top, 0px) 0 8px; }
+.console.modern .screen-wrap { width: var(--scr-w, 100%); border-radius: 0; flex: none; }
+.console.modern .brand { flex: none; margin: 0; padding: 14px max(18px, env(safe-area-inset-left, 0px)) 4px; justify-content: center; position: relative;
+  background: linear-gradient(180deg, var(--shell-hi), var(--shell)); border-radius: 26px 26px 0 0; box-shadow: 0 -1px 0 rgba(255,255,255,.18) inset; }
+.console.modern .brand .led { position: absolute; left: max(22px, env(safe-area-inset-left, 0px)); top: 24px; }
+.console.modern .brand span#now { position: absolute; right: max(18px, env(safe-area-inset-right, 0px)); top: 22px; max-width: 30%; }
+.console.modern .controls-panel { flex: none; background: linear-gradient(180deg, var(--shell), var(--shell-lo)); padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
+.console.modern .controls { width: 332px; margin: 0 auto; zoom: var(--ctl-z, 1); }
+.console.modern .speaker { display: none; }
+.style-pick { display: flex; gap: 8px; margin-bottom: 14px; }
+.style-pick button { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); font: 13px var(--display); letter-spacing: .08em; cursor: pointer; }
+.style-pick button[aria-pressed="true"] { background: var(--accent); color: #2a1d06; border-color: var(--accent); }
+.style-pick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- menu content ---------- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -227,6 +246,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     </div>
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
 
+    <div class="controls-panel" id="controlsPanel">
     <div class="controls" id="controls">
     <div class="pad-row">
       <div class="dpad" id="dpad" aria-label="Joystick">
@@ -311,6 +331,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     </div>
+    </div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
 </main>
@@ -340,6 +361,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   </section>
 
   <section>
+    <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
+    <div class="style-pick" id="stylePick"><button data-style="retro">RETRO</button><button data-style="modern">MODERN</button></div>
     <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
     <div class="swatches" id="swatches"></div>
     <div class="swatch-name" id="swatchName"></div>
@@ -2079,7 +2102,24 @@ function applyLayout(tall) {
 const safeProbe = document.createElement('div');
 safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
 document.body.appendChild(safeProbe);
+function fitModern() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const panel = document.getElementById('controlsPanel'), brand = consoleEl.querySelector('.brand');
+  const tall = vh > 760;
+  applyLayout(tall);
+  consoleEl.style.setProperty('--ctl-z', 1);
+  const natW = 332, natH = document.getElementById('controls').offsetHeight;
+  // controls grow to fill the width, but never take more than ~48% of the screen height
+  const z = Math.max(0.7, Math.min((vw - 16) / natW, (vh * 0.48) / natH));
+  consoleEl.style.setProperty('--ctl-z', z.toFixed(3));
+  const bez = consoleEl.querySelector('.bezel');
+  const cs = getComputedStyle(bez);
+  const availH = bez.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  consoleEl.style.setProperty('--scr-w', Math.min(vw, availH * 10 / 9) + 'px');
+}
 function fit() {
+  if (consoleEl.classList.contains('modern')) { fitModern(); return; }
+  consoleEl.style.removeProperty('--ctl-z'); consoleEl.style.removeProperty('--scr-w');
   // usable band: below the status bar / Dynamic Island, above the home indicator; same gap above and below
   const st = stage.getBoundingClientRect();
   const cs = getComputedStyle(safeProbe);
@@ -2182,6 +2222,16 @@ const SHELLS = [
   { id: 'midnight', name: 'Μαύρο', shell: '#2c3036', hi: '#3d424a', lo: '#1c1f23', pill: '#4a4f57', ab: ['#d9573b', '#a83c25', '#6d2416'], print: '#c9ced6', bezel: '#14171a' },
   { id: 'mint', name: 'Μέντα', shell: '#a8dcc0', hi: '#c3ead4', lo: '#7fbf9d', pill: '#5c9a78', ab: ['#e06a5a', '#b84a3c', '#7e2c22'], print: '#1f4a35', bezel: '#2c3433' },
 ];
+/* ---- console style: RETRO (handheld) or MODERN (full screen) ---- */
+function applyStyle(st) {
+  const modern = st === 'modern';
+  consoleEl.classList.toggle('modern', modern);
+  document.querySelectorAll('#stylePick button').forEach(b => b.setAttribute('aria-pressed', b.dataset.style === (modern ? 'modern' : 'retro')));
+  try { localStorage.setItem('pb-style', modern ? 'modern' : 'retro'); } catch (e) {}
+  consoleEl.style.transform = ''; consoleEl.style.top = ''; consoleEl.style.minHeight = '';
+  requestAnimationFrame(fit);
+}
+document.querySelectorAll('#stylePick button').forEach(b => b.addEventListener('click', () => applyStyle(b.dataset.style)));
 const swWrap = document.getElementById('swatches'), swName = document.getElementById('swatchName');
 function applyShell(id) {
   const t = SHELLS.find(s => s.id === id) || SHELLS[0];
@@ -2287,6 +2337,7 @@ async function renderMine() {
 /* ---- start ---- */
 try {
   applyShell(localStorage.getItem('pb-shell') || 'persimmon');
+  applyStyle(localStorage.getItem('pb-style') || 'retro');
   setHaptics(localStorage.getItem('pb-haptic') !== '0');
   if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = '🔊 Ήχος: ανοιχτός'; }
 } catch (e) { applyShell('persimmon'); setHaptics(true); }
