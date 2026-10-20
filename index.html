@@ -182,6 +182,17 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .mygame .del { flex: 0 0 auto; min-width: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #3a444a; background: transparent; color: var(--muted); font: 500 13px var(--body); cursor: pointer; }
 .mygame .del.confirm { background: #8f2a22; border-color: #8f2a22; color: #fff; }
 .mygame button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slot-game { color: var(--muted); font-size: 13.5px; margin: -4px 0 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slots { display: flex; flex-direction: column; gap: 8px; }
+.slot { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 10px; border: 1px solid #3a444a; background: var(--desk-2); }
+.slot .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.slot .info b { font: 12px var(--display); letter-spacing: .06em; }
+.slot .info span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slot button { min-height: 38px; min-width: 76px; padding: 0 12px; border-radius: 8px; border: 1px solid #3a444a; background: var(--desk); color: var(--ink); font: 500 13.5px var(--body); cursor: pointer; }
+.slot button.save { background: var(--accent); color: #2a1d06; border-color: var(--accent); }
+.slot button.confirm { background: #8f2a22; border-color: #8f2a22; color: #fff; }
+.slot button:disabled { opacity: .4; cursor: default; }
+.slot button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .empty { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .swatch { width: 44px; height: 44px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 -4px 0 rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.4); }
@@ -277,6 +288,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <button class="tool" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
     <input type="file" id="romFile" hidden>
   </div>
+
+  <section id="slotsSec">
+    <h2>ΑΠΟΘΗΚΕΥΣΗ</h2>
+    <div class="slot-game" id="slotGame"></div>
+    <div class="slots" id="slots"></div>
+  </section>
 
   <section>
     <h2>ΤΑ ΠΑΙΧΝΙΔΙΑ ΜΟΥ</h2>
@@ -1238,6 +1255,38 @@ var GBCore = (function () {
     if (rtc4 !== undefined) this.rtc[4] = rtc4;
   };
 
+  // ---- save states: every piece of mutable machine state, as a structured-cloneable object ----
+  const STATE_SKIP = new Set(['rom', 'onSerial', 'sampleRate', 'title', 'cgb', 'cartType', 'romBanks', 'mbc', 'rumble', 'hasRTC', 'battery',
+    'romLo', 'romHi', 'shade', 'bgIdx', 'bgPri', 'claimed', 'bgPal', 'objPal', 'audioBufL', 'audioBufR', 'audioW', 'audioR',
+    'cyclesPerSample', 'hpFactor', 'keys', 'frameReady', 'ramDirty']);
+  GB.prototype.saveState = function () {
+    const s = { v: 1, title: this.title };
+    for (const k of Object.keys(this)) {
+      if (STATE_SKIP.has(k)) continue;
+      const v = this[k];
+      if (v === null || v === undefined || typeof v === 'function') continue;
+      if (ArrayBuffer.isView(v)) s[k] = v.slice();
+      else if (typeof v === 'object') s[k] = Object.assign({}, v);
+      else s[k] = v;
+    }
+    return s;
+  };
+  GB.prototype.loadState = function (s) {
+    if (!s || s.v !== 1 || s.title !== this.title) return false;
+    for (const k of Object.keys(s)) {
+      if (k === 'v' || k === 'title' || STATE_SKIP.has(k) || !(k in this)) continue;
+      const cur = this[k], v = s[k];
+      if (ArrayBuffer.isView(cur)) { if (v && v.length === cur.length) cur.set(v); }
+      else if (cur && typeof cur === 'object') Object.assign(cur, v);
+      else this[k] = v;
+    }
+    this.updateBanks();
+    for (let i = 0; i < 32; i++) { this.updPal(this.bgPalRam, this.bgPal, i); this.updPal(this.objPalRam, this.objPal, i); }
+    this.audioR = this.audioW;
+    this.ramDirty = true;
+    return true;
+  };
+
   GB.KEYS = { RIGHT: 1, LEFT: 2, UP: 4, DOWN: 8, A: 16, B: 32, SELECT: 64, START: 128 };
   return GB;
 })();
@@ -1321,7 +1370,7 @@ const ROM_EXT = /\.(gbc?|md|gen|smd|sg|bin|n64|z64|v64)$/i;
 /* ---- Game Boy boot ---- */
 function bootGB(bytes, label, id) {
   if (ejsLoaded) { setLast(id); location.reload(); return; }
-  if (gb) storeSave();
+  if (gb) { storeSave(); snapshotState(true); }
   gb = new GBCore(bytes, { sampleRate: SR });
   let sum = 0; for (let i = 0x134; i < 0x150; i++) sum = (sum * 31 + bytes[i]) >>> 0;
   saveKey = 'pb-save-' + gb.title + '-' + sum;
@@ -1331,6 +1380,9 @@ function bootGB(bytes, label, id) {
   document.getElementById('led').classList.add('on');
   paused = false; pausedByMenu = false; updatePause(); showOverlay('');
   setLast(id); markActive();
+  startAutoState('gb');
+  const thisGb = gb;
+  if (id) resumeAuto(id, () => gb === thisGb);
 }
 function bootCart(id) { const c = CARTS.find(c => c.id === id); bootGB(b64ToBytes(ROMS[id]), c.name, id); }
 
@@ -1374,13 +1426,8 @@ function bootEJS(entry) {
       // iOS keeps the emulator's audio (and with it the emulator) suspended until a tap; say so in our own words
       setTimeout(() => { if (ejsSuspended()) showOverlay(TAP_TO_START); }, 400);
       // pick up where the player was if the page was closed or reloaded mid-game
-      dbGetState(entry.id).then(s => {
-        if (!s || !s.state || Date.now() - s.at > 14 * 864e5) return;
-        setTimeout(() => {
-          try { EJS_emulator.gameManager.loadState(new Uint8Array(s.state)); toast('Συνεχίζεις από εκεί που είχες μείνει.'); } catch (e) {}
-        }, 600);
-      });
-      startAutoState(entry);
+      setTimeout(() => resumeAuto(entry.id, () => current === entry.id), 600);
+      startAutoState(entry.sys);
       try { EJS_emulator.setVolume(soundOn ? 0.8 : 0); } catch (e) {}
       if (paused) try { EJS_emulator.pause(); } catch (e) {}
     },
@@ -1418,19 +1465,42 @@ function ejsResume() {
 }
 ['pointerdown', 'touchend', 'click', 'keydown'].forEach(t => document.addEventListener(t, ejsResume, true));
 overlay.addEventListener('click', ejsResume);
-// Periodic snapshot of Genesis / N64 / arcade games so a reload never loses progress
-let autoStateTimer = null;
-function snapshotState() {
-  if (!ejsStarted || paused || !current) return;
-  try {
-    if (!EJS_emulator.gameManager.supportsStates()) return;
-    const st = EJS_emulator.gameManager.getState();
-    dbPutState(current, st.slice());
-  } catch (e) {}
+// A state record is { kind: 'gb' | 'ejs', state }; older auto-snapshots stored bare EmulatorJS bytes.
+function captureState() {
+  if (gb) return { kind: 'gb', state: gb.saveState() };
+  if (ejsStarted) {
+    try {
+      if (!EJS_emulator.gameManager.supportsStates()) return null;
+      return { kind: 'ejs', state: EJS_emulator.gameManager.getState().slice() };
+    } catch (e) { return null; }
+  }
+  return null;
 }
-function startAutoState(entry) {
+function applyState(rec) {
+  if (!rec) return false;
+  const kind = rec.kind || 'ejs', st = rec.state;
+  try {
+    if (kind === 'gb' && gb) return gb.loadState(st);
+    if (kind === 'ejs' && ejsStarted) { EJS_emulator.gameManager.loadState(new Uint8Array(st)); return true; }
+  } catch (e) {}
+  return false;
+}
+// Periodic snapshot of whatever is playing, so closing the app or a reload never loses progress
+let autoStateTimer = null;
+function snapshotState(force) {
+  if ((paused && !force) || !current) return;
+  const rec = captureState();
+  if (rec) dbPutState(current, rec);
+}
+function startAutoState(s) {
   clearInterval(autoStateTimer);
-  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, entry.sys === 'n64' ? 30000 : 12000);
+  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, s === 'n64' ? 30000 : 12000);
+}
+function resumeAuto(id, check) {
+  dbGetState(id).then(r => {
+    if (!r || !r.state || Date.now() - r.at > 14 * 864e5 || !check()) return;
+    if (applyState(r)) toast('Συνεχίζεις από εκεί που είχες μείνει.');
+  });
 }
 function ejsInput(index, value) {
   if (!ejsStarted || !window.EJS_emulator) return;
@@ -1574,7 +1644,7 @@ function updatePause() {
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
   setMenu(false);
-  if (gb) { storeSave(); gb.reset(); restoreSave(); }
+  if (gb) { storeSave(); gb.reset(); restoreSave(); if (current) dbDelState(current); }
   else if (ejsStarted) { try { EJS_emulator.gameManager.restart(); } catch (e) {} if (current) dbDelState(current); }
   else return;
   toast('Το παιχνίδι ξεκίνησε από την αρχή.');
@@ -1774,10 +1844,61 @@ function fit() {
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit(); document.fonts && document.fonts.ready.then(fit);
 
+/* ---- save slots (3 per game, every system) ---- */
+const slotsEl = document.getElementById('slots'), slotGame = document.getElementById('slotGame');
+function whenText(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'μόλις τώρα';
+  if (m < 60) return 'πριν ' + m + ' λεπτ' + (m === 1 ? 'ό' : 'ά');
+  const d = new Date(t), two = n => String(n).padStart(2, '0');
+  return two(d.getDate()) + '/' + two(d.getMonth() + 1) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes());
+}
+async function renderSlots() {
+  const playing = current && (gb || ejsStarted);
+  slotGame.textContent = playing ? document.getElementById('now').textContent : '';
+  slotsEl.innerHTML = '';
+  if (!playing) { slotsEl.innerHTML = '<div class="empty">Ξεκίνα ένα παιχνίδι για να σώσεις την πρόοδό σου.</div>'; return; }
+  const id = current;
+  const recs = await Promise.all([1, 2, 3].map(n => dbGetState(id + '#' + n)));
+  if (id !== current) return;
+  recs.forEach((r, i) => {
+    const n = i + 1, key = id + '#' + n;
+    const row = document.createElement('div'); row.className = 'slot';
+    const info = document.createElement('div'); info.className = 'info';
+    const b = document.createElement('b'); b.textContent = 'ΘΕΣΗ ' + n;
+    const sp = document.createElement('span'); sp.textContent = r ? whenText(r.at) : 'Κενή';
+    info.append(b, sp);
+    const save = document.createElement('button'); save.className = 'save'; save.textContent = 'Σώσε';
+    const load = document.createElement('button'); load.textContent = 'Φόρτωσε'; load.disabled = !r;
+    save.addEventListener('click', async () => {
+      if (r && !save.classList.contains('confirm')) {
+        save.classList.add('confirm'); save.textContent = 'Πάνω της;';
+        setTimeout(() => { save.classList.remove('confirm'); save.textContent = 'Σώσε'; }, 3000);
+        return;
+      }
+      const rec = captureState();
+      if (!rec) { toast('Αυτό το παιχνίδι δεν υποστηρίζει αποθήκευση σε οποιοδήποτε σημείο.', 3500); return; }
+      const ok = await dbPutState(key, rec);
+      haptic();
+      toast(ok ? 'Σώθηκε στη θέση ' + n + '.' : 'Δεν μπόρεσα να σώσω σε αυτόν τον browser.');
+      renderSlots();
+    });
+    load.addEventListener('click', async () => {
+      const rec = await dbGetState(key);
+      setMenu(false);
+      if (applyState(rec)) { haptic(); toast('Φορτώθηκε η θέση ' + n + '.'); }
+      else toast('Δεν μπόρεσα να φορτώσω αυτή τη θέση.', 3000);
+    });
+    row.append(info, save, load);
+    slotsEl.appendChild(row);
+  });
+}
+
 /* ---- settings menu ---- */
 const menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
 function setMenu(open) {
   menu.hidden = !open; scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
+  if (open) renderSlots();
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
@@ -1851,7 +1972,7 @@ function tx(stores, mode, fn) {
 const dbPut = item => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').put(item); t.objectStore('meta').put(metaOf(item)); }).then(() => true).catch(() => false);
 const dbDel = id => tx(['roms', 'meta', 'states'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); t.objectStore('states').delete(id); }).catch(() => {});
 const dbGet = id => tx('roms', 'readonly', t => t.objectStore('roms').get(id)).catch(() => null);
-const dbPutState = (id, state) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, state, at: Date.now() })).catch(() => {});
+const dbPutState = (id, rec) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, kind: rec.kind, state: rec.state, at: Date.now() })).then(() => true).catch(() => false);
 const dbGetState = id => tx('states', 'readonly', t => t.objectStore('states').get(id)).catch(() => null);
 const dbDelState = id => tx('states', 'readwrite', t => t.objectStore('states').delete(id)).catch(() => {});
 const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll()).catch(() => null);
