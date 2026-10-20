@@ -1484,6 +1484,7 @@ function bootEJS(entry) {
   // Arcade zips go in as a blob: URL, which EmulatorJS reads once (a File gets read twice and copied, which
   // for big sets like Metal Slug 3 is enough memory to make iOS close the page). The zip name then comes from
   // EJS_gameName, which is what MAME/FBNeo use to identify the set.
+  let bytesForCheck = entry.sys === 'arcade' ? entry.bytes : null;
   const arcadeBlobUrl = entry.sys === 'arcade' && !needsBios ? URL.createObjectURL(new Blob([entry.bytes])) : null;
   let pendingBytes = needsBios ? entry.bytes : null;
   const file = (arcadeBlobUrl || needsBios) ? null : new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
@@ -1547,24 +1548,68 @@ function bootEJS(entry) {
     s.onerror = () => { if (i + 1 < cdns.length) load(i + 1); else showOverlay('Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.'); };
     document.body.appendChild(s);
   };
-  if (needsBios) {
-    // EmulatorJS 4.2.3 hangs on "Download Game BIOS" when given a BIOS file, so put the BIOS inside the game zip,
-    // the same way sets like mslug3.zip ship it (FBNeo finds the BIOS pieces by checksum)
-    const gameBytes = pendingBytes; pendingBytes = null;
-    (hasNeoBios(entryNames) && !neoMame ? Promise.resolve(null) : findNeoBios()).then(b => {
-      let zip = gameBytes;
-      const srcs = [{ u: gameBytes, keep: () => true }];
-      if (b) srcs.push({ u: b, keep: () => true });
-      else if (!hasNeoBios(entryNames)) toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
-      zip = zipBuild(srcs, neoMame ? MAME_NEO_ALIASES : null) || gameBytes;
-      window.EJS_gameUrl = URL.createObjectURL(new Blob([zip]));
-      startLoader();
-    });
-  } else startLoader();
+  // For arcade games headed to MAME 2003-Plus, first check the zip against the list of sets MAME 2003 knows;
+  // a revision it never had (like a newer Out Run) goes straight to FBNeo instead of stopping in RetroArch's menu.
+  const decideCore = (entry.sys === 'arcade' && !gameCoreOverride(entry.id) && window.EJS_core === 'mame2003_plus')
+    ? mameDb().then(dbm => {
+        if (!dbm) return 'mame2003_plus';
+        const set = (entry.fileName || '').toLowerCase().replace(/\.zip$/, '');
+        return mameCanRun(dbm, set, zipCrcs(pendingBytes || bytesForCheck)) ? 'mame2003_plus' : 'arcade';
+      })
+    : Promise.resolve(window.EJS_core);
+  decideCore.then(core => {
+    if (core !== window.EJS_core) toast('Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού, παίζει με FBNeo.', 3500);
+    window.EJS_core = core;
+    bytesForCheck = null;
+    if (needsBios) {
+      // EmulatorJS 4.2.3 hangs on "Download Game BIOS" when given a BIOS file, so put the BIOS inside the game zip,
+      // the same way sets like mslug3.zip ship it (FBNeo finds the BIOS pieces by checksum)
+      const gameBytes = pendingBytes; pendingBytes = null;
+      (hasNeoBios(entryNames) && !neoMame ? Promise.resolve(null) : findNeoBios()).then(b => {
+        let zip = gameBytes;
+        const srcs = [{ u: gameBytes, keep: () => true }];
+        if (b) srcs.push({ u: b, keep: () => true });
+        else if (!hasNeoBios(entryNames)) toast('Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.', 6000);
+        zip = zipBuild(srcs, window.EJS_core === 'mame2003_plus' ? MAME_NEO_ALIASES : null) || gameBytes;
+        window.EJS_gameUrl = URL.createObjectURL(new Blob([zip]));
+        startLoader();
+      });
+    } else startLoader();
+  });
   if (entry.sys === 'n64') toast('Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.', 4500);
   return true;
 }
 const ARCADE_CORES = { mame2003_plus: 'MAME 2003-Plus', arcade: 'FBNeo' };
+// CRC-32s of the files inside a zip, read from its central directory
+function zipCrcs(u) {
+  const out = new Set();
+  try {
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+    let e = u.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    let cd = dv.getUint32(e + 16, true);
+    while (cd + 46 < u.length && dv.getUint32(cd, true) === 0x02014b50) {
+      out.add(dv.getUint32(cd + 16, true).toString(16).padStart(8, '0'));
+      cd += 46 + dv.getUint16(cd + 28, true) + dv.getUint16(cd + 30, true) + dv.getUint16(cd + 32, true);
+    }
+  } catch (e) {}
+  return out;
+}
+// The sets MAME 2003-Plus knows and the ROM checksums each needs (clones list their parent first)
+let mameDbP = null;
+function mameDb() {
+  if (!mameDbP) mameDbP = fetch('mame2003.json').then(r => r.ok ? r.json() : null).catch(() => null);
+  return mameDbP;
+}
+// Neo Geo BIOS files the console supplies itself (see MAME_NEO_ALIASES)
+const MAME_SUPPLIED = new Set(['354029fc', '97cf998b', 'e09e253c']);
+function mameCanRun(dbm, set, crcs, depth) {
+  const list = dbm[set];
+  if (!list) return false;
+  let i = 0;
+  if (list.length && !/^[0-9a-f]{8}$/.test(list[0])) { if ((depth || 0) < 3 && !mameCanRun(dbm, list[0], crcs, (depth || 0) + 1)) return false; i = 1; }
+  for (; i < list.length; i++) if (!crcs.has(list[i]) && !MAME_SUPPLIED.has(list[i])) return false;
+  return true;
+}
 // File names inside a zip, read from its central directory (no decompression)
 function zipNames(u) {
   try {
