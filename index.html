@@ -60,7 +60,7 @@ body {
 
 /* ---------- handheld ---------- */
 .console {
-  width: 360px;
+  width: 360px; display: flex; flex-direction: column;
   background: linear-gradient(160deg, var(--shell-hi), var(--shell) 35%, var(--shell-lo));
   border-radius: 18px 18px 64px 18px;
   padding: 14px 14px 24px;
@@ -85,7 +85,13 @@ canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; display: block;
 .led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; flex: none; }
 .led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
 
+.controls { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; gap: 6px; padding-bottom: 18px; }
 .pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; min-height: 160px; }
+.console.tall .pad-row { margin-top: 10px; }
+.console.tall .dpad { zoom: 1.18; }
+.console.tall .face { width: 160px; height: 215px; }
+.console.tall .pill { width: 70px; height: 22px; }
+.console.tall .sys.only-n64 .pill { width: 62px; height: 26px; }
 .dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none; flex: none;
   background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.38) 0 58%, rgba(0,0,0,.22) 59% 100%);
   box-shadow: inset 0 3px 8px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.18); }
@@ -123,7 +129,7 @@ canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; display: block;
 .cbtn.cl::before { border-right-color: rgba(0,0,0,.45); margin-left: -3px; }
 .cbtn.cr::before { border-left-color: rgba(0,0,0,.45); margin-left: 3px; }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
-.sys { display: flex; justify-content: center; gap: 22px; margin-top: 22px; }
+.sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
 .sys.only-n64 { gap: 12px; }
 .sys.only-n64 .b-wrap { transform: none; }
@@ -131,7 +137,7 @@ canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; display: block;
 .sys.only-n64 .pill { width: 58px; height: 22px; }
 .lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
 .down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4) !important; filter: brightness(1.2); }
-.speaker { display: flex; gap: 7px; justify-content: flex-end; margin-top: -10px; transform: rotate(-30deg); transform-origin: right; }
+.speaker { position: absolute; right: 26px; bottom: 30px; display: flex; gap: 7px; transform: rotate(-30deg); transform-origin: right; pointer-events: none; }
 .speaker span { width: 5px; height: 40px; border-radius: 3px; background: rgba(0,0,0,.25); box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
 
 /* ---------- menu content ---------- */
@@ -195,6 +201,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     </div>
     <div class="brand"><span class="led" id="led"></span><b>POCKET BYTE</b><span id="now">—</span></div>
 
+    <div class="controls" id="controls">
     <div class="pad-row">
       <div class="dpad" id="dpad" aria-label="Joystick">
         <div class="ring"></div>
@@ -203,24 +210,24 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       </div>
 
       <div class="face only-gb">
-        <button class="btn round" data-gb="B" style="left:8px;top:62px" aria-label="B"><span class="t">B</span></button>
-        <button class="btn round" data-gb="A" style="left:92px;top:28px" aria-label="A"><span class="t">A</span></button>
+        <button class="btn round" id="gbB" data-gb="B" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round" id="gbA" data-gb="A" aria-label="A"><span class="t">A</span></button>
       </div>
 
       <div class="face only-md">
-        <button class="btn round sm" data-ej="1" style="left:0;top:78px" aria-label="A"><span class="t">A</span></button>
-        <button class="btn round sm" data-ej="0" style="left:58px;top:48px" aria-label="B"><span class="t">B</span></button>
-        <button class="btn round sm" data-ej="8" style="left:116px;top:18px" aria-label="C"><span class="t">C</span></button>
+        <button class="btn round sm" id="mdA" data-ej="1" aria-label="A"><span class="t">A</span></button>
+        <button class="btn round sm" id="mdB" data-ej="0" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round sm" id="mdC" data-ej="8" aria-label="C"><span class="t">C</span></button>
       </div>
 
       <div class="face only-n64">
         <span class="n64-c-label">C</span>
-        <button class="btn cbtn cu" data-ej="23" data-analog="1" style="left:114px;top:4px" aria-label="C πάνω"></button>
-        <button class="btn cbtn cl" data-ej="21" data-analog="1" style="left:80px;top:38px" aria-label="C αριστερά"></button>
-        <button class="btn cbtn cr" data-ej="20" data-analog="1" style="left:136px;top:38px" aria-label="C δεξιά"></button>
-        <button class="btn cbtn cd" data-ej="22" data-analog="1" style="left:114px;top:72px" aria-label="C κάτω"></button>
-        <button class="btn round sm" data-ej="1" style="left:0;top:58px" aria-label="B"><span class="t">B</span></button>
-        <button class="btn round" data-ej="0" style="left:38px;top:92px;width:60px;height:60px" aria-label="A"><span class="t" style="top:auto;bottom:0;transform:translate(-50%,0);left:auto;right:-14px">A</span></button>
+        <button class="btn cbtn cu" id="nCU" data-ej="23" data-analog="1" aria-label="C πάνω"></button>
+        <button class="btn cbtn cl" id="nCL" data-ej="21" data-analog="1" aria-label="C αριστερά"></button>
+        <button class="btn cbtn cr" id="nCR" data-ej="20" data-analog="1" aria-label="C δεξιά"></button>
+        <button class="btn cbtn cd" id="nCD" data-ej="22" data-analog="1" aria-label="C κάτω"></button>
+        <button class="btn round sm" id="nB" data-ej="1" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round" id="nA" data-ej="0" aria-label="A"><span class="t">A</span></button>
       </div>
     </div>
 
@@ -237,6 +244,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <div class="b-wrap"><button class="pill" data-ej="12" aria-label="Z"></button><span class="lbl">Z</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
       <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+    </div>
     </div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
@@ -1610,12 +1618,35 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-/* ---- fit console to screen ---- */
+/* ---- fit console to screen: fill the phone, and switch to roomier controls when there is spare height ---- */
 const stage = document.getElementById('stage');
+// [left, top, size] in px inside the face box; normal layout, then tall layout
+const LAYOUT = {
+  gbB: [[8, 62, 68], [0, 108, 76]],   gbA: [[92, 28, 68], [84, 28, 76]],
+  mdA: [[0, 78, 54], [0, 140, 60]],   mdB: [[58, 48, 54], [50, 80, 60]],   mdC: [[116, 18, 54], [100, 20, 60]],
+  nCU: [[114, 4, 34], [96, 0, 36]],   nCL: [[80, 38, 34], [60, 36, 36]],   nCR: [[136, 38, 34], [124, 36, 36]], nCD: [[114, 72, 34], [96, 72, 36]],
+  nB: [[0, 58, 54], [0, 112, 60]],    nA: [[38, 92, 60], [62, 146, 66]],
+};
+function applyLayout(tall) {
+  consoleEl.classList.toggle('tall', tall);
+  for (const id in LAYOUT) {
+    const [l, t, sz] = LAYOUT[id][tall ? 1 : 0], el = document.getElementById(id);
+    Object.assign(el.style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' });
+  }
+}
 function fit() {
-  const w = stage.clientWidth - 8, h = stage.clientHeight - 76;
-  const s = Math.max(0.4, Math.min(w / consoleEl.offsetWidth, h / consoleEl.offsetHeight, 1.6));
-  consoleEl.style.transform = `translate(-50%, calc(-50% - 30px)) scale(${s})`;
+  const W = stage.clientWidth - 4, H = stage.clientHeight - 68;
+  consoleEl.style.minHeight = '';
+  applyLayout(false);
+  let base = consoleEl.offsetHeight;
+  let s = W / consoleEl.offsetWidth;
+  if (base * s > H) s = H / base;
+  else {
+    if (H / s - base > 90) { applyLayout(true); base = consoleEl.offsetHeight; if (base * s > H) s = H / base; }
+    consoleEl.style.minHeight = Math.max(base, Math.min(H / s, consoleEl.offsetWidth * 2.3)) + 'px';
+  }
+  s = Math.max(0.4, Math.min(s, 1.8));
+  consoleEl.style.transform = `translate(-50%, calc(-50% - 32px)) scale(${s})`;
 }
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit(); document.fonts && document.fonts.ready.then(fit);
