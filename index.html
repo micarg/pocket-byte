@@ -71,12 +71,12 @@ body {
 .bezel-top .line { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--shell) 0 30%, var(--accent) 30% 60%, transparent 60%); opacity: .7; }
 .led { width: 8px; height: 8px; border-radius: 50%; background: #3a1d17; }
 .led.on { background: #ff5a4a; box-shadow: 0 0 8px #ff5a4a; }
-.screen-wrap { position: relative; aspect-ratio: 160 / 144; max-width: 100%; background: var(--lcd-off); border-radius: 2px; overflow: hidden; }
-canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.screen-wrap { position: relative; width: 100%; background: var(--lcd-off); border-radius: 2px; line-height: 0; }
+canvas#lcd { width: 100%; height: auto; aspect-ratio: 160 / 144; max-width: 100%; display: block; border-radius: 2px; image-rendering: pixelated; image-rendering: crisp-edges; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px; background: rgba(20,28,16,.72); color: #e8f2d6; font: 12px/1.6 var(--display); }
 .brand { margin-top: 10px; display: flex; justify-content: space-between; align-items: baseline; }
 .brand b { font: 17px var(--display); color: var(--print); letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.25); }
-.brand span { font: 10px var(--display); color: var(--print); opacity: .7; }
+.brand span { font: 10px var(--display); color: var(--print); opacity: .7; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .pad-row { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; }
 .dpad { position: relative; width: 132px; height: 132px; }
@@ -1207,7 +1207,7 @@ function boot(bytes, label, cartId) {
   current = cartId || null;
   if (typeof renderMine === 'function') renderMine();
   document.querySelectorAll('.cart').forEach(c => c.classList.toggle('active', c.dataset.id === current));
-  document.getElementById('now').textContent = label.slice(0, 18);
+  document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, '');
   document.getElementById('led').classList.add('on');
   paused = false; updatePause(); overlay.hidden = true;
   try { localStorage.setItem('pb-last', cartId || ''); } catch (e) {}
