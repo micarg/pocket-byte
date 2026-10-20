@@ -100,7 +100,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console.tall .face { width: 170px; height: 206px; }
 .console.tall .drive-lbl { top: 58px; left: 20px; width: 120px; }
 .console.tall .pill { width: 70px; height: 22px; }
-.console.tall .sys.only-n64 .pill { width: 62px; height: 26px; }
+.console.tall .sys.only-gba .pill, .console.tall .sys.only-n64 .pill { width: 62px; height: 26px; }
 .dpad { position: relative; width: 140px; height: 140px; border-radius: 50%; touch-action: none; flex: none;
   background: radial-gradient(circle at 50% 50%, rgba(0,0,0,.38) 0 58%, rgba(0,0,0,.22) 59% 100%);
   box-shadow: inset 0 3px 8px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.18); }
@@ -126,6 +126,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="gb"]) .only-gb,
 .console:not([data-sys="md"]) .only-md,
 .console:not([data-sys="n64"]) .only-n64,
+.console:not([data-sys="gba"]) .only-gba,
 .console:not([data-sys="arcade"]) .only-arcade,
 .console:not([data-prof="drive"]) .only-drive,
 .console[data-prof="drive"] .only-arcade-std { display: none !important; }
@@ -148,10 +149,10 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
-.sys.only-n64 { gap: 12px; }
-.sys.only-n64 .b-wrap { transform: none; }
+.sys.only-n64, .sys.only-gba { gap: 12px; }
+.sys.only-n64 .b-wrap, .sys.only-gba .b-wrap { transform: none; }
 .pill { width: 62px; height: 18px; border-radius: 10px; border: 0; padding: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); touch-action: none; }
-.sys.only-n64 .pill { width: 58px; height: 22px; }
+.sys.only-n64 .pill, .sys.only-gba .pill { width: 58px; height: 22px; }
 .lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
 .down { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.4) !important; filter: brightness(1.2); }
 .speaker { position: absolute; right: 26px; bottom: 30px; display: flex; gap: 7px; transform: rotate(-30deg); transform-origin: right; pointer-events: none; }
@@ -238,6 +239,11 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <button class="btn round" id="gbA" data-gb="A" aria-label="A"><span class="t">A</span></button>
       </div>
 
+      <div class="face only-gba">
+        <button class="btn round" id="gbaB" data-ej="0" aria-label="B"><span class="t">B</span></button>
+        <button class="btn round" id="gbaA" data-ej="8" aria-label="A"><span class="t">A</span></button>
+      </div>
+
       <div class="face only-md">
         <button class="btn round sm" id="mdA" data-ej="1" aria-label="A"><span class="t">A</span></button>
         <button class="btn round sm" id="mdB" data-ej="0" aria-label="B"><span class="t">B</span></button>
@@ -281,6 +287,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="sys only-arcade">
       <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Κέρμα"></button><span class="lbl">COIN</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+    </div>
+    <div class="sys only-gba">
+      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Select"></button><span class="lbl">SELECT</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     <div class="sys only-n64">
       <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
@@ -330,9 +342,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 
   <section class="help">
     <h2>ΠΩΣ ΠΑΙΖΕΙΣ</h2>
-    <div>Παίζει Game Boy και Game Boy Color (.gb, .gbc), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64) και arcade (σετ MAME/FBNeo σε .zip, π.χ. wboy.zip), καθώς και .zip που περιέχουν ROM κονσόλας. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
+    <div>Παίζει Game Boy και Game Boy Color (.gb, .gbc), Game Boy Advance (.gba), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64) και arcade (σετ MAME/FBNeo σε .zip, π.χ. wboy.zip), καθώς και .zip που περιέχουν ROM κονσόλας. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
     <div>Στον υπολογιστή, στο Game Boy: βελάκια για κατεύθυνση, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select.</div>
-    <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα Genesis, N64 και arcade τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
+    <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα GBA, Genesis, N64 και arcade τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
     <div>Οι κασέτες Game Boy είναι δωρεάν παιχνίδια ανοιχτού κώδικα:
       <a href="https://github.com/pinobatch/libbet" target="_blank" rel="noopener">Libbet</a> (Damian Yerrick, zlib),
       <a href="https://github.com/AntonioND/geometrix" target="_blank" rel="noopener">Geometrix</a> και
@@ -1319,6 +1331,7 @@ const CARTS = [
 ];
 const SYSTEMS = {
   gb: { name: 'Game Boy', tag: 'GB' },
+  gba: { name: 'Game Boy Advance', tag: 'GBA', core: 'gba', ext: 'gba' },
   md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
   n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
   arcade: { name: 'Arcade', tag: 'ARC', core: 'mame2003_plus', ext: 'zip' },
@@ -1373,16 +1386,19 @@ function detectSystem(name, b) {
     const m = (b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3]) >>> 0;
     if (m === 0x80371240 || m === 0x37804012 || m === 0x40123780) return 'n64';
   }
+  // GBA: fixed byte 0x96 at 0xB2 and the start of the Nintendo logo at 0x04
+  if (b.length > 0xc0 && b[0xb2] === 0x96 && b[4] === 0x24 && b[5] === 0xff && b[6] === 0xae && b[7] === 0x51) return 'gba';
   if (b.length > 0x150 && b[0x104] === 0xce && b[0x105] === 0xed && b[0x106] === 0x66 && b[0x107] === 0x66) return 'gb';
   const at = o => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
   if (b.length > 0x200 && (at(0x100) === 'SEGA' || at(0x101) === 'SEGA')) return 'md';
   if (b.length > 0x200 && b[8] === 0xaa && b[9] === 0xbb) return 'md'; // .smd interleaved
+  if (['gba', 'agb'].includes(ext)) return 'gba';
   if (['gb', 'gbc'].includes(ext)) return 'gb';
   if (['md', 'gen', 'smd', 'sg'].includes(ext)) return 'md'; // .bin only counts with a real SEGA header (checked above)
   if (['n64', 'z64', 'v64'].includes(ext)) return 'n64';
   return null;
 }
-const ROM_EXT = /\.(gbc?|md|gen|smd|sg|bin|n64|z64|v64)$/i;
+const ROM_EXT = /\.(gba|agb|gbc?|md|gen|smd|sg|bin|n64|z64|v64)$/i;
 
 /* ---- Game Boy boot ---- */
 function bootGB(bytes, label, id) {
@@ -1746,7 +1762,7 @@ document.getElementById('romFile').addEventListener('change', async e => {
     }
   }
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
-  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, Genesis, N64 και arcade (.zip).', 4000); return; }
+  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM Game Boy, GBA, Genesis, N64 και arcade (.zip).', 4000); return; }
   const base = name.replace(/^.*\//, '');
   // the emulator identifies an arcade set by its zip name, so undo download renames like 'mslug2 (1).zip', 'mslug2_2.zip', 'mslug2 2.zip'
   const arcFile = arcade ? base.toLowerCase().replace(/(\s*\(\d+\)|_\d+|\s+\d+)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
@@ -1946,7 +1962,7 @@ function dpadUpdate() {
   knob.classList.toggle('held', !!first);
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
-  if (sys === 'md' || sys === 'arcade') {
+  if (sys === 'md' || sys === 'arcade' || sys === 'gba') {
     // Genesis D-pad: RetroPad up/down/left/right = 4/5/6/7
     const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
     const drive = sys === 'arcade' && consoleEl.dataset.prof === 'drive';
@@ -2030,6 +2046,7 @@ const stage = document.getElementById('stage'), menuBtn = document.getElementByI
 // [left, top, size] inside the face box: normal layout, then tall layout. The leftmost button keeps a clear gap from the joystick.
 const LAYOUT = {
   gbB: [[18, 66, 66], [14, 100, 74]],  gbA: [[100, 26, 66], [96, 22, 74]],
+  gbaB: [[18, 66, 66], [14, 100, 74]], gbaA: [[100, 26, 66], [96, 22, 74]],
   mdA: [[14, 92, 52], [12, 132, 58]],  mdB: [[66, 56, 52], [62, 80, 58]],  mdC: [[118, 20, 52], [112, 28, 58]],
   arc1: [[14, 92, 52], [12, 132, 58]], arc2: [[66, 56, 52], [62, 80, 58]], arc3: [[118, 20, 52], [112, 28, 58]],
   nCU: [[118, 4, 32], [108, 0, 36]],   nCL: [[86, 36, 32], [72, 36, 36]],   nCR: [[138, 36, 32], [134, 36, 36]], nCD: [[118, 68, 32], [108, 72, 36]],
@@ -2219,7 +2236,7 @@ async function renderMine() {
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
   if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
   all.sort((a, b) => a.name.localeCompare(b.name, 'el'));
-  for (const key of ['gb', 'md', 'n64', 'arcade']) {
+  for (const key of ['gb', 'gba', 'md', 'n64', 'arcade']) {
     const group = all.filter(g => (g.sys || 'gb') === key);
     if (!group.length) continue;
     const h = document.createElement('h3');
