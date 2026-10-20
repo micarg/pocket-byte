@@ -1293,6 +1293,7 @@ function restoreSave() {
 function storeAll() {
   storeSave();
   try { if (ejsStarted && window.EJS_emulator) EJS_emulator.gameManager.saveSaveFiles(); } catch (e) {}
+  snapshotState();
 }
 setInterval(() => { if (gb && gb.ramDirty) storeSave(); }, 2000);
 addEventListener('pagehide', storeAll);
@@ -1371,6 +1372,14 @@ function bootEJS(entry) {
       ejsStarted = true; showOverlay('');
       // iOS keeps the emulator's audio (and with it the emulator) suspended until a tap; say so in our own words
       setTimeout(() => { if (ejsSuspended()) showOverlay(TAP_TO_START); }, 400);
+      // pick up where the player was if the page was closed or reloaded mid-game
+      dbGetState(entry.id).then(s => {
+        if (!s || !s.state || Date.now() - s.at > 14 * 864e5) return;
+        setTimeout(() => {
+          try { EJS_emulator.gameManager.loadState(new Uint8Array(s.state)); toast('Συνεχίζεις από εκεί που είχες μείνει.'); } catch (e) {}
+        }, 600);
+      });
+      startAutoState(entry);
       try { EJS_emulator.setVolume(soundOn ? 0.8 : 0); } catch (e) {}
       if (paused) try { EJS_emulator.pause(); } catch (e) {}
     },
@@ -1406,6 +1415,20 @@ function ejsResume() {
 }
 ['pointerdown', 'touchend', 'click', 'keydown'].forEach(t => document.addEventListener(t, ejsResume, true));
 overlay.addEventListener('click', ejsResume);
+// Periodic snapshot of Genesis / N64 / arcade games so a reload never loses progress
+let autoStateTimer = null;
+function snapshotState() {
+  if (!ejsStarted || paused || !current) return;
+  try {
+    if (!EJS_emulator.gameManager.supportsStates()) return;
+    const st = EJS_emulator.gameManager.getState();
+    dbPutState(current, st.slice());
+  } catch (e) {}
+}
+function startAutoState(entry) {
+  clearInterval(autoStateTimer);
+  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, entry.sys === 'n64' ? 30000 : 12000);
+}
 function ejsInput(index, value) {
   if (!ejsStarted || !window.EJS_emulator) return;
   try { EJS_emulator.gameManager.simulateInput(0, index, value); } catch (e) {}
@@ -1537,7 +1560,7 @@ document.getElementById('pauseBtn').addEventListener('click', () => { if (paused
 document.getElementById('resetBtn').addEventListener('click', () => {
   setMenu(false);
   if (gb) { storeSave(); gb.reset(); restoreSave(); }
-  else if (ejsStarted) { try { EJS_emulator.gameManager.restart(); } catch (e) {} }
+  else if (ejsStarted) { try { EJS_emulator.gameManager.restart(); } catch (e) {} if (current) dbDelState(current); }
   else return;
   toast('Το παιχνίδι ξεκίνησε από την αρχή.');
 });
@@ -1786,10 +1809,11 @@ const metaOf = g => ({ id: g.id, name: g.name, sys: g.sys || 'gb', ext: g.ext, f
 function db() {
   if (!dbP) dbP = new Promise((res, rej) => {
     try {
-      const r = indexedDB.open('pocket-byte', 2);
+      const r = indexedDB.open('pocket-byte', 3);
       r.onupgradeneeded = ev => {
         const d = r.result, t = r.transaction;
         if (!d.objectStoreNames.contains('roms')) d.createObjectStore('roms', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('states')) d.createObjectStore('states', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('meta')) {
           const meta = d.createObjectStore('meta', { keyPath: 'id' });
           t.objectStore('roms').openCursor().onsuccess = e2 => {
@@ -1810,8 +1834,11 @@ function tx(stores, mode, fn) {
   }));
 }
 const dbPut = item => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').put(item); t.objectStore('meta').put(metaOf(item)); }).then(() => true).catch(() => false);
-const dbDel = id => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); }).catch(() => {});
+const dbDel = id => tx(['roms', 'meta', 'states'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); t.objectStore('states').delete(id); }).catch(() => {});
 const dbGet = id => tx('roms', 'readonly', t => t.objectStore('roms').get(id)).catch(() => null);
+const dbPutState = (id, state) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, state, at: Date.now() })).catch(() => {});
+const dbGetState = id => tx('states', 'readonly', t => t.objectStore('states').get(id)).catch(() => null);
+const dbDelState = id => tx('states', 'readwrite', t => t.objectStore('states').delete(id)).catch(() => {});
 const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll()).catch(() => null);
 
 const mylist = document.getElementById('mylist');
