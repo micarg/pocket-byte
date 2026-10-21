@@ -1947,6 +1947,13 @@ function ejsInput(index, value) {
 }
 
 function bootEntry(g) {
+  // a PlayStation disc zip that an older version filed under arcade: move it to PlayStation
+  if (g.sys === 'arcade' && g.bytes && isDiscList(zipListOfBytes(g.bytes))) {
+    const label = (g.fileName || g.name || 'disc').replace(/\.zip$/i, '');
+    g = { id: g.id, name: label.replace(/[_-]+/g, ' '), sys: 'psx', ext: 'zip', fileName: label.replace(/[#<$+%>!`&*'|{}/\\?"=@:^\r\n]/g, '') + '.zip',
+      added: g.added || Date.now(), blob: new Blob([g.bytes]) };
+    dbPut(g).then(renderMine);
+  }
   const s = g.sys || 'gb';
   if (s === 'gb') bootGB(new Uint8Array(g.bytes), g.name, g.id);
   else bootEJS({ ...g, sys: s });
@@ -2049,22 +2056,48 @@ document.getElementById('romFile').addEventListener('change', async e => {
 // ---- PlayStation discs ----
 const PSX_EXT = /\.(chd|pbp|iso|bin|img|cue|m3u|ccd)$/i;
 async function readSlice(f, a, b) { return new Uint8Array(await f.slice(a, b).arrayBuffer()); }
-async function zipNamesOf(f) {
-  // only the end of the zip: its directory of names, so a big disc zip is never read whole
-  const tailLen = Math.min(f.size, 70000), tail = await readSlice(f, f.size - tailLen, f.size);
-  const dv = new DataView(tail.buffer);
-  let e = tail.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
-  if (e < 0 || dv.getUint32(e, true) !== 0x06054b50) return [];
-  const cdSize = dv.getUint32(e + 12, true), cdOff = dv.getUint32(e + 16, true);
-  if (cdOff === 0xffffffff || cdSize > 8e6) return [];
-  const cd = await readSlice(f, cdOff, cdOff + cdSize), cv = new DataView(cd.buffer), dec = new TextDecoder(), names = [];
+// file names and sizes from a zip's central directory (Uint8Array of just that directory)
+function cdList(cd) {
+  const cv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength), dec = new TextDecoder(), out = [];
   let p = 0;
   while (p + 46 <= cd.length && cv.getUint32(p, true) === 0x02014b50) {
     const n = cv.getUint16(p + 28, true), x = cv.getUint16(p + 30, true), c = cv.getUint16(p + 32, true);
-    names.push(dec.decode(cd.subarray(p + 46, p + 46 + n)).toLowerCase());
+    out.push({ name: dec.decode(cd.subarray(p + 46, p + 46 + n)).toLowerCase(), size: cv.getUint32(p + 24, true) });
     p += 46 + n + x + c;
   }
-  return names;
+  return out;
+}
+// where the central directory is, from the end of a zip (also zip64, which big disc zips use)
+function cdLocate(tail, tailStart) {
+  const dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+  let e = tail.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) return null;
+  let size = dv.getUint32(e + 12, true), off = dv.getUint32(e + 16, true);
+  if (off === 0xffffffff || size === 0xffffffff) {
+    const l = e - 20;
+    if (l < 0 || dv.getUint32(l, true) !== 0x07064b50) return null;
+    const z = Number(dv.getBigUint64(l + 8, true)) - tailStart;
+    if (z < 0 || dv.getUint32(z, true) !== 0x06064b50) return null;
+    size = Number(dv.getBigUint64(z + 40, true)); off = Number(dv.getBigUint64(z + 48, true));
+  }
+  return { off, size };
+}
+async function zipListOf(f) {
+  // only the end of the zip: its directory, so a big disc zip is never read whole
+  const tailLen = Math.min(f.size, 70000), tail = await readSlice(f, f.size - tailLen, f.size);
+  const loc = cdLocate(tail, f.size - tailLen);
+  if (!loc || loc.size > 8e6) return [];
+  return cdList(await readSlice(f, loc.off, loc.off + loc.size));
+}
+function zipListOfBytes(u) {
+  const loc = cdLocate(u.subarray(Math.max(0, u.length - 70000)), Math.max(0, u.length - 70000));
+  return loc ? cdList(u.subarray(loc.off, loc.off + loc.size)) : [];
+}
+// a CD image inside a zip: a cue sheet / disc image, or a big .bin made of whole 2352-byte sectors
+// (arcade chips are .bin too, but small and power-of-two sized)
+function isDiscList(list) {
+  return list.some(e => /\.(cue|chd|pbp|iso|m3u|ccd)$/.test(e.name) ||
+    (/\.(bin|img)$/.test(e.name) && (e.size === 0xffffffff || (e.size >= 16e6 && e.size % 2352 === 0))));
 }
 // 'disc' for a PlayStation image, 'cue' for a lone cue sheet, null for anything else
 async function psxCheck(f) {
@@ -2072,8 +2105,7 @@ async function psxCheck(f) {
   const h = await readSlice(f, 0, 0x9400);
   const str = (o, n) => String.fromCharCode(...h.subarray(o, o + n));
   if (h[0] === 0x50 && h[1] === 0x4b) { // zip: a disc if it holds a cue sheet or a disc image
-    const names = await zipNamesOf(f);
-    return names.some(n => /\.(cue|chd|pbp|iso|m3u|ccd)$/.test(n)) ? 'disc' : null;
+    return isDiscList(await zipListOf(f)) ? 'disc' : null;
   }
   if (ext === 'cue' || ext === 'm3u') return 'cue';
   if (str(0, 8) === 'MComprHD') return 'disc';            // CHD
