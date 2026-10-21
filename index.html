@@ -1575,6 +1575,7 @@ function bootEJS(entry) {
   current = entry.id;
   consoleEl.dataset.prof = entry.sys === 'arcade' ? arcadeProfile(entry.fileName) : '';
   currentName = entry.name || '';
+  try { localStorage.setItem('pb-boot', JSON.stringify({ id: entry.id })); } catch (e) {}
   setSys(entry.sys); setNow(entry.sys === 'arcade' && entry.fileName ? arcadeName(entry.fileName) : entry.name);
   if (entry.sys === 'n64') applyN64Labels(entry.name || '');
   document.getElementById('led').classList.add('on');
@@ -1617,8 +1618,29 @@ function bootEJS(entry) {
     EJS_Buttons: { playPause: false, restart: false, mute: false, settings: false, fullscreen: false, saveState: false, loadState: false,
       screenRecord: false, gamepad: false, cheat: false, volume: false, saveSavFiles: false, loadSavFiles: false, quickSave: false,
       quickLoad: false, screenshot: false, cacheManager: false, exitEmulation: false, netplay: false, diskButton: false, contextMenu: false, rightClick: false },
+    EJS_ready: () => {
+      // EmulatorJS copies the game into its in-memory file system; for a PlayStation disc (hundreds of MB) that copy
+      // doubles the memory needed and iOS closes the page, so hand the buffer over instead of copying it
+      if (entry.sys !== 'psx') return;
+      try {
+        const emu = window.EJS_emulator, orig = emu.checkCompression.bind(emu);
+        emu.checkCompression = (data, msg, cb) => {
+          try {
+            const FS = emu.gameManager && emu.gameManager.FS;
+            if (FS && !FS.__pbOwn) {
+              const w = FS.writeFile.bind(FS);
+              FS.writeFile = (path, d, opts) => w(path, d, (d && d.byteLength > 16e6) ? Object.assign({}, opts, { canOwn: true }) : opts);
+              FS.__pbOwn = true;
+            }
+          } catch (e) {}
+          return orig(data, msg, cb);
+        };
+      } catch (e) {}
+    },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      // the game is up: after a little while of running fine, stop treating a restart as a crash on start
+      setTimeout(() => { try { localStorage.removeItem('pb-boot'); } catch (e) {} }, 15000);
       { const t0 = Date.now(); runBeat(t0); setInterval(() => { if (!document.hidden) runBeat(t0); }, 5000); }
       if (runLog) { const m = runLog; runLog = null; setTimeout(() => toast(m, 5000), 2500); }
       setTimeout(fitGameScreen, 300);
@@ -2759,7 +2781,16 @@ try {
 } catch (e) { applyShell('persimmon'); applyStyle('modern'); setHaptics(true); }
 let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
 if (lastId && lastId.startsWith('user:')) {
+  // if this game took the whole app down while starting last time, don't start it again by itself (that loops)
+  let crashed = null;
+  try { crashed = JSON.parse(localStorage.getItem('pb-boot') || 'null'); localStorage.removeItem('pb-boot'); } catch (e) {}
   dbGet(lastId).then(g => {
+    if (g && crashed && crashed.id === g.id) {
+      bootCart('libbet');
+      setTimeout(() => toast('Το «' + g.name + '» έκλεισε την εφαρμογή την προηγούμενη φορά, οπότε δεν το άνοιξα μόνο του.' +
+        (g.sys === 'psx' ? ' Μάλλον είναι πολύ μεγάλο για τη μνήμη του κινητού: δοκίμασε το ίδιο παιχνίδι σε .chd.' : ''), 8000), 600);
+      return;
+    }
     if (g && ((g.sys || 'gb') === 'gb' || EJS_ALLOWED)) bootEntry(g); else bootCart('libbet');
   });
 } else bootCart(lastId && ROMS[lastId] ? lastId : 'libbet');
