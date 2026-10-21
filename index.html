@@ -140,6 +140,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console:not([data-sys="n64"]) .only-n64,
 .console:not([data-sys="gba"]) .only-gba,
 .console:not([data-sys="nes"]) .only-nes,
+.console:not([data-sys="psx"]) .only-psx,
 .console:not([data-sys="arcade"]) .only-arcade,
 .console:not([data-prof="drive"]) .only-drive,
 .console[data-prof="drive"] .only-arcade-std { display: none !important; }
@@ -163,7 +164,14 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
 .sys.only-n64, .sys.only-gba { gap: 12px; }
-.sys.only-n64 .b-wrap, .sys.only-gba .b-wrap { transform: none; }
+.sys.only-n64 .b-wrap, .sys.only-gba .b-wrap, .sys.only-psx .b-wrap { transform: none; }
+.sys.only-psx { gap: 7px; }
+.sys.only-psx .pill { width: 44px; height: 22px; }
+.sys.only-psx .lbl { font-size: 10px; }
+/* PlayStation face buttons: dark caps with the coloured shapes */
+.psb { background: radial-gradient(circle at 38% 32%, #4a4f55, #26292d); box-shadow: 0 5px 0 #15171a, 0 7px 10px rgba(0,0,0,.35); }
+.btn.round.psb .t.in { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%); font: 600 26px/1 system-ui, sans-serif; font-size: 26px; text-shadow: none; }
+.psb.tri .t.in { color: #3fd8a8; } .psb.cir .t.in { color: #ff6f6f; } .psb.crs .t.in { color: #84a9ff; } .psb.sqr .t.in { color: #f39bc6; }
 .pill { width: 62px; height: 18px; border-radius: 10px; border: 0; padding: 0; background: var(--pill); box-shadow: 0 3px 0 rgba(0,0,0,.35); touch-action: none; }
 .sys.only-n64 .pill, .sys.only-gba .pill { width: 58px; height: 22px; }
 .lbl { font: 12px var(--display); color: var(--print); letter-spacing: .06em; }
@@ -307,6 +315,13 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <button class="btn round" id="dvGas" data-ej="11" aria-label="Γκάζι"></button>
       </div>
 
+      <div class="face only-psx">
+        <button class="btn round psb tri" id="psTri" data-ej="9" aria-label="Τρίγωνο"><span class="t in">△</span></button>
+        <button class="btn round psb sqr" id="psSqr" data-ej="1" aria-label="Τετράγωνο"><span class="t in">□</span></button>
+        <button class="btn round psb cir" id="psCir" data-ej="8" aria-label="Κύκλος"><span class="t in">○</span></button>
+        <button class="btn round psb crs" id="psCrs" data-ej="0" aria-label="Χ"><span class="t in">✕</span></button>
+      </div>
+
       <div class="face only-n64">
         <span class="n64-c-label">C</span>
         <button class="btn cbtn cu" id="nCU" data-ej="23" data-analog="1" aria-label="C πάνω"></button>
@@ -339,6 +354,14 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Select"></button><span class="lbl">SELECT</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
       <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+    </div>
+    <div class="sys only-psx">
+      <div class="b-wrap"><button class="pill" data-ej="12" aria-label="L2"></button><span class="lbl">L2</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L1"></button><span class="lbl">L1</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Select"></button><span class="lbl">SELECT</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R1"></button><span class="lbl">R1</span></div>
+      <div class="b-wrap"><button class="pill" data-ej="13" aria-label="R2"></button><span class="lbl">R2</span></div>
     </div>
     <div class="sys only-n64">
       <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
@@ -1388,6 +1411,7 @@ const SYSTEMS = {
   gba: { name: 'Game Boy Advance', tag: 'GBA', core: 'gba', ext: 'gba' },
   md: { name: 'Sega Genesis', tag: 'MD', core: 'segaMD', ext: 'md' },
   n64: { name: 'Nintendo 64', tag: 'N64', core: 'n64', ext: 'z64' },
+  psx: { name: 'PlayStation', tag: 'PS1', core: 'psx', ext: 'chd' },
   arcade: { name: 'Arcade', tag: 'ARC', core: 'mame2003_plus', ext: 'zip' },
 };
 const EJS_CDN = ['https://cdn.emulatorjs.org/4.2.3/data/', 'https://cdn.emulatorjs.org/stable/data/'];
@@ -1538,13 +1562,16 @@ function bootEJS(entry) {
   let bytesForCheck = entry.sys === 'arcade' ? entry.bytes : null;
   const arcadeBlobUrl = entry.sys === 'arcade' && !needsBios ? URL.createObjectURL(new Blob([entry.bytes])) : null;
   let pendingBytes = needsBios ? entry.bytes : null;
-  const file = (arcadeBlobUrl || needsBios) ? null : new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
+  // PlayStation discs stay a Blob from storage to the emulator (hundreds of MB: never copied into a JS array here)
+  const discUrl = entry.blob ? URL.createObjectURL(entry.blob) : null;
+  const file = (arcadeBlobUrl || needsBios || discUrl) ? null : new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
+  entry.blob = null;
   entry.bytes = null; // the Blob/File holds the data now; don't keep a second copy in memory
   Object.assign(window, {
     EJS_player: '#ejs',
     EJS_core: entry.sys === 'arcade' ? (gameCoreOverride(entry.id) || ((neoGeo && neoGeoNeedsFBNeo(entryNames)) ? 'arcade' : arcadeCore())) : ((entry.sys === 'nes' && gameCoreOverride(entry.id)) || SYSTEMS[entry.sys].core),
-    EJS_gameUrl: arcadeBlobUrl || file,
-    EJS_gameName: (arcadeBlobUrl || needsBios) ? (entry.fileName || 'game.zip') : entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
+    EJS_gameUrl: arcadeBlobUrl || discUrl || file,
+    EJS_gameName: (arcadeBlobUrl || needsBios || discUrl) ? (entry.fileName || 'game.zip') : entry.name + '-' + entry.id.replace(/[^a-z0-9]/gi, ''),
     EJS_CacheLimit: 0,
     EJS_language: 'en-US',
     EJS_startOnLoaded: true,
@@ -1979,6 +2006,11 @@ async function unzipFirstRom(buf) {
 document.getElementById('loadBtn').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 document.getElementById('romFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  // PlayStation discs are checked from their first sectors only and kept as the File itself
+  let disc = null;
+  try { disc = await psxCheck(f); } catch (err) {}
+  if (disc === 'cue') { toast('Το .cue είναι μόνο η λίστα του δίσκου. Βάλε το .cue μαζί με το .bin σε ένα .zip, ή χρησιμοποίησε .chd.', 6000); return; }
+  if (disc) { await addDisc(f); return; }
   let bytes, name = f.name, arcade = false;
   try {
     const buf = await f.arrayBuffer();
@@ -1999,7 +2031,7 @@ document.getElementById('romFile').addEventListener('change', async e => {
     }
   }
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
-  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM NES, Game Boy, GBA, Genesis, N64 και arcade (.zip).', 4000); return; }
+  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM NES, Game Boy, GBA, Genesis, N64, PlayStation (.chd, .bin/.cue σε .zip, .pbp, .iso) και arcade (.zip).', 4000); return; }
   const base = name.replace(/^.*\//, '');
   // the emulator identifies an arcade set by its zip name, so undo download renames like 'mslug2 (1).zip', 'mslug2_2.zip', 'mslug2 2.zip'
   const arcFile = arcade ? base.toLowerCase().replace(/(\s*\(\d+\)|_\d+|\s+\d+)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
@@ -2013,6 +2045,60 @@ document.getElementById('romFile').addEventListener('change', async e => {
   toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (' + SYSTEMS[s].name + '): ' + label : 'Φορτώθηκε: ' + label + ' (δεν αποθηκεύτηκε σε αυτόν τον browser)', 3500);
   setTimeout(() => bootEntry(entry), stored ? 300 : 0);
 });
+
+// ---- PlayStation discs ----
+const PSX_EXT = /\.(chd|pbp|iso|bin|img|cue|m3u|ccd)$/i;
+async function readSlice(f, a, b) { return new Uint8Array(await f.slice(a, b).arrayBuffer()); }
+async function zipNamesOf(f) {
+  // only the end of the zip: its directory of names, so a big disc zip is never read whole
+  const tailLen = Math.min(f.size, 70000), tail = await readSlice(f, f.size - tailLen, f.size);
+  const dv = new DataView(tail.buffer);
+  let e = tail.length - 22; while (e > 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0 || dv.getUint32(e, true) !== 0x06054b50) return [];
+  const cdSize = dv.getUint32(e + 12, true), cdOff = dv.getUint32(e + 16, true);
+  if (cdOff === 0xffffffff || cdSize > 8e6) return [];
+  const cd = await readSlice(f, cdOff, cdOff + cdSize), cv = new DataView(cd.buffer), dec = new TextDecoder(), names = [];
+  let p = 0;
+  while (p + 46 <= cd.length && cv.getUint32(p, true) === 0x02014b50) {
+    const n = cv.getUint16(p + 28, true), x = cv.getUint16(p + 30, true), c = cv.getUint16(p + 32, true);
+    names.push(dec.decode(cd.subarray(p + 46, p + 46 + n)).toLowerCase());
+    p += 46 + n + x + c;
+  }
+  return names;
+}
+// 'disc' for a PlayStation image, 'cue' for a lone cue sheet, null for anything else
+async function psxCheck(f) {
+  const name = f.name.toLowerCase(), ext = (name.match(/\.([a-z0-9]+)$/) || [])[1] || '';
+  const h = await readSlice(f, 0, 0x9400);
+  const str = (o, n) => String.fromCharCode(...h.subarray(o, o + n));
+  if (h[0] === 0x50 && h[1] === 0x4b) { // zip: a disc if it holds a cue sheet or a disc image
+    const names = await zipNamesOf(f);
+    return names.some(n => /\.(cue|chd|pbp|iso|m3u|ccd)$/.test(n)) ? 'disc' : null;
+  }
+  if (ext === 'cue' || ext === 'm3u') return 'cue';
+  if (str(0, 8) === 'MComprHD') return 'disc';            // CHD
+  if (str(0, 4) === '\0PBP') return 'disc';              // PSP-style eboot
+  if (str(0x8001, 5) === 'CD001' && /PLAYSTATION/.test(str(0x8008, 32))) return 'disc'; // plain ISO
+  // raw CD sectors (.bin / .img): sync pattern, then the volume descriptor in sector 16
+  const sync = h[0] === 0 && h[11] === 0 && h.subarray(1, 11).every(v => v === 0xff);
+  if (sync && (str(0x9319, 5) === 'CD001' || str(0x9311, 5) === 'CD001')) return 'disc';
+  if (sync && ['bin', 'img'].includes(ext)) return 'disc';
+  return null;
+}
+async function addDisc(f) {
+  const base = f.name.replace(/^.*\//, '');
+  const head = await readSlice(f, 0, Math.min(f.size, 1 << 20));
+  const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
+  const label = base.replace(/\.[a-z0-9]+$/i, '');
+  // the emulator names the disc file after EJS_gameName, so keep the extension and only safe characters
+  const fileName = (label.replace(/[#<$+%>!`&*'|{}/\\?"=@:^\r\n]/g, '').trim() || 'disc') + '.' + (ext || 'chd');
+  const entry = { id: 'user:psx-' + romId(head) + '-' + f.size.toString(16), name: label, sys: 'psx', ext, fileName, added: Date.now(), blob: f };
+  if (f.size > 700e6 && !/\.(chd|pbp)$/i.test(base)) toast('Μεγάλος δίσκος: αν το κινητό κλείσει την εφαρμογή, δοκίμασε το ίδιο παιχνίδι σε .chd (πιο μικρό).', 5000);
+  const stored = await dbPut(entry);
+  setMenu(false);
+  toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + label : 'Φορτώθηκε: ' + label + ' (δεν χώρεσε στη μνήμη της εφαρμογής)', 3500);
+  setTimeout(() => bootEntry(entry), stored ? 300 : 0);
+}
 
 /* ---- audio (Game Boy) ---- */
 function unlockAudio() {
@@ -2226,7 +2312,7 @@ function dpadUpdate() {
   }
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
-  if (sys === 'md' || sys === 'arcade' || sys === 'gba' || sys === 'nes') {
+  if (sys === 'md' || sys === 'arcade' || sys === 'gba' || sys === 'nes' || sys === 'psx') {
     // Genesis D-pad: RetroPad up/down/left/right = 4/5/6/7
     const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
     const drive = sys === 'arcade' && consoleEl.dataset.prof === 'drive';
@@ -2318,6 +2404,7 @@ const LAYOUT = {
   arc1: [[14, 92, 52], [12, 132, 58]], arc2: [[66, 56, 52], [62, 80, 58]], arc3: [[118, 20, 52], [112, 28, 58]],
   nCU: [[118, 4, 32], [108, 0, 36]],   nCL: [[86, 36, 32], [72, 36, 36]],   nCR: [[138, 36, 32], [134, 36, 36]], nCD: [[118, 68, 32], [108, 72, 36]],
   nB: [[14, 72, 50], [12, 104, 58]],   nA: [[60, 102, 56], [70, 132, 64]],
+  psTri: [[60, 0, 50], [57, 6, 56]], psSqr: [[8, 52, 50], [0, 64, 56]], psCir: [[112, 52, 50], [114, 64, 56]], psCrs: [[60, 104, 50], [57, 122, 56]],
   dvG1: [[16, 4, 32], [20, 16, 36]],   dvG2: [[54, 4, 32], [62, 16, 36]],   dvG3: [[92, 4, 32], [104, 16, 36]],
   dvBrake: [[14, 96, 52], [12, 124, 60]], dvGas: [[84, 64, 80], [82, 86, 88]],
 };
@@ -2567,7 +2654,7 @@ async function renderMine() {
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
   if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
   all.sort((a, b) => a.name.localeCompare(b.name, 'el'));
-  for (const key of ['nes', 'gb', 'gba', 'md', 'n64', 'arcade']) {
+  for (const key of ['nes', 'gb', 'gba', 'md', 'n64', 'psx', 'arcade']) {
     const group = all.filter(g => (g.sys || 'gb') === key);
     if (!group.length) continue;
     const h = document.createElement('h3');
