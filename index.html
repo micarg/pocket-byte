@@ -1595,7 +1595,9 @@ function bootEJS(entry) {
   const arcadeBlobUrl = entry.sys === 'arcade' && !needsBios ? URL.createObjectURL(new Blob([entry.bytes])) : null;
   let pendingBytes = needsBios ? entry.bytes : null;
   // PlayStation discs stay a Blob from storage to the emulator (hundreds of MB: never copied into a JS array here)
-  const discUrl = entry.blob ? URL.createObjectURL(entry.blob) : null;
+  const discFiles = entry.discFiles || (entry.blob ? [{ name: entry.fileName, blob: entry.blob }] : null);
+  entry.discFiles = null;
+  const discUrl = discFiles ? URL.createObjectURL(new Blob([])) : null;
   const file = (arcadeBlobUrl || needsBios || discUrl) ? null : new File([entry.bytes], entry.fileName || ('game.' + (entry.ext || SYSTEMS[entry.sys].ext)));
   entry.blob = null;
   entry.bytes = null; // the Blob/File holds the data now; don't keep a second copy in memory
@@ -1622,6 +1624,19 @@ function bootEJS(entry) {
       // EmulatorJS copies the game into its in-memory file system; for a PlayStation disc (hundreds of MB) that copy
       // doubles the memory needed and iOS closes the page, so hand the buffer over instead of copying it
       if (entry.sys !== 'psx') return;
+      // load the disc files ourselves: each read once from storage and handed to the emulator's file system as is
+      if (discFiles) try {
+        const emu = window.EJS_emulator;
+        emu.downloadRom = async function () {
+          const FS = this.gameManager.FS;
+          let i = 0;
+          for (const f of discFiles) {
+            this.textElem.innerText = 'Loading disc ' + Math.round(++i / discFiles.length * 100) + '%';
+            FS.writeFile('/' + f.name, new Uint8Array(await f.blob.arrayBuffer()), { canOwn: true });
+          }
+          this.fileName = entry.fileName; // the .cue for multi-track discs, else the image itself
+        };
+      } catch (e) {}
       try {
         const emu = window.EJS_emulator, orig = emu.checkCompression.bind(emu);
         emu.checkCompression = (data, msg, cb) => {
@@ -2004,7 +2019,7 @@ function bootEntry(g) {
     setSys('psx'); document.getElementById('ejs-host').hidden = false; showOverlay('Αποσυμπίεση δίσκου… 0%');
     discFromZip(g.blob, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')).then(async r => {
       if (!r) { bootEntry({ ...g, unpackTried: true }); return; }
-      const ng = { ...discEntry(new File([r.blob], r.name), g.name), id: g.id, added: g.added };
+      const ng = { ...discEntryFiles(r, g.name), id: g.id, added: g.added };
       await dbPut(ng); r.cleanup(); renderMine();
       bootEntry(ng);
     }).catch(() => bootEntry({ ...g, unpackTried: true }));
@@ -2193,24 +2208,20 @@ async function psxCheck(f) {
   if (sync && ['bin', 'img'].includes(ext)) return 'disc';
   return null;
 }
-// A disc zip is unpacked here once, while being added: inflated as a stream, a piece at a time, into the app's
-// storage, so neither now nor at play time does the phone hold both the zip and the disc in memory.
-// Only single-image discs (one .bin/.iso/.chd...); multi-track ones stay zipped.
-async function discFromZip(src, progress) {
-  const list = await zipListOf(src);
-  const imgs = list.filter(e => /\.(bin|img|iso|chd|pbp)$/.test(e.name));
-  if (imgs.length !== 1 || ![0, 8].includes(imgs[0].method) || typeof DecompressionStream === 'undefined') return null;
-  const e = imgs[0];
+// A disc zip is unpacked here once, while being added: each file is inflated as a stream, a piece at a time,
+// into the app's storage, so neither now nor at play time does the phone hold the zip and the disc together.
+// Discs with several tracks (Track 01.bin, Track 02.bin… plus the .cue) keep all their files.
+async function unzipToStorage(src, e, tag, ids, onBytes) {
   const lh = await readSlice(src, e.lho, e.lho + 30), ldv = new DataView(lh.buffer);
-  if (ldv.getUint32(0, true) !== 0x04034b50) return null;
+  if (ldv.getUint32(0, true) !== 0x04034b50) throw new Error('zip');
   const start = e.lho + 30 + ldv.getUint16(26, true) + ldv.getUint16(28, true);
   let stream = src.slice(start, start + e.csize).stream();
   if (e.method === 8) stream = stream.pipeThrough(new DecompressionStream('deflate-raw'));
-  const reader = stream.getReader(), CH = 16 << 20, tag = 'tmp:' + Date.now() + ':', parts = [], ids = [];
-  let buf = new Uint8Array(CH), fill = 0, total = 0;
+  const reader = stream.getReader(), CH = 16 << 20, parts = [];
+  let buf = new Uint8Array(CH), fill = 0;
   const flush = async () => {
     if (!fill) return;
-    const id = tag + parts.length;
+    const id = tag + ids.length;
     await tx('roms', 'readwrite', t => { t.objectStore('roms').put({ id, part: new Blob([fill === CH ? buf : buf.subarray(0, fill)]) }); });
     // read it back: what comes out of storage is backed by a file on disk, not by memory
     const back = await tx('roms', 'readonly', t => t.objectStore('roms').get(id));
@@ -2223,13 +2234,30 @@ async function discFromZip(src, progress) {
     let o = 0;
     while (o < value.length) {
       const k = Math.min(CH - fill, value.length - o);
-      buf.set(value.subarray(o, o + k), fill); fill += k; o += k; total += k;
+      buf.set(value.subarray(o, o + k), fill); fill += k; o += k;
       if (fill === CH) await flush();
     }
-    if (progress && e.size) progress(Math.min(99, Math.floor(total / e.size * 100)));
+    onBytes(value.length);
   }
   await flush();
-  return { blob: new Blob(parts), name: e.rawName.replace(/^.*\//, ''), cleanup: () => tx('roms', 'readwrite', t => { for (const id of ids) t.objectStore('roms').delete(id); }).catch(() => {}) };
+  return new Blob(parts);
+}
+async function discFromZip(src, progress) {
+  if (typeof DecompressionStream === 'undefined') return null;
+  const list = (await zipListOf(src)).filter(e => !e.name.endsWith('/') && /\.(bin|img|iso|chd|pbp|cue|ccd|sub)$/.test(e.name));
+  const imgs = list.filter(e => /\.(bin|img|iso|chd|pbp)$/.test(e.name));
+  if (!imgs.length || list.some(e => ![0, 8].includes(e.method))) return null;
+  const cue = list.find(e => e.name.endsWith('.cue'));
+  if (imgs.length > 1 && !cue) return null;
+  const tag = 'tmp:' + Date.now() + ':', ids = [], files = [];
+  const total = list.reduce((n, e) => n + e.size, 0) || 1;
+  let done = 0;
+  for (const e of list) {
+    const blob = await unzipToStorage(src, e, tag, ids, n => { done += n; if (progress) progress(Math.min(99, Math.floor(done / total * 100))); });
+    files.push({ name: e.rawName.replace(/^.*\//, ''), blob });
+  }
+  const main = (cue || imgs[0]).rawName.replace(/^.*\//, '');
+  return { files, main, cleanup: () => tx('roms', 'readwrite', t => { for (const id of ids) t.objectStore('roms').delete(id); }).catch(() => {}) };
 }
 async function addDisc(f) {
   if (f.slice && (await readSlice(f, 0, 2))[0] === 0x50) {
@@ -2238,7 +2266,7 @@ async function addDisc(f) {
     try { r = await discFromZip(f, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')); } catch (err) {}
     showOverlay('');
     if (r) {
-      const entry = discEntry(new File([r.blob], r.name), f.name.replace(/\.zip$/i, ''));
+      const entry = discEntryFiles(r, f.name.replace(/\.zip$/i, ''));
       const stored = await dbPut(entry);
       r.cleanup();
       toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Δεν χώρεσε στη μνήμη της εφαρμογής.', 3500);
@@ -2251,6 +2279,11 @@ async function addDisc(f) {
   setMenu(false);
   toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Φορτώθηκε: ' + entry.name + ' (δεν χώρεσε στη μνήμη της εφαρμογής)', 3500);
   setTimeout(() => bootEntry(entry), stored ? 300 : 0);
+}
+function discEntryFiles(r, label) {
+  const size = r.files.reduce((n, x) => n + x.blob.size, 0);
+  return { id: 'user:psx-' + size.toString(16) + '-' + label.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40), name: label, sys: 'psx',
+    ext: (r.main.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase(), fileName: r.main, added: Date.now(), discFiles: r.files };
 }
 function discEntry(f, labelFrom) {
   const base = f.name.replace(/^.*\//, '');
