@@ -1629,10 +1629,22 @@ function bootEJS(entry) {
         const emu = window.EJS_emulator;
         emu.downloadRom = async function () {
           const FS = this.gameManager.FS;
-          let i = 0;
-          for (const f of discFiles) {
-            this.textElem.innerText = 'Loading disc ' + Math.round(++i / discFiles.length * 100) + '%';
-            FS.writeFile('/' + f.name, new Uint8Array(await f.blob.arrayBuffer()), { canOwn: true });
+          // read in 16 MB slices into one buffer per file: a single huge read can stall on iPhone
+          const total = discFiles.reduce((n, f) => n + f.blob.size, 0) || 1;
+          let done = 0;
+          try {
+            for (const f of discFiles) {
+              const out = new Uint8Array(f.blob.size), STEP = 16 << 20;
+              for (let o = 0; o < out.length; o += STEP) {
+                out.set(new Uint8Array(await f.blob.slice(o, Math.min(out.length, o + STEP)).arrayBuffer()), o);
+                done += Math.min(STEP, out.length - o);
+                this.textElem.innerText = 'Loading disc ' + Math.floor(done / total * 100) + '%';
+              }
+              FS.writeFile('/' + f.name, out, { canOwn: true });
+            }
+          } catch (err) {
+            this.textElem.innerText = 'Disc read error: ' + (err && (err.name || err.message) || err);
+            throw err;
           }
           this.fileName = entry.fileName; // the .cue for multi-track discs, else the image itself
         };
