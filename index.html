@@ -2000,6 +2000,16 @@ function ejsInput(index, value) {
 }
 
 function bootEntry(g) {
+  if (g.sys === 'psx' && g.ext === 'zip' && g.blob && !g.unpackTried) {
+    setSys('psx'); document.getElementById('ejs-host').hidden = false; showOverlay('Αποσυμπίεση δίσκου… 0%');
+    discFromZip(g.blob, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')).then(async r => {
+      if (!r) { bootEntry({ ...g, unpackTried: true }); return; }
+      const ng = { ...discEntry(new File([r.blob], r.name), g.name), id: g.id, added: g.added };
+      await dbPut(ng); r.cleanup(); renderMine();
+      bootEntry(ng);
+    }).catch(() => bootEntry({ ...g, unpackTried: true }));
+    return;
+  }
   // a PlayStation disc zip that an older version filed under arcade: move it to PlayStation
   if (g.sys === 'arcade' && g.bytes && isDiscList(zipListOfBytes(g.bytes))) {
     const label = (g.fileName || g.name || 'disc').replace(/\.zip$/i, '');
@@ -2115,7 +2125,20 @@ function cdList(cd) {
   let p = 0;
   while (p + 46 <= cd.length && cv.getUint32(p, true) === 0x02014b50) {
     const n = cv.getUint16(p + 28, true), x = cv.getUint16(p + 30, true), c = cv.getUint16(p + 32, true);
-    out.push({ name: dec.decode(cd.subarray(p + 46, p + 46 + n)).toLowerCase(), size: cv.getUint32(p + 24, true) });
+    let size = cv.getUint32(p + 24, true), csize = cv.getUint32(p + 20, true), lho = cv.getUint32(p + 42, true);
+    // zip64: the real values sit in the 0x0001 extra field, in this order, for the fields marked 0xffffffff
+    for (let q = p + 46 + n; q + 4 <= p + 46 + n + x;) {
+      const id = cv.getUint16(q, true), len = cv.getUint16(q + 2, true);
+      if (id === 1) {
+        let r = q + 4;
+        if (size === 0xffffffff) { size = Number(cv.getBigUint64(r, true)); r += 8; }
+        if (csize === 0xffffffff) { csize = Number(cv.getBigUint64(r, true)); r += 8; }
+        if (lho === 0xffffffff) { lho = Number(cv.getBigUint64(r, true)); }
+      }
+      q += 4 + len;
+    }
+    out.push({ name: dec.decode(cd.subarray(p + 46, p + 46 + n)).toLowerCase(), rawName: dec.decode(cd.subarray(p + 46, p + 46 + n)),
+      size, csize, lho, method: cv.getUint16(p + 10, true) });
     p += 46 + n + x + c;
   }
   return out;
@@ -2150,7 +2173,7 @@ function zipListOfBytes(u) {
 // (arcade chips are .bin too, but small and power-of-two sized)
 function isDiscList(list) {
   return list.some(e => /\.(cue|chd|pbp|iso|m3u|ccd)$/.test(e.name) ||
-    (/\.(bin|img)$/.test(e.name) && (e.size === 0xffffffff || (e.size >= 16e6 && e.size % 2352 === 0))));
+    (/\.(bin|img)$/.test(e.name) && (e.size >= 16e6 && e.size % 2352 === 0)));
 }
 // 'disc' for a PlayStation image, 'cue' for a lone cue sheet, null for anything else
 async function psxCheck(f) {
@@ -2170,19 +2193,72 @@ async function psxCheck(f) {
   if (sync && ['bin', 'img'].includes(ext)) return 'disc';
   return null;
 }
+// A disc zip is unpacked here once, while being added: inflated as a stream, a piece at a time, into the app's
+// storage, so neither now nor at play time does the phone hold both the zip and the disc in memory.
+// Only single-image discs (one .bin/.iso/.chd...); multi-track ones stay zipped.
+async function discFromZip(src, progress) {
+  const list = await zipListOf(src);
+  const imgs = list.filter(e => /\.(bin|img|iso|chd|pbp)$/.test(e.name));
+  if (imgs.length !== 1 || ![0, 8].includes(imgs[0].method) || typeof DecompressionStream === 'undefined') return null;
+  const e = imgs[0];
+  const lh = await readSlice(src, e.lho, e.lho + 30), ldv = new DataView(lh.buffer);
+  if (ldv.getUint32(0, true) !== 0x04034b50) return null;
+  const start = e.lho + 30 + ldv.getUint16(26, true) + ldv.getUint16(28, true);
+  let stream = src.slice(start, start + e.csize).stream();
+  if (e.method === 8) stream = stream.pipeThrough(new DecompressionStream('deflate-raw'));
+  const reader = stream.getReader(), CH = 16 << 20, tag = 'tmp:' + Date.now() + ':', parts = [], ids = [];
+  let buf = new Uint8Array(CH), fill = 0, total = 0;
+  const flush = async () => {
+    if (!fill) return;
+    const id = tag + parts.length;
+    await tx('roms', 'readwrite', t => { t.objectStore('roms').put({ id, part: new Blob([fill === CH ? buf : buf.subarray(0, fill)]) }); });
+    // read it back: what comes out of storage is backed by a file on disk, not by memory
+    const back = await tx('roms', 'readonly', t => t.objectStore('roms').get(id));
+    parts.push(back.part); ids.push(id);
+    buf = new Uint8Array(CH); fill = 0;
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    let o = 0;
+    while (o < value.length) {
+      const k = Math.min(CH - fill, value.length - o);
+      buf.set(value.subarray(o, o + k), fill); fill += k; o += k; total += k;
+      if (fill === CH) await flush();
+    }
+    if (progress && e.size) progress(Math.min(99, Math.floor(total / e.size * 100)));
+  }
+  await flush();
+  return { blob: new Blob(parts), name: e.rawName.replace(/^.*\//, ''), cleanup: () => tx('roms', 'readwrite', t => { for (const id of ids) t.objectStore('roms').delete(id); }).catch(() => {}) };
+}
 async function addDisc(f) {
-  const base = f.name.replace(/^.*\//, '');
-  const head = await readSlice(f, 0, Math.min(f.size, 1 << 20));
-  const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
-  const label = base.replace(/\.[a-z0-9]+$/i, '');
-  // the emulator names the disc file after EJS_gameName, so keep the extension and only safe characters
-  const fileName = (label.replace(/[#<$+%>!`&*'|{}/\\?"=@:^\r\n]/g, '').trim() || 'disc') + '.' + (ext || 'chd');
-  const entry = { id: 'user:psx-' + romId(head) + '-' + f.size.toString(16), name: label, sys: 'psx', ext, fileName, added: Date.now(), blob: f };
-  if (f.size > 700e6 && !/\.(chd|pbp)$/i.test(base)) toast('Μεγάλος δίσκος: αν το κινητό κλείσει την εφαρμογή, δοκίμασε το ίδιο παιχνίδι σε .chd (πιο μικρό).', 5000);
+  if (f.slice && (await readSlice(f, 0, 2))[0] === 0x50) {
+    setMenu(false); showOverlay('Αποσυμπίεση δίσκου… 0%');
+    let r = null;
+    try { r = await discFromZip(f, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')); } catch (err) {}
+    showOverlay('');
+    if (r) {
+      const entry = discEntry(new File([r.blob], r.name), f.name.replace(/\.zip$/i, ''));
+      const stored = await dbPut(entry);
+      r.cleanup();
+      toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Δεν χώρεσε στη μνήμη της εφαρμογής.', 3500);
+      if (stored) setTimeout(() => bootEntry(entry), 300);
+      return;
+    }
+  }
+  const entry = discEntry(f);
   const stored = await dbPut(entry);
   setMenu(false);
-  toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + label : 'Φορτώθηκε: ' + label + ' (δεν χώρεσε στη μνήμη της εφαρμογής)', 3500);
+  toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Φορτώθηκε: ' + entry.name + ' (δεν χώρεσε στη μνήμη της εφαρμογής)', 3500);
   setTimeout(() => bootEntry(entry), stored ? 300 : 0);
+}
+function discEntry(f, labelFrom) {
+  const base = f.name.replace(/^.*\//, '');
+  const ext = (base.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase();
+  const label = (labelFrom || base).replace(/\.[a-z0-9]+$/i, '');
+  // the emulator names the disc file after EJS_gameName, so keep the extension and only safe characters
+  const fileName = (label.replace(/[#<$+%>!`&*'|{}/\\?"=@:^\r\n]/g, '').trim() || 'disc') + '.' + (ext || 'chd');
+  return { id: 'user:psx-' + f.size.toString(16) + '-' + label.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40), name: label, sys: 'psx', ext, fileName, added: Date.now(), blob: f };
 }
 
 /* ---- audio (Game Boy) ---- */
