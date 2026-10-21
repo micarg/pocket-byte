@@ -160,6 +160,9 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .round.brake { background: radial-gradient(circle at 38% 32%, #ef4a3c, #b8231a); box-shadow: 0 5px 0 #7a140e, 0 7px 10px rgba(0,0,0,.35); }
 .drive-lbl { position: absolute; left: 16px; width: 108px; text-align: center; top: 42px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
 .btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.lbl.named, .btn .t.named { font-size: 10px; letter-spacing: .03em; }
+.n64-c-label.named { font-size: 9px; white-space: nowrap; right: auto; left: 0; top: 18px; }
+#nB .t.named { top: auto; bottom: 100%; transform: translate(-50%, -6px); }
 .n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
@@ -1439,14 +1442,40 @@ function bytesToB64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) 
 function setLast(id) { try { localStorage.setItem('pb-last', id || ''); } catch (e) {} }
 function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
 function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); requestAnimationFrame(fit); }
-/* ---- joystick or cross-shaped D-pad, remembered per game (N64 and driving games always use the stick) ---- */
-let crossOn = false;
+/* ---- N64: what each button does, for games where that is well known (in English) ---- */
+const N64_LABELS = [
+  [/super mario 64/i, { A: 'JUMP', B: 'PUNCH', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
+  [/mario ?kart/i, { A: 'GAS', B: 'BRAKE', Z: 'ITEM', R: 'HOP' }],
+  [/diddy kong racing/i, { A: 'GAS', B: 'BRAKE', Z: 'ITEM', R: 'HOP' }],
+  [/zelda|ocarina|majora/i, { A: 'ACTION', B: 'SWORD', Z: 'TARGET', R: 'SHIELD', C: 'ITEMS', START: 'MENU' }],
+  [/goldeneye/i, { A: 'WEAPON', B: 'USE', Z: 'FIRE', R: 'AIM', C: 'LOOK / STEP' }],
+  [/banjo/i, { A: 'JUMP', B: 'ATTACK', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
+  [/smash ?bro/i, { A: 'ATTACK', B: 'SPECIAL', Z: 'SHIELD', R: 'SHIELD', L: 'TAUNT', C: 'JUMP' }],
+];
+function applyN64Labels(name) {
+  const hit = N64_LABELS.find(([re]) => re.test(name));
+  const m = hit ? hit[1] : {};
+  const set = (el, key, base) => { if (!el) return; el.textContent = m[key] ? (base ? base + ' ' : '') + m[key] : (base || key); el.classList.toggle('named', !!m[key]); };
+  set(document.querySelector('#nA .t'), 'A', 'A');
+  set(document.querySelector('#nB .t'), 'B', 'B');
+  set(document.querySelector('.n64-c-label'), 'C', 'C');
+  for (const [ej, key] of [[10, 'L'], [12, 'Z'], [3, 'START'], [11, 'R']]) {
+    const b = document.querySelector('.sys.only-n64 .pill[data-ej="' + ej + '"]');
+    set(b && b.parentElement.querySelector('.lbl'), key, key === 'START' ? '' : key);
+  }
+}
+
+/* ---- joystick or cross-shaped D-pad, remembered per game (driving games always use the stick) ---- */
+let crossOn = false, currentName = '';
+// N64 fighting games: the cross makes the special-move combinations much easier, so it's their default
+const N64_FIGHTERS = /mortal kombat|killer instinct|\bmace\b|fighters destiny|flying dragon|clay ?fighter|bio ?f\.?r\.?e\.?a\.?k|dual heroes|rakuga/i;
 const crossEl = document.getElementById('cross');
 const padKey = () => 'pb-pad-' + (current || 'none');
-function padModeAllowed() { return sys !== 'n64' && consoleEl.dataset.prof !== 'drive'; }
+function padModeAllowed() { return consoleEl.dataset.prof !== 'drive'; }
 function applyPadMode() {
-  let want = false;
-  try { want = localStorage.getItem(padKey()) === 'cross'; } catch (e) {}
+  let want = false, stored = null;
+  try { stored = localStorage.getItem(padKey()); } catch (e) {}
+  want = stored === 'cross' || (!stored && sys === 'n64' && N64_FIGHTERS.test(currentName));
   crossOn = want && padModeAllowed();
   document.getElementById('dpad').classList.toggle('cross-on', crossOn);
   document.getElementById('dpad').setAttribute('aria-label', crossOn ? 'Σταυρός' : 'Joystick');
@@ -1457,7 +1486,7 @@ function applyPadMode() {
 }
 function setPadMode(cross) {
   if (!current || !padModeAllowed()) return;
-  try { if (cross) localStorage.setItem(padKey(), 'cross'); else localStorage.removeItem(padKey()); } catch (e) {}
+  try { localStorage.setItem(padKey(), cross ? 'cross' : 'stick'); } catch (e) {}
   applyPadMode();
 }
 function setNow(label) { document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, ''); }
@@ -1545,7 +1574,9 @@ function bootEJS(entry) {
   ejsLoaded = true;
   current = entry.id;
   consoleEl.dataset.prof = entry.sys === 'arcade' ? arcadeProfile(entry.fileName) : '';
+  currentName = entry.name || '';
   setSys(entry.sys); setNow(entry.sys === 'arcade' && entry.fileName ? arcadeName(entry.fileName) : entry.name);
+  if (entry.sys === 'n64') applyN64Labels(entry.name || '');
   document.getElementById('led').classList.add('on');
   document.getElementById('ejs-host').hidden = false;
   showOverlay('Φορτώνει…');
@@ -2344,7 +2375,7 @@ function dpadUpdate() {
   }
   knob.style.transform = first ? `translate(${first.x}px, ${first.y}px)` : '';
   for (const k in arrows) arrows[k].classList.toggle('on', !!(m & k));
-  if (sys === 'md' || sys === 'arcade' || sys === 'gba' || sys === 'nes' || sys === 'psx') {
+  if (sys === 'md' || sys === 'arcade' || sys === 'gba' || sys === 'nes' || sys === 'psx' || (sys === 'n64' && crossOn)) {
     // Genesis D-pad: RetroPad up/down/left/right = 4/5/6/7
     const map = [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]];
     const drive = sys === 'arcade' && consoleEl.dataset.prof === 'drive';
