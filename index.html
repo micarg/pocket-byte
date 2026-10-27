@@ -386,9 +386,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <button class="tool" id="hapticBtn">📳 Δόνηση: ανοιχτή</button>
     <button class="tool" id="pauseBtn">Παύση</button>
     <button class="tool" id="resetBtn">Επανεκκίνηση</button>
-    <button class="tool" id="loadBtn">Φόρτωσε δικό σου ROM</button>
+    <button class="tool" id="loadBtn">Φόρτωσε ROM (ένα ή πολλά μαζί)</button>
     <button class="tool" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
-    <input type="file" id="romFile" hidden>
+    <input type="file" id="romFile" multiple hidden>
   </div>
 
   <section id="slotsSec">
@@ -2102,12 +2102,42 @@ async function unzipFirstRom(buf) {
 }
 document.getElementById('loadBtn').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 document.getElementById('romFile').addEventListener('change', async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+  if (files.length === 1) { await importFile(files[0], true); return; }
+  // several at once: add them one after another, start none, then show the list
+  setMenu(true);
+  let ok = 0, bad = [];
+  // a .cue picked together with its .bin files becomes one disc
+  for (const cue of files.filter(f => /\.cue$/i.test(f.name))) {
+    try {
+      const want = [...(await cue.text()).matchAll(/FILE\s+"([^"]+)"/gi)].map(m => m[1].replace(/^.*[\\/]/, '').toLowerCase());
+      const parts = want.map(w => files.find(f => f.name.toLowerCase() === w));
+      if (!want.length || parts.some(x => !x)) continue;
+      const label = cue.name.replace(/\.cue$/i, '');
+      const entry = discEntryFiles({ files: [{ name: cue.name, blob: cue }, ...parts.map(f => ({ name: f.name, blob: f }))], main: cue.name }, label);
+      if (await dbPut(entry)) ok++; else bad.push(label);
+      files = files.filter(f => f !== cue && !parts.includes(f));
+    } catch (err) {}
+  }
+  let i = 0;
+  for (const f of files) {
+    toast('Προσθήκη ' + (++i) + '/' + files.length + ': ' + f.name, 60000);
+    let r = 'fail';
+    try { r = await importFile(f, false); } catch (err) {}
+    if (r === 'ok') ok++; else bad.push(f.name);
+    renderMine();
+  }
+  renderMine();
+  toast('Προστέθηκαν ' + ok + ' παιχνίδια.' + (bad.length ? ' Δεν αναγνώρισα: ' + bad.slice(0, 3).join(', ') + (bad.length > 3 ? ' κ.ά.' : '') : ''), 6000);
+});
+// add one file to the library; when it's the only one picked, also start it (and explain any problem)
+async function importFile(f, single) {
+  const say = (m, t) => { if (single) toast(m, t); };
   // PlayStation discs are checked from their first sectors only and kept as the File itself
   let disc = null;
   try { disc = await psxCheck(f); } catch (err) {}
-  if (disc === 'cue') { toast('Το .cue είναι μόνο η λίστα του δίσκου. Βάλε το .cue μαζί με το .bin σε ένα .zip, ή χρησιμοποίησε .chd.', 6000); return; }
-  if (disc) { await addDisc(f); return; }
+  if (disc === 'cue') { say('Το .cue είναι μόνο η λίστα του δίσκου. Διάλεξέ το μαζί με τα .bin του, ή βάλ\' τα σε ένα .zip.', 6000); return 'fail'; }
+  if (disc) return addDisc(f, single);
   let bytes, name = f.name, arcade = false;
   try {
     const buf = await f.arrayBuffer();
@@ -2119,16 +2149,17 @@ document.getElementById('romFile').addEventListener('change', async e => {
       if (inner && detectSystem(inner.name, inner.bytes)) { bytes = inner.bytes; name = inner.name; }
       else arcade = true;
     }
-  } catch (err) { toast('Δεν μπόρεσα να διαβάσω αυτό το αρχείο.', 4000); return; }
+  } catch (err) { say('Δεν μπόρεσα να διαβάσω αυτό το αρχείο.', 4000); return 'fail'; }
   if (arcade) {
     const hadBios = await harvestNeoBios(bytes);
     if (/^([0-9a-f]{6,}-)?neogeo(\s*\(\d+\))?\.zip$/i.test(f.name)) {
-      toast(hadBios ? 'Αποθηκεύτηκε το BIOS της Neo Geo. Τα παιχνίδια Neo Geo θα το βρίσκουν αυτόματα.' : 'Αυτό το neogeo.zip δεν έχει τα αρχεία BIOS που χρειάζονται.', 4500);
-      setMenu(false); return;
+      say(hadBios ? 'Αποθηκεύτηκε το BIOS της Neo Geo. Τα παιχνίδια Neo Geo θα το βρίσκουν αυτόματα.' : 'Αυτό το neogeo.zip δεν έχει τα αρχεία BIOS που χρειάζονται.', 4500);
+      if (single) setMenu(false);
+      return hadBios ? 'ok' : 'fail';
     }
   }
   const s = arcade ? 'arcade' : detectSystem(name, bytes);
-  if (!s) { toast('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM NES, Game Boy, GBA, Genesis, N64, PlayStation (.chd, .bin/.cue σε .zip, .pbp, .iso) και arcade (.zip).', 4000); return; }
+  if (!s) { say('Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM NES, Game Boy, GBA, Genesis, N64, PlayStation (.chd, .bin/.cue σε .zip, .pbp, .iso) και arcade (.zip).', 4000); return 'fail'; }
   const base = name.replace(/^.*\//, '');
   // the emulator identifies an arcade set by its zip name, so undo download renames like 'mslug2 (1).zip', 'mslug2_2.zip', 'mslug2 2.zip'
   const arcFile = arcade ? base.toLowerCase().replace(/(\s*\(\d+\)|_\d+|\s+\d+)(?=\.zip$)/, '').replace(/^[0-9a-f]{6,}-/, '') : undefined;
@@ -2138,10 +2169,12 @@ document.getElementById('romFile').addEventListener('change', async e => {
     fileName: arcFile,
     cgb: s === 'gb' ? !!(bytes[0x143] & 0x80) : false, added: Date.now(), bytes };
   const stored = await dbPut(entry);
+  if (!single) return stored ? 'ok' : 'fail';
   setMenu(false);
   toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (' + SYSTEMS[s].name + '): ' + label : 'Φορτώθηκε: ' + label + ' (δεν αποθηκεύτηκε σε αυτόν τον browser)', 3500);
   setTimeout(() => bootEntry(entry), stored ? 300 : 0);
-});
+  return stored ? 'ok' : 'fail';
+}
 
 // ---- PlayStation discs ----
 const PSX_EXT = /\.(chd|pbp|iso|bin|img|cue|m3u|ccd)$/i;
@@ -2271,26 +2304,31 @@ async function discFromZip(src, progress) {
   const main = (cue || imgs[0]).rawName.replace(/^.*\//, '');
   return { files, main, cleanup: () => tx('roms', 'readwrite', t => { for (const id of ids) t.objectStore('roms').delete(id); }).catch(() => {}) };
 }
-async function addDisc(f) {
+async function addDisc(f, single = true) {
   if (f.slice && (await readSlice(f, 0, 2))[0] === 0x50) {
-    setMenu(false); showOverlay('Αποσυμπίεση δίσκου… 0%');
+    const show = m => single ? showOverlay(m) : toast(f.name + ': ' + m, 60000);
+    if (single) setMenu(false);
+    show('Αποσυμπίεση δίσκου… 0%');
     let r = null;
-    try { r = await discFromZip(f, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')); } catch (err) {}
-    showOverlay('');
+    try { r = await discFromZip(f, pc => show('Αποσυμπίεση δίσκου… ' + pc + '%')); } catch (err) {}
+    if (single) showOverlay('');
     if (r) {
       const entry = discEntryFiles(r, f.name.replace(/\.zip$/i, ''));
       const stored = await dbPut(entry);
       r.cleanup();
+      if (!single) return stored ? 'ok' : 'fail';
       toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Δεν χώρεσε στη μνήμη της εφαρμογής.', 3500);
       if (stored) setTimeout(() => bootEntry(entry), 300);
-      return;
+      return stored ? 'ok' : 'fail';
     }
   }
   const entry = discEntry(f);
   const stored = await dbPut(entry);
+  if (!single) return stored ? 'ok' : 'fail';
   setMenu(false);
   toast(stored ? 'Αποθηκεύτηκε στα παιχνίδια σου (PlayStation): ' + entry.name : 'Φορτώθηκε: ' + entry.name + ' (δεν χώρεσε στη μνήμη της εφαρμογής)', 3500);
   setTimeout(() => bootEntry(entry), stored ? 300 : 0);
+  return stored ? 'ok' : 'fail';
 }
 function discEntryFiles(r, label) {
   const size = r.files.reduce((n, x) => n + x.blob.size, 0);
