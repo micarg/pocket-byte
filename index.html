@@ -1433,7 +1433,7 @@ const toastEl = document.getElementById('toast');
 let sys = 'gb';            // which control layout / emulator is active
 let gb = null, current = null, paused = false, soundOn = false, saveKey = null, pausedByMenu = false;
 let ejsLoaded = false, ejsStarted = false;
-let mameSet = ''; // the MAME 2003 set name a rebuilt zip was loaded as (e.g. outruna)
+let mameSet = '', mameVerified = false; // the MAME 2003 set name a rebuilt zip was loaded as (e.g. outruna)
 let audioCtx = null, node = null;
 const SR = (() => { try { const C = window.AudioContext || window.webkitAudioContext; audioCtx = new C(); return audioCtx.sampleRate; } catch (e) { return 48000; } })();
 
@@ -1675,7 +1675,9 @@ function bootEJS(entry) {
       window.EJS_gameUrl = null; // drop our reference to the ROM data
       // If MAME 2003 could not load the set (a newer revision it never had), RetroArch sits in its own menu with no
       // game running. Detect that and switch this one game to FBNeo, remembering the choice.
-      if (entry.sys === 'arcade' && window.EJS_core === 'mame2003_plus') setTimeout(() => {
+      // (only when the set wasn't already checked against MAME's own list: some games that run fine, like Mexico 86,
+      // also report no save path, and switching those to FBNeo made them crash)
+      if (entry.sys === 'arcade' && window.EJS_core === 'mame2003_plus' && !mameVerified && gameCoreOverride(entry.id) !== 'mame2003_plus') setTimeout(() => {
         // with no content loaded RetroArch reports an empty save-file path; a running game always has one
         let running = true;
         try {
@@ -1717,14 +1719,14 @@ function bootEJS(entry) {
         if (!dbm) return 'mame2003_plus';
         const set = (entry.fileName || '').toLowerCase().replace(/\.zip$/, '');
         const u = pendingBytes || bytesForCheck;
-        if (mameCanRun(dbm, set, zipCrcs(u))) return 'mame2003_plus';
+        if (mameCanRun(dbm, set, zipCrcs(u))) { mameVerified = true; return 'mame2003_plus'; }
         // newer dumps of some sets (Out Run) hold the same data cut differently; rebuild the files MAME 2003 expects
         return mameConvert(dbm, set, u).then(r => {
           if (!r) return 'arcade';
           if (arcadeBlobUrl) URL.revokeObjectURL(arcadeBlobUrl);
           window.EJS_gameUrl = URL.createObjectURL(new Blob([r.zip]));
           window.EJS_gameName = r.set + '.zip';
-          mameSet = r.set;
+          mameSet = r.set; mameVerified = true;
           document.getElementById('dvG1').textContent = 'LO'; document.getElementById('dvG2').textContent = 'HI';
           document.getElementById('dvG3').style.visibility = 'hidden';
           return 'mame2003_plus';
@@ -1950,12 +1952,12 @@ function neoGeoNeedsFBNeo(names) { return false; }
 // once: forget FBNeo choices made automatically by older versions (they wrongly sent some MAME-ready clones, like
 // Mexico 86, to FBNeo, which keeps crashing on iPhone); the MAME check before loading now picks correctly
 try {
-  if (!localStorage.getItem('pb-core-reset-1')) {
+  if (!localStorage.getItem('pb-core-reset-2')) {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k && k.startsWith('pb-core-') && localStorage.getItem(k) === 'arcade') localStorage.removeItem(k);
     }
-    localStorage.setItem('pb-core-reset-1', '1');
+    localStorage.setItem('pb-core-reset-2', '1');
   }
 } catch (e) {}
 function gameCoreOverride(id) { try { return localStorage.getItem('pb-core-' + id) || null; } catch (e) { return null; } }
