@@ -408,6 +408,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib .lib-edit { color: #fff; }
 .case-card.active .case-art { outline-color: #fff; }
 .pane .tool[hidden] { display: none; }
+.pane .set-note { font-size: 12.5px; line-height: 1.45; color: #8b929c; margin-top: -2px; }
 @keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
 @media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
 .lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
@@ -628,6 +629,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="slots" id="slots"></div>
     <h2>Χειριστήριο</h2>
     <div class="style-pick" id="padPick"><button data-pad="stick">Joystick</button><button data-pad="cross">Σταυρός</button></div>
+    <h2>Τρέξιμο με διπλό πάτημα</h2>
+    <div class="style-pick" id="runPick"><button data-run="0">Όχι</button><button data-run="1">Ναι</button></div>
+    <div class="set-note">Πάτα δεξιά (ή αριστερά) δύο φορές και κράτα: ο χαρακτήρας τρέχει, γιατί η εφαρμογή κρατάει πατημένο και το κουμπί 1 / B μαζί με την κατεύθυνση.</div>
   </section>
 
   <section class="set-card">
@@ -1688,7 +1692,7 @@ function setLast(id) {
   } catch (e) {}
 }
 function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
-function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); requestAnimationFrame(fit); }
+function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); if (typeof applyRunMode === 'function') applyRunMode(); requestAnimationFrame(fit); }
 /* ---- N64: what each button does, for games where that is well known (in English) ---- */
 const N64_LABELS = [
   [/super mario 64/i, { A: 'JUMP', B: 'PUNCH', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
@@ -2755,10 +2759,10 @@ document.getElementById('hapticBtn').addEventListener('click', () => { setHaptic
 
 /* ---- input ---- */
 const K = GBCore.KEYS;
-const held = { touch: 0, kbd: 0, dpad: 0 };
+const held = { touch: 0, kbd: 0, dpad: 0, run: 0 };
 function applyKeys() {
   if (!gb) return;
-  const all = held.touch | held.kbd | held.dpad;
+  const all = held.touch | held.kbd | held.dpad | held.run;
   for (const bit of [1, 2, 4, 8, 16, 32, 64, 128]) gb.setKey(bit, !!(all & bit));
 }
 // Buttons are pressed by reference count so two fingers (or a slide) never release a button another finger still holds.
@@ -2856,9 +2860,40 @@ function dpadFrom(e, prev) {
   if (d > STICK_TRAVEL) { x = x / d * STICK_TRAVEL; y = y / d * STICK_TRAVEL; }
   return { m, x, y, rawX };
 }
+// ---- run with a double tap (per game, off by default): tap left/right, then tap again and hold, and the
+// game's first button (B on Game Boy/NES/GBA, button 1 on arcade) is held too while that direction is ---
+let runOn = false, runDir = 0, lastDirM = 0;
+const relAt = {};
+function runButtonPress(on) {
+  if (sys === 'gb') { held.run = on ? K.B : 0; applyKeys(); return; }
+  const idx = sys === 'arcade' ? +(document.getElementById('arc1').dataset.ej || 0) : 0;
+  ejsInput(idx, on ? 1 : 0);
+}
+function runCheck(m) {
+  if (!runOn || sys === 'n64' || consoleEl.dataset.prof === 'drive') { lastDirM = m; return; }
+  const now = performance.now();
+  for (const bit of [K.LEFT, K.RIGHT]) {
+    const was = lastDirM & bit, is = m & bit;
+    if (was && !is) { relAt[bit] = now; if (runDir === bit) { runDir = 0; runButtonPress(false); } }
+    if (!was && is && relAt[bit] && now - relAt[bit] < 320 && !runDir) { runDir = bit; runButtonPress(true); }
+  }
+  lastDirM = m;
+}
+function applyRunMode() {
+  let on = false; try { on = !!current && localStorage.getItem('pb-run-' + current) === '1'; } catch (e) {}
+  if (!on && runDir) { runDir = 0; runButtonPress(false); }
+  runOn = on;
+  document.querySelectorAll('#runPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.run === '1') === on)));
+}
+document.querySelectorAll('#runPick button').forEach(b => b.addEventListener('click', () => {
+  if (!current) return;
+  try { localStorage.setItem('pb-run-' + current, b.dataset.run); } catch (e) {}
+  applyRunMode();
+}));
 function dpadUpdate() {
   let m = 0, first = null;
   for (const v of dpadPointers.values()) { m |= v.m; if (!first) first = v; }
+  runCheck(m);
   held.dpad = m; applyKeys();
   knob.classList.toggle('held', !!first);
   if (crossOn) { // tilt the cross toward the pressed arm
