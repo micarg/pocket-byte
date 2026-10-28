@@ -78,6 +78,7 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 #ejs-host { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
 #ejs { width: 100%; height: 100%; }
 #ejs.fill { position: absolute; left: 50%; top: 50%; transform-origin: 50% 50%; }
+#ejs.fit2 { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #ejs .ejs_popup_container, #ejs .ejs_menu_bar, #ejs .ejs_virtualGamepad_parent, #ejs .ejs_virtualGamepad_open, #ejs .ejs_context_menu, #ejs .ejs_menu_bar_hidden { display: none !important; }
 #ejs .ejs_parent { background: #000 !important; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; background: rgba(10,12,10,.88); color: #eef2e6; font: 600 15px/1.5 var(--body); letter-spacing: .02em; z-index: 5; text-wrap: balance; }
@@ -3099,12 +3100,16 @@ function applyLayout(tall) {
 }
 /* ---- arcade buttons: as many as the game uses, wired to where each emulator expects them ---- */
 let arcBtnsP = null;
-const arcBtnTable = () => arcBtnsP || (arcBtnsP = fetch('arcade-buttons.json').then(r => r.ok ? r.json() : {}).catch(() => ({})));
+// a failed load (e.g. while the app updates itself) is retried, never remembered as "no table" (that showed 3 buttons on 2-button games)
+const arcBtnTable = (tries = 3) => arcBtnsP || (arcBtnsP = fetch('arcade-buttons.json', { cache: 'no-cache' }).then(r => { if (!r.ok) throw 0; return r.json(); })
+  .catch(() => { arcBtnsP = null; return tries > 1 ? new Promise(r => setTimeout(r, 700)).then(() => arcBtnTable(tries - 1)) : null; }));
 // per game: console, controls and picture shape, so after a reload the right buttons are there at once
 function uiCache(id) { try { return JSON.parse(localStorage.getItem('pb-ui:' + id) || '{}') || {}; } catch (e) { return {}; } }
 function saveUi(o, id) { id = id || current; if (!id) return; try { localStorage.setItem('pb-ui:' + id, JSON.stringify({ ...uiCache(id), ...o })); } catch (e) {} }
 async function setupArcadeButtons(set, core) {
-  const info = (await arcBtnTable())[set] || [3, 0];
+  const table = await arcBtnTable();
+  if (!table) { const u = uiCache(current); applyArcadeButtons(u.n || 3, u.sf, core); return; }
+  const info = table[set] || [3, 0];
   applyArcadeButtons(info[0], info[1], core);
   saveUi({ n: info[0], sf: info[1] ? 1 : 0 });
 }
@@ -3146,6 +3151,7 @@ let fitAspect = 0;
 function gameAspect() {
   let a = 0;
   if (gb) a = 160 / 144;
+  else if (ejsStarted && (a = pictureAspect())) {}
   else if (ejsStarted && window.EJS_emulator) try {
     const g = EJS_emulator.gameManager;
     a = +g.getVideoDimensions('aspect') || 0;
@@ -3232,9 +3238,65 @@ function fit() {
 /* ---- "full" game screen: stretch the picture over the black bars (only when that distorts it modestly) ---- */
 let fillOn = true;
 try { fillOn = localStorage.getItem('pb-fill') !== '0'; } catch (e) {}
+// Where the picture really is on the emulator's canvas: sampled from the drawn frames (the black bars around it
+// differ per core and per screen shape, and what the core reports doesn't always match what it draws)
+let picBox = null, picKey = '', picBlank = 0;
+const picCv = document.createElement('canvas');
+function picKeyNow() { const c = document.querySelector('#ejs canvas'), h = document.getElementById('ejs-host'); return c ? [c.width, c.height, h.clientWidth, h.clientHeight].join('x') : ''; }
+function samplePicture() {
+  const c = document.querySelector('#ejs canvas');
+  if (!fillOn || !ejsStarted || !c || !c.width || !c.height || document.hidden) return;
+  // in the same frame the emulator drew in, before the canvas is cleared
+  requestAnimationFrame(() => {
+    try {
+      const w = 192, h = Math.max(16, Math.round(w * c.height / c.width));
+      picCv.width = w; picCv.height = h;
+      const x = picCv.getContext('2d', { willReadFrequently: true });
+      x.drawImage(c, 0, 0, w, h);
+      const d = x.getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) {
+        const k = (y * w + i) * 4;
+        if (d[k] + d[k + 1] + d[k + 2] > 40) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      if (x1 < 0) { picBlank++; if (picBlank === 4) fitGameScreen(); return; }
+      picBlank = 0;
+      const b = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h], key = picKeyNow();
+      // frames add up (a dark scene shows less), until the canvas or the screen changes size
+      if (picKey !== key || !picBox) { picKey = key; picBox = b; }
+      else picBox = [Math.min(picBox[0], b[0]), Math.min(picBox[1], b[1]), Math.max(picBox[2], b[2]), Math.max(picBox[3], b[3])];
+      const m = Math.min(picBox[0], 1 - picBox[2]); picBox[0] = m; picBox[2] = 1 - m; // always centred across
+      fitGameScreen();
+    } catch (e) { picBlank = 9; }
+  });
+}
+function pictureAspect() {
+  if (!picBox || picKey !== picKeyNow()) return 0;
+  const h = document.getElementById('ejs-host');
+  const pw = (picBox[2] - picBox[0]) * h.clientWidth, ph = (picBox[3] - picBox[1]) * h.clientHeight;
+  return pw > 0 && ph > 0 ? pw / ph : 0;
+}
 function fitGameScreen() {
   fitLcd();
   const host = document.getElementById('ejs-host'), el = document.getElementById('ejs');
+  // the measured picture, stretched over the bars (same limits as below)
+  if (fillOn && ejsStarted && picBlank < 4) {
+    const W = host.clientWidth, H = host.clientHeight;
+    el.classList.remove('fill'); el.classList.add('fit2');
+    el.style.width = W + 'px'; el.style.height = H + 'px';
+    if (!picBox || picKey !== picKeyNow()) { el.style.transform = ''; return; }
+    const [x0, y0, x1, y1] = picBox, pw = (x1 - x0) * W, ph = (y1 - y0) * H;
+    if (pw < W * 0.4 || ph < H * 0.3) { el.style.transform = ''; return; }
+    let sx = W / pw, sy = H / ph;
+    const CAP = 1.3;
+    if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
+    const r = sy / sx;
+    if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
+    const tx = W / 2 - (x0 * W + pw / 2) * sx, ty = H / 2 - (y0 * H + ph / 2) * sy;
+    el.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+    return;
+  }
+  if (el.classList.contains('fit2')) { el.classList.remove('fit2'); el.style.width = el.style.height = el.style.transform = ''; }
   let a = 0;
   if (fillOn && ejsStarted && window.EJS_emulator) try { a = +EJS_emulator.gameManager.getVideoDimensions('aspect') || 0; } catch (e) {}
   const W = host.clientWidth, H = host.clientHeight;
@@ -3271,7 +3333,7 @@ function fitLcd() {
   c.style.cssText = `position:absolute;left:50%;top:50%;width:${w}px;height:${h}px;transform:translate(-50%,-50%) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
 }
 function setFill(on) {
-  fillOn = on;
+  fillOn = on; picBox = null; picBlank = 0;
   try { localStorage.setItem('pb-fill', on ? '1' : '0'); } catch (e) {}
   document.querySelectorAll('#fillPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.fill === '1') === on)));
   fitGameScreen();
@@ -3283,7 +3345,8 @@ setFill(fillOn);
 setInterval(() => {
   if (!ejsStarted || document.hidden) return;
   const was = fitAspect;
-  if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.005) fit(); else fitGameScreen();
+  if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.01) { fit(); setTimeout(samplePicture, 350); }
+  else { fitGameScreen(); samplePicture(); }
 }, 1500);
 addEventListener('resize', () => setTimeout(fitGameScreen, 50));
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
