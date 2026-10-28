@@ -1947,6 +1947,17 @@ async function findNeoBios() {
 // on iPhone); FBNeo only when the player picks it in the menu
 function neoGeoNeedsFBNeo(names) { return false; }
 // Per-game emulator choice, set automatically when MAME can't load a set
+// once: forget FBNeo choices made automatically by older versions (they wrongly sent some MAME-ready clones, like
+// Mexico 86, to FBNeo, which keeps crashing on iPhone); the MAME check before loading now picks correctly
+try {
+  if (!localStorage.getItem('pb-core-reset-1')) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('pb-core-') && localStorage.getItem(k) === 'arcade') localStorage.removeItem(k);
+    }
+    localStorage.setItem('pb-core-reset-1', '1');
+  }
+} catch (e) {}
 function gameCoreOverride(id) { try { return localStorage.getItem('pb-core-' + id) || null; } catch (e) { return null; } }
 function setGameCoreOverride(id, core) { try { if (core) localStorage.setItem('pb-core-' + id, core); else localStorage.removeItem('pb-core-' + id); } catch (e) {} }
 function arcadeCore() { try { const c = localStorage.getItem('pb-arcade-core'); if (ARCADE_CORES[c]) return c; } catch (e) {} return 'mame2003_plus'; }
