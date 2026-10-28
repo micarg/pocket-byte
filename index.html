@@ -163,9 +163,15 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .drive-lbl { position: absolute; left: 16px; width: 108px; text-align: center; top: 42px; font: 10px var(--display); color: var(--print); opacity: .75; letter-spacing: .06em; }
 .btn.round.big .t, .btn.round .t.in { top: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 13px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .lbl.named, .btn .t.named { font-size: 10px; letter-spacing: .03em; }
-.n64-c-label.named { font-size: 9px; white-space: nowrap; right: auto; left: 0; top: 18px; }
-#nB .t.named { top: auto; bottom: 100%; transform: translate(-50%, -6px); }
-.n64-c-label { position: absolute; right: 2px; top: 0; font: 10px var(--display); color: var(--print); opacity: .7; }
+.console.modern .sys .lbl { white-space: nowrap; }
+.console.modern .sys .lbl.named { font-size: 9px; letter-spacing: .02em; }
+.n64-c-label { position: absolute; left: 118px; top: 46px; transform: translate(-50%, -50%); font: 11px var(--display); color: var(--print); opacity: .75; white-space: nowrap; pointer-events: none; text-align: center; }
+.console.tall .n64-c-label { left: 116px; top: 50px; }
+.n64-c-label.named { left: 64px; top: 46px; transform: translate(-100%, -50%); font-size: 9px; letter-spacing: .06em; }
+.console.tall .n64-c-label.named { left: 116px; top: 113px; transform: translate(-50%, -50%); }
+/* N64 A / B: the letter with what it does underneath, centred inside the key */
+#nA .t, #nB .t { top: 50%; transform: translate(-50%, -50%); color: #fff; text-align: center; line-height: 1; font-size: 15px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+#nA .t small, #nB .t small { display: block; font-size: 8px; letter-spacing: .08em; margin-top: 3px; opacity: .9; }
 .sys { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
 .sys .b-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; transform: rotate(-22deg); }
 .sys.only-n64, .sys.only-gba { gap: 12px; }
@@ -1807,9 +1813,11 @@ function applyN64Labels(name) {
   const hit = N64_LABELS.find(([re]) => re.test(name));
   const m = hit ? hit[1] : {};
   const set = (el, key, base) => { if (!el) return; el.textContent = m[key] ? (base ? base + ' ' : '') + m[key] : (base || key); el.classList.toggle('named', !!m[key]); };
-  set(document.querySelector('#nA .t'), 'A', 'A');
-  set(document.querySelector('#nB .t'), 'B', 'B');
-  set(document.querySelector('.n64-c-label'), 'C', 'C');
+  for (const k of ['A', 'B']) {
+    const t = document.querySelector('#n' + k + ' .t'); t.textContent = k; t.classList.add('in');
+    if (m[k]) { const sm = document.createElement('small'); sm.textContent = m[k]; t.appendChild(sm); }
+  }
+  const cl = document.querySelector('.n64-c-label'); cl.textContent = m.C ? 'C · ' + m.C : 'C'; cl.classList.toggle('named', !!m.C);
   for (const [ej, key] of [[10, 'L'], [12, 'Z'], [3, 'START'], [11, 'R']]) {
     const b = document.querySelector('.sys.only-n64 .pill[data-ej="' + ej + '"]');
     set(b && b.parentElement.querySelector('.lbl'), key, key === 'START' ? '' : key);
@@ -3110,8 +3118,8 @@ const LAYOUT = {
   nesB: [[18, 66, 66], [14, 100, 74]], nesA: [[100, 26, 66], [96, 22, 74]],
   mdA: [[14, 92, 52], [12, 132, 58]],  mdB: [[66, 56, 52], [62, 80, 58]],  mdC: [[118, 20, 52], [112, 28, 58]],
   arc1: [[14, 92, 52], [12, 132, 58]], arc2: [[66, 56, 52], [62, 80, 58]], arc3: [[118, 20, 52], [112, 28, 58]],
-  nCU: [[118, 4, 32], [108, 0, 36]],   nCL: [[86, 36, 32], [72, 36, 36]],   nCR: [[138, 36, 32], [134, 36, 36]], nCD: [[118, 68, 32], [108, 72, 36]],
-  nB: [[14, 72, 50], [12, 104, 58]],   nA: [[60, 102, 56], [70, 132, 64]],
+  nCU: [[103, 0, 30], [100, 0, 32]],   nCL: [[70, 31, 30], [66, 34, 32]],   nCR: [[136, 31, 30], [134, 34, 32]], nCD: [[103, 62, 30], [100, 68, 32]],
+  nB: [[22, 92, 50], [18, 112, 56]],   nA: [[98, 104, 56], [94, 132, 64]],
   psTri: [[60, 0, 50], [57, 6, 56]], psSqr: [[8, 52, 50], [0, 64, 56]], psCir: [[112, 52, 50], [114, 64, 56]], psCrs: [[60, 104, 50], [57, 122, 56]],
   dvG1: [[16, 4, 32], [20, 16, 36]],   dvG2: [[54, 4, 32], [62, 16, 36]],   dvG3: [[92, 4, 32], [104, 16, 36]],
   dvBrake: [[14, 96, 52], [12, 124, 60]], dvGas: [[84, 64, 80], [82, 86, 88]],
