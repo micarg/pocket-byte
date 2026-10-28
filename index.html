@@ -199,6 +199,40 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
 .console.modern .controls-panel { position: relative; }
 .console.modern .controls-panel::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 300px; background: var(--shell-lo); }
 html.modern-on, html.modern-on body { background: var(--shell-lo); }
+/* MODERN, tactile look (2026 refresh): no brand bar, the menu is a round key between the system buttons,
+   bigger stick, glossy face buttons sitting in wells, straight keys for Start/Select etc. */
+.console.modern .brand { display: none; }
+.console.modern .controls-panel { background: linear-gradient(180deg, var(--shell-hi) 0%, var(--shell) 28%, var(--shell-lo) 100%);
+  border-top: 1px solid rgba(255,255,255,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+.console.modern .pad-row { margin-top: 14px; }
+.console.modern .dpad { zoom: 1.15; background: radial-gradient(circle at 50% 40%, rgba(0,0,0,.55), rgba(0,0,0,.38) 70%);
+  box-shadow: inset 0 6px 14px rgba(0,0,0,.6), inset 0 -2px 2px rgba(255,255,255,.08), 0 1px 0 rgba(255,255,255,.18); }
+.console.modern .dpad .ring { background: transparent; box-shadow: none; }
+.console.modern .knob { background: radial-gradient(circle at 38% 30%, #5a606a 0%, #3a3f47 35%, #24272c 75%, #1b1d21 100%);
+  box-shadow: 0 12px 20px rgba(0,0,0,.6), 0 3px 4px rgba(0,0,0,.45), inset 0 2px 2px rgba(255,255,255,.18), inset 0 -3px 6px rgba(0,0,0,.5); }
+.console.modern .knob::after { inset: 13px; background: radial-gradient(circle at 50% 60%, #2a2e34, #33373f); box-shadow: inset 0 3px 6px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.12); }
+.console.modern .round { background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--ab-1) 55%, #fff) 0%, var(--ab-1) 45%, var(--ab-3) 100%);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.45), inset 0 -4px 6px rgba(0,0,0,.25), 0 5px 0 var(--ab-3), 0 8px 12px rgba(0,0,0,.45), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1); }
+.console.modern .round.down { transform: translateY(3px); filter: brightness(1.12);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.35), inset 0 -2px 4px rgba(0,0,0,.25), 0 2px 0 var(--ab-3), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1) !important; }
+.console.modern .btn .t:not(.in) { color: var(--print); transform: translate(-50%, 12px); font-weight: 700; }
+.console.modern .sys { gap: 10px; margin-top: 12px; align-items: center; }
+.console.modern .sys .b-wrap { transform: none; position: relative; flex: 1 1 0; max-width: 104px; }
+.console.modern .sys .pill { width: 100%; height: 36px; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.18)), var(--pill);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 0 rgba(0,0,0,.45), 0 0 0 4px rgba(0,0,0,.28); }
+.console.modern .sys .pill.down { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 1px 0 rgba(0,0,0,.45), 0 0 0 4px rgba(0,0,0,.28) !important; }
+.console.modern .sys .lbl { position: absolute; left: 0; right: 0; top: 0; height: 36px; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; font: 800 11px var(--body); letter-spacing: .12em; color: var(--print); text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.console.modern .sys.only-psx .b-wrap { max-width: 50px; } .console.modern .sys.only-psx .lbl { font-size: 9px; letter-spacing: .04em; }
+.dock-wrap { flex: none; display: none; }
+.console.modern .dock-wrap { display: block; }
+.dock-menu { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; color: #fff; cursor: pointer; touch-action: manipulation;
+  background: radial-gradient(circle at 40% 30%, #5a606a, #2d3137 70%); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 0 #15171a, 0 0 0 4px rgba(0,0,0,.3); }
+.dock-menu svg { width: 18px; height: 18px; }
+.dock-menu:active { transform: translateY(2px); }
+.foot-lbl { display: none; }
+.console.modern .foot-lbl { display: block; order: 9; text-align: center; margin: 10px 0 2px; font: 10px var(--display); letter-spacing: .22em; color: var(--print); opacity: .55;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 16px; }
 .style-pick { display: flex; gap: 8px; margin-bottom: 14px; }
 .style-pick button { flex: 1; min-height: 42px; border-radius: 10px; border: 1px solid #3a444a; background: var(--desk-2); color: var(--ink); font: 13px var(--display); letter-spacing: .08em; cursor: pointer; }
 .style-pick button[aria-pressed="true"] { background: var(--accent); color: #2a1d06; border-color: var(--accent); }
@@ -226,8 +260,70 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .help { color: var(--muted); font-size: 13.5px; line-height: 1.55; display: grid; gap: 10px; max-width: 65ch; }
 .help kbd { font: 11px var(--display); background: var(--desk-2); border: 1px solid #3a444a; border-radius: 4px; padding: 1px 5px; color: var(--ink); }
 .help a { color: var(--accent); }
-.scrim { position: fixed; inset: 0; z-index: 20; background: rgba(8,10,12,.55); }
-.menu { position: fixed; z-index: 25; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
+.scrim { position: fixed; inset: 0; z-index: 24; background: rgba(8,10,12,.55); }
+/* ---------- library: the main menu (games as boxes, newest look) ---------- */
+.lib { position: fixed; inset: 0; z-index: 22; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
+  background: radial-gradient(ellipse at 50% 0%, #2a2d33 0%, #131417 55%, #0b0c0e 100%) fixed; color: #e9ebee; font-family: var(--body);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+.lib-head { display: flex; align-items: center; justify-content: space-between; max-width: 720px; margin: 0 auto; }
+.lib-logo { font: 18px var(--display); letter-spacing: .18em; text-shadow: 0 2px 0 #000; }
+.lib-acts { display: flex; gap: 8px; }
+.lib-key { width: 42px; height: 42px; border-radius: 12px; border: 1px solid #3a3f47; background: linear-gradient(180deg, #2e3238, #1e2125); box-shadow: 0 3px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.14);
+  color: #e9ebee; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.lib-key svg { width: 18px; height: 18px; }
+.lib-key:active { transform: translateY(2px); box-shadow: 0 1px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.14); }
+.lib-cont { max-width: 720px; margin: 18px auto 0; }
+.cont-card { padding: 14px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 18px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.15); display: flex; gap: 14px; align-items: center; }
+.cont-card .case-art { width: 78px; flex: none; transform: perspective(300px) rotateY(-14deg); }
+.cont-info { flex: 1; min-width: 0; }
+.cont-kicker { font: 800 11px var(--body); letter-spacing: .1em; color: var(--accent); }
+.cont-name { font: 800 18px var(--body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cont-meta { font-size: 12px; color: #9aa1ab; margin-top: 2px; }
+.cont-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.key3d { height: 38px; padding: 0 16px; border-radius: 19px; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font: 800 13px var(--body); color: #fff;
+  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 50%, #000), 0 8px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.4); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+.key3d.dark { background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 4px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.18); }
+.key3d:active { transform: translateY(3px); box-shadow: 0 1px 0 #000, inset 0 1px 0 rgba(255,255,255,.3); }
+.key3d svg { width: 12px; height: 12px; }
+.lib-tabs { max-width: 720px; margin: 18px auto 0; padding: 4px; border-radius: 14px; background: #0c0d0f; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.08);
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.lib-tabs::-webkit-scrollbar { display: none; }
+.lib-tab { flex: 1 0 auto; min-width: 54px; height: 36px; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: #8b929c; font: 800 12px var(--body); cursor: pointer; }
+.lib-tab[aria-selected="true"] { color: #fff; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.18); }
+.lib-sub { max-width: 720px; margin: 16px auto 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #8b929c; font-weight: 700; }
+.lib-edit { border: 0; background: none; color: var(--accent); font: 700 13px var(--body); cursor: pointer; padding: 6px 0; min-height: 32px; }
+.lib-grid { max-width: 720px; margin: 10px auto 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
+.lib-empty { grid-column: 1 / -1; color: #8b929c; font-size: 14px; line-height: 1.5; padding: 20px 4px; }
+.case-card { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.case { border: 0; padding: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
+.case-art { position: relative; display: block; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden; background: var(--c, #3a3f47);
+  box-shadow: inset 5px 0 0 rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.3), 0 12px 18px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5); }
+.case-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.case-art::after { content: ""; position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
+  box-shadow: inset 5px 0 0 rgba(0,0,0,.25); pointer-events: none; }
+.case-ph { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 8px 8px 8px 11px; box-sizing: border-box; font: 800 12px/1.15 var(--body); color: rgba(255,255,255,.92);
+  text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow: hidden; }
+.case-tag { position: absolute; top: 6px; right: 6px; z-index: 1; height: 17px; padding: 0 6px; border-radius: 4px; background: rgba(0,0,0,.55); font: 800 9px var(--body); letter-spacing: .06em;
+  display: flex; align-items: center; color: #fff; }
+.case-card.active .case-art { outline: 3px solid var(--accent); outline-offset: 3px; }
+.case-name { font: 600 12px/1.25 var(--body); color: #d6d9de; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.case-del { position: absolute; top: -8px; left: -8px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #0b0c0e; background: #e5484d; color: #fff;
+  display: none; place-items: center; cursor: pointer; padding: 0; }
+.case-del svg { width: 14px; height: 14px; }
+.lib.editing .case-del { display: grid; }
+.lib.editing .case-art { animation: pb-wiggle .25s ease-in-out infinite alternate; }
+@keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+@media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
+.lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
+  display: flex; align-items: center; gap: 8px; cursor: pointer; font: 800 15px var(--body); color: #fff;
+  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 50%, #000), 0 14px 26px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.4); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+.lib-add svg { width: 18px; height: 18px; }
+.lib-add:active { transform: translateY(3px); }
+
+.menu { position: fixed; z-index: 26; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
 .menu > * { flex-shrink: 0; min-width: 0; }
 .mylist { display: flex; flex-direction: column; gap: 8px; }
 .mygame { display: flex; align-items: stretch; gap: 8px; }
@@ -378,13 +474,29 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     </div>
     </div>
     </div>
+    <div class="foot-lbl" id="footLbl" aria-hidden="true">POCKET BYTE</div>
+    <div class="dock-wrap" id="dockWrap"><button class="dock-menu" id="dockMenu" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button></div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
 </main>
 
+<div class="lib" id="lib" role="dialog" aria-label="Βιβλιοθήκη" hidden>
+  <div class="lib-head">
+    <span class="lib-logo">POCKET BYTE</span>
+    <div class="lib-acts">
+      <button class="lib-key" id="libSettings" aria-label="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
+      <button class="lib-key" id="libClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="lib-cont" id="libCont"></div>
+  <div class="lib-tabs" id="libTabs" role="tablist" aria-label="Κονσόλα"></div>
+  <div class="lib-sub"><span id="libCount"></span><button class="lib-edit" id="libEdit">Επεξεργασία</button></div>
+  <div class="lib-grid" id="libGrid"></div>
+  <button class="lib-add" id="libAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Πρόσθεσε</button>
+</div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="menu" id="menu" role="dialog" aria-label="Μενού" hidden>
-  <div class="menu-head"><span>ΜΕΝΟΥ</span><button class="menu-x" id="closeMenu" aria-label="Κλείσιμο μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="menu-head"><span>ΡΥΘΜΙΣΕΙΣ</span><button class="menu-x" id="closeMenu" aria-label="Κλείσιμο μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="toolbar">
     <button class="tool primary" id="soundBtn">🔇 Ήχος: κλειστός</button>
     <button class="tool" id="hapticBtn">📳 Δόνηση: ανοιχτή</button>
@@ -401,10 +513,6 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="slots" id="slots"></div>
   </section>
 
-  <section>
-    <h2>ΤΑ ΠΑΙΧΝΙΔΙΑ ΜΟΥ</h2>
-    <div class="mylist" id="mylist"></div>
-  </section>
 
   <section>
     <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
@@ -418,10 +526,6 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="swatch-name" id="swatchName"></div>
   </section>
 
-  <section>
-    <h2>ΔΩΡΕΑΝ ΚΑΣΕΤΕΣ GAME BOY</h2>
-    <div class="shelf" id="shelf"></div>
-  </section>
 
   <section class="help">
     <h2>ΠΩΣ ΠΑΙΖΕΙΣ</h2>
@@ -1443,9 +1547,14 @@ const SR = (() => { try { const C = window.AudioContext || window.webkitAudioCon
 function toast(msg, ms) { toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.hidden = true, ms || 2600); }
 function b64ToBytes(s) { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
 function bytesToB64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
-function setLast(id) { try { localStorage.setItem('pb-last', id || ''); } catch (e) {} }
+function setLast(id) {
+  try {
+    localStorage.setItem('pb-last', id || '');
+    if (id) { const p = JSON.parse(localStorage.getItem('pb-played') || '{}'); p[id] = Date.now(); localStorage.setItem('pb-played', JSON.stringify(p)); }
+  } catch (e) {}
+}
 function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
-function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); requestAnimationFrame(fit); }
+function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); requestAnimationFrame(fit); }
 /* ---- N64: what each button does, for games where that is well known (in English) ---- */
 const N64_LABELS = [
   [/super mario 64/i, { A: 'JUMP', B: 'PUNCH', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
@@ -1493,7 +1602,19 @@ function setPadMode(cross) {
   try { localStorage.setItem(padKey(), cross ? 'cross' : 'stick'); } catch (e) {}
   applyPadMode();
 }
-function setNow(label) { document.getElementById('now').textContent = label.replace(/\s*[\(\[].*$/, ''); }
+function setNow(label) {
+  const t = label.replace(/\s*[\(\[].*$/, '');
+  document.getElementById('now').textContent = t;
+  const f = document.getElementById('footLbl'); if (f) f.textContent = 'POCKET BYTE · ' + t.toUpperCase();
+}
+// MODERN: the round menu key sits in the middle of the current system's button row (between Select and Start)
+function placeDock() {
+  const dock = document.getElementById('dockWrap'); if (!dock) return;
+  const row = [...document.querySelectorAll('.controls .sys')].find(r => getComputedStyle(r).display !== 'none');
+  if (!row) return;
+  const kids = [...row.children].filter(k => k !== dock);
+  row.insertBefore(dock, kids[Math.floor(kids.length / 2)] || null);
+}
 
 /* ---- Game Boy saves ---- */
 function storeSave() {
@@ -2088,7 +2209,7 @@ function bootEntry(g) {
 
 /* ---- shelf (bundled Game Boy carts) ---- */
 const shelf = document.getElementById('shelf');
-for (const c of CARTS) {
+if (shelf) for (const c of CARTS) {
   const b = document.createElement('button');
   b.className = 'cart'; b.dataset.id = c.id;
   b.innerHTML = `<div class="body"><span class="tag">${c.tag}</span><div class="label" style="background:${c.bg};color:${c.fg}"><b>${c.name}</b><small>${c.desc}</small></div></div>`;
@@ -2106,7 +2227,8 @@ const ARCADE_NAMES = { outruna: 'Out Run', outrunra: 'Out Run', mslug: 'Metal Sl
 const DRIVING_SETS = new Set(['crusnusa', 'crusnu40', 'crusnu21', 'crusnwld', 'crusnw20', 'crusnw17', 'crusnw13', 'offroadc', 'offroadc4', 'offroadc3', 'offroadc1',
   'outrun', 'outruna', 'outrunb', 'toutrun', 'toutruna', 'chasehq', 'chasehqj', 'harddriv', 'harddrvc', 'hdrivair', 'racedriv', 'racedrvc', 'stunrun', 'roadblst', 'pdrift', 'hangon', 'superhng', 'enduror', 'contcirc', 'nightstr', 'sci', 'topspeed', 'scud', 'daytona', 'srallyc', 'rdft']);
 function arcadeProfile(fileName) { return DRIVING_SETS.has((fileName || '').toLowerCase().replace(/\.zip$/, '')) ? 'drive' : 'std'; }
-function arcadeName(file) { const k = (file || '').toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || (arcNames && arcNames[k]) || k; }
+function arcadeName(file) { const k = (file || '').toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || (arcNames && arcNames[k] ? arcNames[k].replace(/\s*[\(\[].*$/, '') : '') || k; }
+function arcFullName(file) { const k = (file || '').toLowerCase().replace(/\.zip$/, ''); return arcNames && arcNames[k]; }
 // full titles of every arcade set MAME 2003 / FBNeo know, loaded when the library has arcade games
 let arcNames = null, arcNamesP = null;
 function loadArcNames() {
@@ -2481,7 +2603,7 @@ ctlPanel.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefaul
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) document.addEventListener('touchstart', e => {
-  if (!hapticsOn || !e.target.closest || !e.target.closest('.btn, .pill, #dpad, #menuBtn, .tool, .style-pick button')) return;
+  if (!hapticsOn || !e.target.closest || !e.target.closest('.btn, .pill, #dpad, #menuBtn, .dock-menu, .tool, .style-pick button, .lib-key, .key3d, .lib-add, .case')) return;
   lastTick = 0; haptic();
 }, { capture: true, passive: true });
 function setHaptics(on) {
@@ -2872,17 +2994,32 @@ async function renderSlots() {
 }
 
 /* ---- settings menu ---- */
-const menu = document.getElementById('menu'), scrim = document.getElementById('scrim');
+const menu = document.getElementById('menu'), scrim = document.getElementById('scrim'), lib = document.getElementById('lib');
+// The menu key opens the library (the main menu); settings open on top of it from its gear.
+// setMenu(false) closes everything and resumes the game.
 function setMenu(open) {
-  menu.hidden = !open; scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
-  if (open) { renderSlots(); showArcCore(); }
+  lib.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
+  if (!open) { setSettings(false); lib.classList.remove('editing'); libEditBtn.textContent = 'Επεξεργασία'; }
+  else renderMine();
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
-menuBtn.addEventListener('click', () => { unlockAudio(); haptic(); setMenu(menu.hidden); });
-document.getElementById('closeMenu').addEventListener('click', () => setMenu(false));
-scrim.addEventListener('click', () => setMenu(false));
-addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) setMenu(false); });
+function setSettings(open) {
+  menu.hidden = !open; scrim.hidden = !open;
+  if (open) { renderSlots(); showArcCore(); if (lib.hidden) setMenu(true); }
+}
+const toggleMenu = () => { unlockAudio(); haptic(); setMenu(lib.hidden); };
+menuBtn.addEventListener('click', toggleMenu);
+// the dock key lives on the control panel, where taps don't produce clicks (see ctlPanel): use pointerup
+document.getElementById('dockMenu').addEventListener('pointerup', toggleMenu);
+document.getElementById('closeMenu').addEventListener('click', () => setSettings(false));
+scrim.addEventListener('click', () => setSettings(false));
+document.getElementById('libClose').addEventListener('click', () => setMenu(false));
+document.getElementById('libSettings').addEventListener('click', () => setSettings(true));
+document.getElementById('libAdd').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
+const libEditBtn = document.getElementById('libEdit');
+libEditBtn.addEventListener('click', () => { const on = lib.classList.toggle('editing'); libEditBtn.textContent = on ? 'Τέλος' : 'Επεξεργασία'; });
+addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!menu.hidden) setSettings(false); else if (!lib.hidden) setMenu(false); });
 
 /* ---- console colour themes ---- */
 const SHELLS = [
@@ -2967,51 +3104,129 @@ const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll())
 
 const mylist = document.getElementById('mylist');
 let renderSeq = 0;
+// ---- box art: libretro-thumbnails (the covers RetroArch shows), by the game's name; remembered per game ----
+const THUMB_DIRS = { nes: 'Nintendo_-_Nintendo_Entertainment_System', gb: 'Nintendo_-_Game_Boy', gbc: 'Nintendo_-_Game_Boy_Color', gba: 'Nintendo_-_Game_Boy_Advance',
+  md: 'Sega_-_Mega_Drive_-_Genesis', n64: 'Nintendo_-_Nintendo_64', psx: 'Sony_-_PlayStation', arcade: 'MAME' };
+function coverCandidates(g) {
+  const dir = THUMB_DIRS[g.sys === 'gb' && g.cgb ? 'gbc' : g.sys];
+  if (!dir || g.cart) return [];
+  const base = g.sys === 'arcade' ? (arcFullName(g.fileName) || '') : (g.name || '');
+  if (!base) return [];
+  const bare = base.replace(/\s*[\(\[].*$/, '').trim(), first = base.replace(/^([^\(\[]*\([^)]*\)).*$/, '$1').trim();
+  const names = [...new Set(g.sys === 'arcade' ? [base, bare] : [base, first, bare + ' (USA)', bare + ' (Europe)', bare + ' (World)', bare + ' (Japan)'])];
+  const safe = n => encodeURIComponent(n.replace(/[&*\/:`<>?\\|"]/g, '_'));
+  const out = [];
+  for (const kind of ['Named_Boxarts', 'Named_Titles']) for (const n of names) out.push(`https://raw.githubusercontent.com/libretro-thumbnails/${dir}/master/${kind}/${safe(n)}.png`);
+  return out;
+}
+const coverKey = id => 'pb-cover:' + id;
+function coverKnown(id) { try { return localStorage.getItem(coverKey(id)); } catch (e) { return null; } }
+let coverQueue = Promise.resolve();
+function findCover(g) {
+  // one game at a time, so a big library doesn't fire hundreds of requests at once
+  return coverQueue = coverQueue.then(async () => {
+    const known = coverKnown(g.id);
+    if (known && !known.startsWith('none:')) return known;
+    if (known && Date.now() - +known.slice(5) < 7 * 864e5) return null;
+    if (!navigator.onLine) return null;
+    for (const url of coverCandidates(g)) {
+      const ok = await new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im.naturalWidth > 8); im.onerror = () => res(false); im.src = url; });
+      if (ok) { try { localStorage.setItem(coverKey(g.id), url); } catch (e) {} return url; }
+    }
+    try { localStorage.setItem(coverKey(g.id), 'none:' + Date.now()); } catch (e) {}
+    return null;
+  });
+}
+const SYS_ORDER = ['arcade', 'psx', 'n64', 'md', 'gba', 'nes', 'gb'];
+const SYS_SHORT = { arcade: 'Arcade', psx: 'PS1', n64: 'N64', md: 'Genesis', gba: 'GBA', nes: 'NES', gb: 'Game Boy' };
+let libFilter = 'all';
+function hueOf(str) { let h = 0; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; }
+function displayName(g) { return g.cart ? g.name : (g.sys === 'arcade' && g.fileName ? arcadeName(g.fileName) : g.name).replace(/\s*[\(\[].*$/, '') || g.name; }
+function caseArt(g) {
+  const art = document.createElement('span'); art.className = 'case-art';
+  art.style.setProperty('--c', g.cart ? g.bg : `hsl(${hueOf(g.id)} 42% 34%)`);
+  const ph = document.createElement('span'); ph.className = 'case-ph'; ph.textContent = displayName(g); art.appendChild(ph);
+  const tag = document.createElement('span'); tag.className = 'case-tag'; tag.textContent = g.sys === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[g.sys].tag; art.appendChild(tag);
+  const known = coverKnown(g.id);
+  const show = url => { if (!url) return; const im = document.createElement('img'); im.crossOrigin = 'anonymous'; im.alt = ''; im.decoding = 'async'; im.src = url; im.onload = () => ph.remove(); im.onerror = () => im.remove(); art.insertBefore(im, tag); };
+  if (known && !known.startsWith('none:')) show(known); else if (!g.cart) findCover(g).then(show);
+  return art;
+}
+function playGame(g) {
+  unlockAudio(); setMenu(false);
+  if (g.cart) { bootCart(g.id); return; }
+  dbGet(g.id).then(full => { if (full) bootEntry(full); else { toast('Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.', 3500); renderMine(); } });
+}
 async function renderMine() {
   const seq = ++renderSeq;
-  const all = await dbMeta();
+  const metas = await dbMeta();
   if (seq !== renderSeq) return;
-  mylist.innerHTML = '';
-  if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
-  if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
-  if (!arcNames && all.some(g => g.sys === 'arcade')) {
+  if (metas && !arcNames && metas.some(g => g.sys === 'arcade')) {
     await loadArcNames();
     if (seq !== renderSeq) return;
-    // the title shown on the console too
-    if (sys === 'arcade' && current) { const g = all.find(x => x.id === current); if (g && g.fileName) setNow(arcadeName(g.fileName)); }
+    if (sys === 'arcade' && current) { const g = metas.find(x => x.id === current); if (g && g.fileName) setNow(arcadeName(g.fileName)); }
   }
-  const shown = g => g.sys === 'arcade' && g.fileName ? arcadeName(g.fileName) : g.name;
-  all.sort((a, b) => shown(a).localeCompare(shown(b), 'el'));
-  for (const key of ['nes', 'gb', 'gba', 'md', 'n64', 'psx', 'arcade']) {
-    const group = all.filter(g => (g.sys || 'gb') === key);
-    if (!group.length) continue;
-    const h = document.createElement('h3');
-    h.innerHTML = `<span></span><span class="count"></span>`;
-    h.firstChild.textContent = SYSTEMS[key].name; h.lastChild.textContent = group.length;
-    mylist.appendChild(h);
-    for (const g of group) {
-      const row = document.createElement('div');
-      row.className = 'mygame' + (g.id === current ? ' active' : '');
-      const play = document.createElement('button'); play.className = 'play';
-      const n = document.createElement('span'); n.className = 'n'; n.textContent = key === 'arcade' && g.fileName ? arcadeName(g.fileName) : g.name;
-      const tag = document.createElement('small'); tag.textContent = key === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[key].tag;
-      play.append(n, tag);
-      play.addEventListener('click', async () => {
-        unlockAudio(); setMenu(false);
-        const full = await dbGet(g.id);
-        if (full) bootEntry(full); else { toast('Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.', 3500); renderMine(); }
-      });
-      const del = document.createElement('button'); del.className = 'del'; del.textContent = 'Σβήσε';
-      del.setAttribute('aria-label', 'Σβήσε το ' + g.name);
-      del.addEventListener('click', async () => {
-        if (!del.classList.contains('confirm')) { del.classList.add('confirm'); del.textContent = 'Σίγουρα;'; setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Σβήσε'; }, 3000); return; }
-        await dbDel(g.id);
-        toast('Σβήστηκε: ' + g.name);
-        renderMine();
-      });
-      row.append(play, del);
-      mylist.appendChild(row);
+  const all = [...(metas || []), ...CARTS.map(c => ({ id: c.id, name: c.name, sys: 'gb', cgb: c.tag === 'GBC', cart: true, bg: c.bg }))];
+  let played = {}; try { played = JSON.parse(localStorage.getItem('pb-played') || '{}'); } catch (e) {}
+  // continue card: the game on screen, else the last one played
+  const contEl = document.getElementById('libCont'); contEl.innerHTML = '';
+  let lastId = current; if (!lastId) try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
+  const lastG = all.find(g => g.id === lastId);
+  if (lastG) {
+    const card = document.createElement('div'); card.className = 'cont-card';
+    card.appendChild(caseArt(lastG));
+    const info = document.createElement('div'); info.className = 'cont-info';
+    const k = document.createElement('div'); k.className = 'cont-kicker'; k.textContent = lastG.id === current ? 'ΠΑΙΖΕΙΣ ΤΩΡΑ' : 'ΣΥΝΕΧΙΣΕ';
+    const n = document.createElement('div'); n.className = 'cont-name'; n.textContent = displayName(lastG);
+    const m = document.createElement('div'); m.className = 'cont-meta'; m.textContent = SYSTEMS[lastG.sys].name + (played[lastG.id] ? ' · ' + whenText(played[lastG.id]) : '');
+    const btns = document.createElement('div'); btns.className = 'cont-btns';
+    const go = document.createElement('button'); go.className = 'key3d';
+    go.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+    go.append(lastG.id === current ? 'Συνέχισε' : 'Παίξε');
+    go.addEventListener('click', () => { if (lastG.id === current && (gb || ejsStarted)) setMenu(false); else playGame(lastG); });
+    btns.appendChild(go);
+    if (lastG.id === current) {
+      const sv = document.createElement('button'); sv.className = 'key3d dark'; sv.textContent = 'Θέσεις αποθήκευσης';
+      sv.addEventListener('click', () => setSettings(true));
+      btns.appendChild(sv);
     }
+    info.append(k, n, m, btns); card.appendChild(info); contEl.appendChild(card);
+  }
+  // console tabs: only the systems in the library
+  const present = SYS_ORDER.filter(k => all.some(g => g.sys === k));
+  if (libFilter !== 'all' && !present.includes(libFilter)) libFilter = 'all';
+  const tabs = document.getElementById('libTabs'); tabs.innerHTML = '';
+  for (const k of ['all', ...present]) {
+    const t = document.createElement('button'); t.className = 'lib-tab'; t.setAttribute('role', 'tab');
+    t.textContent = k === 'all' ? 'Όλα' : SYS_SHORT[k]; t.setAttribute('aria-selected', String(k === libFilter));
+    t.addEventListener('click', () => { libFilter = k; renderMine(); });
+    tabs.appendChild(t);
+  }
+  const list = all.filter(g => libFilter === 'all' || g.sys === libFilter)
+    .sort((a, b) => (played[b.id] || 0) - (played[a.id] || 0) || (!!a.cart - !!b.cart) || displayName(a).localeCompare(displayName(b), 'el'));
+  const mine = list.filter(g => !g.cart).length;
+  document.getElementById('libCount').textContent = mine === 1 ? '1 παιχνίδι' : mine + ' παιχνίδια';
+  const grid = document.getElementById('libGrid'); grid.innerHTML = '';
+  if (metas === null) { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.'; grid.appendChild(e); }
+  else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
+  for (const g of list) {
+    const card = document.createElement('div'); card.className = 'case-card' + (g.id === current ? ' active' : '');
+    const btn = document.createElement('button'); btn.className = 'case'; btn.setAttribute('aria-label', 'Παίξε ' + displayName(g));
+    btn.appendChild(caseArt(g));
+    btn.addEventListener('click', () => { if (!lib.classList.contains('editing')) playGame(g); });
+    const name = document.createElement('span'); name.className = 'case-name'; name.textContent = displayName(g);
+    card.append(btn, name);
+    if (!g.cart) {
+      const del = document.createElement('button'); del.className = 'case-del'; del.setAttribute('aria-label', 'Σβήσε το ' + displayName(g));
+      del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener('click', async () => {
+        if (!del.dataset.sure) { del.dataset.sure = '1'; toast('Πάτα ξανά το × για να σβήσεις το «' + displayName(g) + '».', 3000); setTimeout(() => delete del.dataset.sure, 3000); return; }
+        await dbDel(g.id); try { localStorage.removeItem(coverKey(g.id)); } catch (e) {}
+        toast('Σβήστηκε: ' + displayName(g)); renderMine();
+      });
+      card.appendChild(del);
+    }
+    grid.appendChild(card);
   }
 }
 
