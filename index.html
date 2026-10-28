@@ -314,6 +314,42 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .case-del svg { width: 14px; height: 14px; }
 .lib.editing .case-del { display: grid; }
 .lib.editing .case-art { animation: pb-wiggle .25s ease-in-out infinite alternate; }
+/* ---------- settings: same look as the library ---------- */
+#menu { inset: 0; top: 0; bottom: 0; left: 0; right: 0; max-width: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; gap: 16px;
+  background: radial-gradient(ellipse at 50% 0%, #2a2d33 0%, #131417 55%, #0b0c0e 100%) fixed; color: #e9ebee; font-family: var(--body);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
+#menu > * { width: 100%; max-width: 640px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+#menu .menu-head { position: static; margin: 0 auto; padding: 0; background: none; border: 0; display: flex; align-items: center; justify-content: space-between; }
+#menu .menu-title { font: 800 20px var(--body); color: #e9ebee; letter-spacing: 0; }
+#menu .menu-head-pad { width: 42px; }
+#menu .set-card { padding: 16px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 14px 26px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 10px; }
+#menu .set-kicker { font: 800 11px var(--body); letter-spacing: .12em; color: var(--accent); }
+#menu h2 { font: 700 13px var(--body); letter-spacing: 0; color: #9aa1ab; margin: 6px 0 0; }
+#menu .slot-game { font: 800 17px var(--body); color: #e9ebee; margin: -4px 0 2px; }
+#menu .toolbar { gap: 10px; }
+#menu .tool { min-height: 44px; border-radius: 14px; border: 0; color: #e9ebee; font: 700 14px var(--body);
+  background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 4px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
+#menu .tool.wide { flex-basis: 100%; }
+#menu .tool:active { transform: translateY(3px); box-shadow: 0 1px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
+#menu .tool.primary { color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 50%, #000), inset 0 1px 0 rgba(255,255,255,.4); }
+#menu .style-pick { margin: 0; padding: 4px; gap: 4px; border-radius: 14px; background: #0c0d0f; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.08); }
+#menu .style-pick button { min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: #8b929c; font: 800 13px var(--body); letter-spacing: 0; }
+#menu .style-pick button[aria-pressed="true"] { color: #fff; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.18); }
+#menu .slot { border: 0; border-radius: 14px; padding: 10px 10px 10px 14px; background: #0f1012; box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.07); }
+#menu .slot .info b { font: 800 13px var(--body); letter-spacing: 0; color: #e9ebee; }
+#menu .slot .info span { color: #8b929c; }
+#menu .slot button { min-height: 38px; border: 0; border-radius: 12px; color: #e9ebee; font: 800 13px var(--body);
+  background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 3px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
+#menu .slot button.save { color: #fff; background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 50%, #000), inset 0 1px 0 rgba(255,255,255,.4); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+#menu .slot button.confirm { background: #c0392b; box-shadow: 0 3px 0 #6e1d14; color: #fff; }
+#menu .slot button:active:not(:disabled) { transform: translateY(2px); }
+#menu .swatch-name { color: #8b929c; }
+#menu .help { color: #9aa1ab; }
+.scrim { display: none; }
 @keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
 @media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
 .lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
@@ -484,7 +520,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <div class="lib-head">
     <span class="lib-logo">POCKET BYTE</span>
     <div class="lib-acts">
-      <button class="lib-key" id="libSettings" aria-label="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
+      <button class="lib-key" id="libSettings" aria-label="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button class="lib-key" id="libClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
@@ -495,40 +531,54 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <button class="lib-add" id="libAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Πρόσθεσε</button>
 </div>
 <div class="scrim" id="scrim" hidden></div>
-<div class="menu" id="menu" role="dialog" aria-label="Μενού" hidden>
-  <div class="menu-head"><span>ΡΥΘΜΙΣΕΙΣ</span><button class="menu-x" id="closeMenu" aria-label="Κλείσιμο μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="toolbar">
-    <button class="tool primary" id="soundBtn">🔇 Ήχος: κλειστός</button>
-    <button class="tool" id="hapticBtn">📳 Δόνηση: ανοιχτή</button>
-    <button class="tool" id="pauseBtn">Παύση</button>
-    <button class="tool" id="resetBtn">Επανεκκίνηση</button>
-    <button class="tool" id="loadBtn">Φόρτωσε ROM (ένα ή πολλά μαζί)</button>
-    <button class="tool" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
-    <input type="file" id="romFile" multiple hidden>
+<div class="menu" id="menu" role="dialog" aria-label="Ρυθμίσεις" hidden>
+  <div class="menu-head">
+    <button class="lib-key" id="closeMenu" aria-label="Πίσω στη βιβλιοθήκη"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <span class="menu-title">Ρυθμίσεις</span>
+    <span class="menu-head-pad" aria-hidden="true"></span>
   </div>
 
-  <section id="slotsSec">
-    <h2>ΑΠΟΘΗΚΕΥΣΗ</h2>
+  <section class="set-card" id="slotsSec">
+    <div class="set-kicker">ΑΥΤΟ ΤΟ ΠΑΙΧΝΙΔΙ</div>
     <div class="slot-game" id="slotGame"></div>
+    <div class="toolbar">
+      <button class="tool" id="pauseBtn">Παύση</button>
+      <button class="tool" id="resetBtn">Επανεκκίνηση</button>
+      <button class="tool wide" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
+    </div>
+    <h2>Θέσεις αποθήκευσης</h2>
     <div class="slots" id="slots"></div>
+    <h2>Χειριστήριο</h2>
+    <div class="style-pick" id="padPick"><button data-pad="stick">Joystick</button><button data-pad="cross">Σταυρός</button></div>
   </section>
 
+  <section class="set-card">
+    <div class="set-kicker">ΗΧΟΣ ΚΑΙ ΔΟΝΗΣΗ</div>
+    <div class="toolbar">
+      <button class="tool" id="soundBtn">Ήχος: κλειστός</button>
+      <button class="tool" id="hapticBtn">Δόνηση: ανοιχτή</button>
+    </div>
+  </section>
 
-  <section>
-    <h2>ΣΤΥΛ ΚΟΝΣΟΛΑΣ</h2>
-    <div class="style-pick" id="stylePick"><button data-style="modern">MODERN</button><button data-style="retro">RETRO</button></div>
-    <h2>ΧΕΙΡΙΣΤΗΡΙΟ (ΓΙΑ ΑΥΤΟ ΤΟ ΠΑΙΧΝΙΔΙ)</h2>
-    <div class="style-pick" id="padPick"><button data-pad="stick">JOYSTICK</button><button data-pad="cross">ΣΤΑΥΡΟΣ</button></div>
-    <h2>ΟΘΟΝΗ ΠΑΙΧΝΙΔΙΟΥ</h2>
-    <div class="style-pick" id="fillPick"><button data-fill="1">ΓΕΜΑΤΗ</button><button data-fill="0">ΚΑΝΟΝΙΚΗ</button></div>
-    <h2>ΧΡΩΜΑ ΚΟΝΣΟΛΑΣ</h2>
+  <section class="set-card">
+    <div class="set-kicker">ΕΜΦΑΝΙΣΗ</div>
+    <h2>Στυλ κονσόλας</h2>
+    <div class="style-pick" id="stylePick"><button data-style="modern">Modern</button><button data-style="retro">Retro</button></div>
+    <h2>Οθόνη παιχνιδιού</h2>
+    <div class="style-pick" id="fillPick"><button data-fill="1">Γεμάτη</button><button data-fill="0">Κανονική</button></div>
+    <h2>Χρώμα κονσόλας</h2>
     <div class="swatches" id="swatches"></div>
     <div class="swatch-name" id="swatchName"></div>
   </section>
 
+  <section class="set-card">
+    <div class="set-kicker">ΠΑΙΧΝΙΔΙΑ</div>
+    <div class="toolbar"><button class="tool wide" id="loadBtn">Φόρτωσε ROM (ένα ή πολλά μαζί)</button></div>
+    <input type="file" id="romFile" multiple hidden>
+  </section>
 
-  <section class="help">
-    <h2>ΠΩΣ ΠΑΙΖΕΙΣ</h2>
+  <section class="help set-card">
+    <div class="set-kicker">ΠΩΣ ΠΑΙΖΕΙΣ</div>
     <div>Παίζει NES (.nes), Game Boy και Game Boy Color (.gb, .gbc), Game Boy Advance (.gba), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64) και arcade (σετ MAME/FBNeo σε .zip, π.χ. wboy.zip), καθώς και .zip που περιέχουν ROM κονσόλας. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.</div>
     <div>Στον υπολογιστή, στο Game Boy: βελάκια για κατεύθυνση, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select.</div>
     <div>Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα NES, GBA, Genesis, N64 και arcade τρέχουν με το <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a> και χρειάζονται ίντερνετ την πρώτη φορά.</div>
@@ -2531,7 +2581,8 @@ function setSound(on) {
   soundOn = on; unlockAudio();
   if (on && audioCtx) audioCtx.resume().catch(() => {});
   try { if (ejsStarted) EJS_emulator.setVolume(on ? 0.8 : 0); } catch (e) {}
-  document.getElementById('soundBtn').textContent = on ? '🔊 Ήχος: ανοιχτός' : '🔇 Ήχος: κλειστός';
+  document.getElementById('soundBtn').textContent = on ? 'Ήχος: ανοιχτός' : 'Ήχος: κλειστός';
+  document.getElementById('soundBtn').classList.toggle('primary', on);
   try { localStorage.setItem('pb-sound', on ? '1' : '0'); } catch (e) {}
 }
 document.getElementById('soundBtn').addEventListener('click', () => setSound(!soundOn));
@@ -2608,7 +2659,8 @@ if (isApple) document.addEventListener('touchstart', e => {
 }, { capture: true, passive: true });
 function setHaptics(on) {
   hapticsOn = on;
-  document.getElementById('hapticBtn').textContent = on ? '📳 Δόνηση: ανοιχτή' : '📴 Δόνηση: κλειστή';
+  document.getElementById('hapticBtn').textContent = on ? 'Δόνηση: ανοιχτή' : 'Δόνηση: κλειστή';
+  document.getElementById('hapticBtn').classList.toggle('primary', on);
   try { localStorage.setItem('pb-haptic', on ? '1' : '0'); } catch (e) {}
 }
 document.getElementById('hapticBtn').addEventListener('click', () => { setHaptics(!hapticsOn); if (hapticsOn) haptic(); });
@@ -3263,7 +3315,7 @@ try {
   applyShell(localStorage.getItem('pb-shell') || 'persimmon');
   applyStyle(localStorage.getItem('pb-style') || 'modern');
   setHaptics(localStorage.getItem('pb-haptic') !== '0');
-  if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = '🔊 Ήχος: ανοιχτός'; }
+  if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = 'Ήχος: ανοιχτός'; document.getElementById('soundBtn').classList.add('primary'); }
 } catch (e) { applyShell('persimmon'); applyStyle('modern'); setHaptics(true); }
 let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
 if (lastId && lastId.startsWith('user:')) {
