@@ -188,12 +188,14 @@ canvas#lcd { width: 100%; height: 100%; display: block; image-rendering: pixelat
   border-radius: 0; padding: 0; background: #000; box-shadow: none; z-index: 1; }
 .console.modern .bezel { flex: 1 1 auto; min-height: 0; border-radius: 0; background: #000; display: flex; align-items: center; justify-content: center;
   padding: env(safe-area-inset-top, 0px) 0 8px; }
-.console.modern .screen-wrap { width: var(--scr-w, 100%); border-radius: 0; flex: none; }
+.console.modern .screen-wrap { width: var(--scr-w, 100%); height: var(--scr-h, auto); aspect-ratio: auto; border-radius: 0; flex: none; }
+.console.modern canvas#lcd { object-fit: contain; }
+.console.modern[data-sys="gb"] .screen-wrap { background: #000; }
 .console.modern .brand { flex: none; margin: 0; padding: 14px max(18px, env(safe-area-inset-left, 0px)) 4px; justify-content: center; position: relative;
   background: linear-gradient(180deg, var(--shell-hi), var(--shell)); border-radius: 26px 26px 0 0; box-shadow: 0 -1px 0 rgba(255,255,255,.18) inset; }
 .console.modern .brand .led { position: absolute; left: max(22px, env(safe-area-inset-left, 0px)); top: 24px; }
 .console.modern .brand span#now { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 24px; max-width: 24%; }
-.console.modern .controls-panel { flex: none; background: linear-gradient(180deg, var(--shell), var(--shell-lo)); padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
+.console.modern .controls-panel { flex: none; background: linear-gradient(180deg, var(--shell), var(--shell-lo)); padding-bottom: max(6px, calc(env(safe-area-inset-bottom, 0px) - 16px)); }
 .console.modern .controls { width: 332px; margin: 0 auto; zoom: var(--ctl-z, 1); }
 .console.modern .speaker { display: none; }
 .console.modern .controls-panel { position: relative; }
@@ -3023,10 +3025,14 @@ function fitModern() {
   const bez = consoleEl.querySelector('.bezel');
   const cs = getComputedStyle(bez);
   const availH = bez.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  consoleEl.style.setProperty('--scr-w', Math.min(vw, availH * 10 / 9) + 'px');
+  // the screen takes the whole width and all the height left above the controls (the picture is fitted inside it)
+  consoleEl.style.setProperty('--scr-w', vw + 'px');
+  consoleEl.style.setProperty('--scr-h', Math.max(160, availH) + 'px');
+  setTimeout(fitGameScreen, 0);
 }
 function fit() {
   if (consoleEl.classList.contains('modern')) { fitModern(); return; }
+  fitLcd();
   consoleEl.style.removeProperty('--ctl-z'); consoleEl.style.removeProperty('--scr-w');
   // usable band: below the status bar / Dynamic Island, above the home indicator; same gap above and below
   const st = stage.getBoundingClientRect();
@@ -3057,12 +3063,12 @@ function fit() {
 let fillOn = true;
 try { fillOn = localStorage.getItem('pb-fill') !== '0'; } catch (e) {}
 function fitGameScreen() {
+  fitLcd();
   const host = document.getElementById('ejs-host'), el = document.getElementById('ejs');
   let a = 0;
   if (fillOn && ejsStarted && window.EJS_emulator) try { a = +EJS_emulator.gameManager.getVideoDimensions('aspect') || 0; } catch (e) {}
   const W = host.clientWidth, H = host.clientHeight;
-  // a vertical arcade game in a wide screen (or the reverse) would look squashed, so leave those as they are
-  if (!a || !W || !H || Math.max(a / (W / H), (W / H) / a) > 1.4 || Math.abs(a / (W / H) - 1) < 0.02) {
+  if (!a || !W || !H || Math.abs(a / (W / H) - 1) < 0.02) {
     if (el.classList.contains('fill')) { el.classList.remove('fill'); el.style.width = el.style.height = el.style.transform = ''; }
     return;
   }
@@ -3073,9 +3079,26 @@ function fitGameScreen() {
   // filling the box alone stretches one way only; zoom the other way by a third of that, so the picture looks
   // less squeezed (a sliver of the edges, about 3% per side, goes past the screen)
   let sx = W / w, sy = H / h;
+  // never stretch more than 30% one way (beyond that, e.g. a 4:3 game in a tall screen, the rest stays black)
+  const CAP = 1.3;
+  if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
   const r = sy / sx;
   if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
   el.style.transform = `translate(-50%, -50%) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+}
+// the Game Boy screen (our own canvas) gets the same treatment in the full-screen style
+function fitLcd() {
+  const c = document.getElementById('lcd'), wrap = document.getElementById('screenWrap');
+  const on = fillOn && consoleEl.classList.contains('modern');
+  const W = wrap.clientWidth, H = wrap.clientHeight, a = 160 / 144;
+  if (!on || !W || !H) { c.style.cssText = ''; return; }
+  let w = W, h = W / a; if (h > H) { h = H; w = H * a; }
+  let sx = W / w, sy = H / h;
+  const CAP = 1.3;
+  if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
+  const r = sy / sx;
+  if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
+  c.style.cssText = `position:absolute;left:50%;top:50%;width:${w}px;height:${h}px;transform:translate(-50%,-50%) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
 }
 function setFill(on) {
   fillOn = on;
