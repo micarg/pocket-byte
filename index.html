@@ -65,9 +65,10 @@ body {
   border-radius: 18px 18px 64px 18px;
   padding: 14px 14px 16px;
   box-shadow: inset 0 2px 0 rgba(255,255,255,.25), inset 0 -4px 0 rgba(0,0,0,.18), 0 18px 40px rgba(0,0,0,.45);
-  user-select: none; -webkit-user-select: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   touch-action: none;
 }
+.controls-panel, .controls-panel * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .bezel { background: var(--bezel-c); border-radius: 10px; padding: 4px; }
 .screen-wrap { position: relative; width: 100%; background: #000; border-radius: 7px; overflow: hidden; line-height: 0; }
 .console[data-sys="gb"] .screen-wrap { background: var(--lcd-off); }
@@ -2431,6 +2432,12 @@ function haptic() {
 }
 // iPhone only gives the switch tick when the click happens inside a touch event Safari counts as a real tap;
 // a pointerdown from a finger doesn't count, touchstart does, so tick there for every control on the console
+// iPhone shows its text magnifier after a long press, even on non-selectable controls; cancelling the touch's
+// default action on the control panel stops that (the buttons themselves run on pointer events, which still fire)
+const ctlPanel = document.getElementById('controlsPanel');
+ctlPanel.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+ctlPanel.addEventListener('selectstart', e => e.preventDefault());
+ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) document.addEventListener('touchstart', e => {
   if (!hapticsOn || !e.target.closest || !e.target.closest('.btn, .pill, #dpad, #menuBtn, .tool, .style-pick button')) return;
   lastTick = 0; haptic();
