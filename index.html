@@ -406,7 +406,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .console.land .controls-panel::after { display: none; }
 .console.land .controls { position: absolute; inset: 0; width: auto; margin: 0; zoom: 1; padding: 0; display: block; }
 .console.land .pad-row { position: absolute; margin: 0; min-height: 0; left: 0; right: 0; bottom: 0; zoom: var(--ctl-z, 1);
-  padding: 0 calc((env(safe-area-inset-right, 0px) + 10px) / var(--ctl-z, 1)) calc((env(safe-area-inset-bottom, 0px) + 6px) / var(--ctl-z, 1)) calc((env(safe-area-inset-left, 0px) + 10px) / var(--ctl-z, 1));
+  padding: 0 calc((env(safe-area-inset-right, 0px) + 22px) / var(--ctl-z, 1)) calc((env(safe-area-inset-bottom, 0px) + 26px) / var(--ctl-z, 1)) calc((env(safe-area-inset-left, 0px) + 14px) / var(--ctl-z, 1));
   align-items: flex-end; pointer-events: none; }
 .console.land .dpad, .console.land .face, .console.land .sys > * { pointer-events: auto; }
 .console.land .sys { position: absolute; top: 0; left: 0; right: 0; margin: 0; gap: 8px; zoom: var(--ctl-z, 1); justify-content: flex-start;
@@ -3116,16 +3116,16 @@ const LAYOUT = {
   gbB: [[18, 66, 66], [14, 100, 74]],  gbA: [[100, 26, 66], [96, 22, 74]],
   gbaB: [[18, 66, 66], [14, 100, 74]], gbaA: [[100, 26, 66], [96, 22, 74]],
   nesB: [[18, 66, 66], [14, 100, 74]], nesA: [[100, 26, 66], [96, 22, 74]],
-  mdA: [[14, 92, 52], [12, 132, 58]],  mdB: [[66, 56, 52], [62, 80, 58]],  mdC: [[118, 20, 52], [112, 28, 58]],
-  arc1: [[14, 92, 52], [12, 132, 58]], arc2: [[66, 56, 52], [62, 80, 58]], arc3: [[118, 20, 52], [112, 28, 58]],
+  mdA: [[10, 94, 50], [6, 124, 54]],   mdB: [[60, 56, 50], [56, 74, 54]],  mdC: [[110, 18, 50], [106, 24, 54]],
+  arc1: [[10, 94, 50], [6, 124, 54]],  arc2: [[60, 56, 50], [56, 74, 54]], arc3: [[110, 18, 50], [106, 24, 54]],
   nCU: [[103, 0, 30], [100, 0, 32]],   nCL: [[70, 31, 30], [66, 34, 32]],   nCR: [[136, 31, 30], [134, 34, 32]], nCD: [[103, 62, 30], [100, 68, 32]],
   nB: [[22, 92, 50], [18, 112, 56]],   nA: [[98, 104, 56], [94, 132, 64]],
-  psTri: [[60, 0, 50], [57, 6, 56]], psSqr: [[8, 52, 50], [0, 64, 56]], psCir: [[112, 52, 50], [114, 64, 56]], psCrs: [[60, 104, 50], [57, 122, 56]],
+  psTri: [[58, 0, 50], [53, 8, 54]], psSqr: [[6, 52, 50], [1, 62, 54]], psCir: [[110, 52, 50], [105, 62, 54]], psCrs: [[58, 104, 50], [53, 116, 54]],
   dvG1: [[16, 4, 32], [20, 16, 36]],   dvG2: [[54, 4, 32], [62, 16, 36]],   dvG3: [[92, 4, 32], [104, 16, 36]],
-  dvBrake: [[14, 96, 52], [12, 124, 60]], dvGas: [[84, 64, 80], [82, 86, 88]],
+  dvBrake: [[12, 96, 52], [8, 124, 60]], dvGas: [[80, 64, 80], [74, 86, 88]],
 };
 // arcade games with 4–6 buttons: two rows (top 1-2-3, bottom 4-5-6, like a fighting-game panel)
-const ARC_GRID = { top: [[[4, 22], [63, 8], [122, 0]], [[2, 30], [61, 14], [120, 4]]], bot: [[[4, 92], [63, 78], [122, 70]], [[2, 112], [61, 96], [120, 86]]] };
+const ARC_GRID = { top: [[[4, 22], [61, 8], [118, 0]], [[0, 30], [57, 14], [114, 4]]], bot: [[[4, 92], [61, 78], [118, 70]], [[0, 112], [57, 96], [114, 86]]] };
 function applyLayout(tall) {
   consoleEl.classList.toggle('tall', tall);
   for (const id in LAYOUT) {
@@ -3195,7 +3195,7 @@ function fitLand(vw, vh) {
   const z = Math.max(0.62, Math.min(0.9, vh / 470));
   consoleEl.style.setProperty('--ctl-z', z.toFixed(3));
   const dp = document.getElementById('dpad'), face = [...consoleEl.querySelectorAll('.controls .face')].find(f => getComputedStyle(f).display !== 'none');
-  const side = Math.max(dp.offsetWidth * 1.1 * z + insetL, (face ? face.offsetWidth * z : 0) + insetR) + 14;
+  const side = Math.max(dp.offsetWidth * 1.1 * z + insetL + 4, (face ? face.offsetWidth * z : 0) + insetR + 12) + 14;
   consoleEl.style.setProperty('--scr-w', Math.max(200, vw - 2 * side) + 'px');
   consoleEl.style.setProperty('--scr-h', vh + 'px');
   setTimeout(fitGameScreen, 0);
