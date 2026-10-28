@@ -308,6 +308,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <button class="btn round sm" id="arc1" data-ej="0" aria-label="Κουμπί 1"><span class="t">1</span></button>
         <button class="btn round sm" id="arc2" data-ej="8" aria-label="Κουμπί 2"><span class="t">2</span></button>
         <button class="btn round sm" id="arc3" data-ej="1" aria-label="Κουμπί 3"><span class="t">3</span></button>
+        <button class="btn round sm" id="arc4" data-ej="9" aria-label="Κουμπί 4" hidden><span class="t">4</span></button>
+        <button class="btn round sm" id="arc5" data-ej="10" aria-label="Κουμπί 5" hidden><span class="t">5</span></button>
+        <button class="btn round sm" id="arc6" data-ej="11" aria-label="Κουμπί 6" hidden><span class="t">6</span></button>
       </div>
 
       <div class="face only-arcade only-drive">
@@ -1736,6 +1739,8 @@ function bootEJS(entry) {
   decideCore.then(core => {
     if (core !== window.EJS_core) toast('Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού, παίζει με FBNeo.', 3500);
     window.EJS_core = core;
+    if (entry.sys === 'arcade' && consoleEl.dataset.prof !== 'drive')
+      setupArcadeButtons(mameSet || (entry.fileName || '').toLowerCase().replace(/\.zip$/, ''), core);
     bytesForCheck = null;
     if (needsBios) {
       // EmulatorJS 4.2.3 hangs on "Download Game BIOS" when given a BIOS file, so put the BIOS inside the game zip,
@@ -2694,12 +2699,40 @@ const LAYOUT = {
   dvG1: [[16, 4, 32], [20, 16, 36]],   dvG2: [[54, 4, 32], [62, 16, 36]],   dvG3: [[92, 4, 32], [104, 16, 36]],
   dvBrake: [[14, 96, 52], [12, 124, 60]], dvGas: [[84, 64, 80], [82, 86, 88]],
 };
+// arcade games with 4–6 buttons: two rows (top 1-2-3, bottom 4-5-6, like a fighting-game panel)
+const ARC_GRID = { top: [[[6, 22], [60, 8], [114, 0]], [[2, 30], [58, 14], [114, 4]]], bot: [[[6, 90], [60, 76], [114, 68]], [[2, 110], [58, 94], [114, 84]]] };
 function applyLayout(tall) {
   consoleEl.classList.toggle('tall', tall);
   for (const id in LAYOUT) {
     const [l, t, sz] = LAYOUT[id][tall ? 1 : 0], el = document.getElementById(id);
     Object.assign(el.style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' });
   }
+  const n = +consoleEl.dataset.btns || 3;
+  if (n >= 4) {
+    const T = tall ? 1 : 0, sz = tall ? 54 : 48;
+    // 4 buttons (e.g. Neo Geo A B C D): A B on the bottom row, C D on the top row
+    const spots = n === 4 ? [ARC_GRID.bot[T][0], ARC_GRID.bot[T][1], ARC_GRID.top[T][1], ARC_GRID.top[T][2]]
+      : [...ARC_GRID.top[T], ...ARC_GRID.bot[T]];
+    spots.forEach(([l, t], i) => Object.assign(document.getElementById('arc' + (i + 1)).style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' }));
+  }
+}
+/* ---- arcade buttons: as many as the game uses, wired to where each emulator expects them ---- */
+let arcBtnsP = null;
+const arcBtnTable = () => arcBtnsP || (arcBtnsP = fetch('arcade-buttons.json').then(r => r.ok ? r.json() : {}).catch(() => ({})));
+async function setupArcadeButtons(set, core) {
+  const info = (await arcBtnTable())[set] || [3, 0];
+  const n = Math.max(1, Math.min(6, info[0])), sf = !!info[1];
+  // RetroPad index for button 1..6: MAME 2003 (classic pad) = B A Y X L R; FBNeo = B A Y X R L,
+  // and FBNeo's Street Fighter layout = punches Y X L, kicks B A R
+  const map = core === 'arcade' ? (sf ? [1, 9, 10, 0, 8, 11] : [0, 8, 1, 9, 11, 10]) : [0, 8, 1, 9, 10, 11];
+  const labels = sf ? ['LP', 'MP', 'HP', 'LK', 'MK', 'HK'] : ['1', '2', '3', '4', '5', '6'];
+  for (let i = 1; i <= 6; i++) {
+    const b = document.getElementById('arc' + i);
+    b.hidden = i > n; b.dataset.ej = String(map[i - 1]);
+    const t = b.querySelector('.t'); t.textContent = labels[i - 1]; t.classList.toggle('in', n >= 4);
+  }
+  consoleEl.dataset.btns = String(n);
+  fit();
 }
 const safeProbe = document.createElement('div');
 safeProbe.style.cssText = 'position:fixed;top:0;left:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';
