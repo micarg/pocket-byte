@@ -302,15 +302,16 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib-tab[aria-selected="true"] { color: #fff; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.18); }
 .lib-sub { max-width: 720px; margin: 16px auto 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #8b929c; font-weight: 700; }
 .lib-edit { border: 0; background: none; color: var(--accent); font: 700 13px var(--body); cursor: pointer; padding: 6px 0; min-height: 32px; }
-.lib-grid { max-width: 720px; margin: 10px auto 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
+.lib-grid { max-width: 720px; margin: 10px auto 0; display: grid; align-items: end; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 18px 14px; }
 .lib-empty { grid-column: 1 / -1; color: #8b929c; font-size: 14px; line-height: 1.5; padding: 20px 4px; }
 .case-card { position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .case { border: 0; padding: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
 .case-art { position: relative; display: block; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden; background: var(--c, #3a3f47);
   box-shadow: inset 5px 0 0 rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.3), 0 12px 18px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5); }
 .case-art img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.case-art img.cov { object-fit: contain; }
-.case-art img.cov-bg { object-fit: cover; filter: blur(10px) brightness(.6); transform: scale(1.25); }
+.case-art img.cov { object-fit: cover; }
+.case-card { justify-content: flex-end; }
+.case-name { min-height: 2.5em; }
 .case-art::after { content: ""; position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
   box-shadow: inset 5px 0 0 rgba(0,0,0,.25); pointer-events: none; }
 .case-ph { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 8px 8px 8px 11px; box-sizing: border-box; font: 800 12px/1.15 var(--body); color: rgba(255,255,255,.92);
@@ -3449,15 +3450,15 @@ function caseArt(g) {
   const ph = document.createElement('span'); ph.className = 'case-ph'; ph.textContent = displayName(g); art.appendChild(ph);
   const tag = document.createElement('span'); tag.className = 'case-tag'; tag.textContent = g.sys === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[g.sys].tag; art.appendChild(tag);
   const known = coverKnown(g.id);
-  // the whole cover, uncropped (box art comes in many shapes: square PS1 cases, tall NES boxes…), over a
-  // blurred copy of itself that fills the rest of the case
+  // the case takes the cover's own shape (square PS1 cases, tall NES boxes…), so the whole picture shows
+  // with no bars; only very odd shapes are trimmed a little
   const show = url => {
     if (!url) return;
-    const bg = document.createElement('img'); bg.className = 'cov-bg'; bg.alt = ''; bg.setAttribute('aria-hidden', 'true');
     const im = document.createElement('img'); im.className = 'cov'; im.alt = ''; im.decoding = 'async';
-    for (const x of [bg, im]) { x.crossOrigin = 'anonymous'; x.src = url; }
-    im.onload = () => ph.remove(); im.onerror = () => { im.remove(); bg.remove(); };
-    art.insertBefore(bg, tag); art.insertBefore(im, tag);
+    im.crossOrigin = 'anonymous'; im.src = url;
+    im.onload = () => { ph.remove(); if (im.naturalWidth && im.naturalHeight) art.style.aspectRatio = String(Math.min(1.25, Math.max(0.6, im.naturalWidth / im.naturalHeight))); };
+    im.onerror = () => im.remove();
+    art.insertBefore(im, tag);
   };
   if (known && known !== 'none') show(known); else if (!known && !g.cart) findCover(g).then(show);
   return art;
