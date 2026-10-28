@@ -635,6 +635,11 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   </section>
 
   <section class="set-card">
+    <div class="set-kicker">ΓΛΩΣΣΑ · LANGUAGE</div>
+    <div class="style-pick" id="langPick"><button data-lang="el">Ελληνικά</button><button data-lang="en">English</button></div>
+  </section>
+
+  <section class="set-card">
     <div class="set-kicker">ΗΧΟΣ ΚΑΙ ΔΟΝΗΣΗ</div>
     <div class="toolbar">
       <button class="tool" id="soundBtn">Ήχος: κλειστός</button>
@@ -1691,7 +1696,7 @@ function setLast(id) {
     if (id) { const p = JSON.parse(localStorage.getItem('pb-played') || '{}'); p[id] = Date.now(); localStorage.setItem('pb-played', JSON.stringify(p)); }
   } catch (e) {}
 }
-function showOverlay(text) { overlay.textContent = text; overlay.hidden = !text; }
+function showOverlay(text) { overlay.dataset.raw = text; overlay.textContent = text; overlay.hidden = !text; }
 function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); if (typeof applyRunMode === 'function') applyRunMode(); requestAnimationFrame(fit); }
 /* ---- N64: what each button does, for games where that is well known (in English) ---- */
 const N64_LABELS = [
@@ -2261,7 +2266,7 @@ function ejsSuspended() { return ejsAudioCtxs().some(c => c.state === 'suspended
 function ejsResume() {
   if (!ejsStarted) return;
   ejsAudioCtxs().forEach(c => { if (c.state === 'suspended') c.resume().catch(() => {}); });
-  if (overlay.textContent === TAP_TO_START) setTimeout(() => { if (!ejsSuspended()) showOverlay(''); }, 150);
+  if (overlay.dataset.raw === TAP_TO_START) setTimeout(() => { if (!ejsSuspended()) showOverlay(''); }, 150);
 }
 ['pointerdown', 'touchend', 'click', 'keydown'].forEach(t => document.addEventListener(t, ejsResume, true));
 overlay.addEventListener('click', ejsResume);
@@ -2714,7 +2719,7 @@ function setPaused(p) {
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
   if (paused && !pausedByMenu) showOverlay('Παύση');
-  else if (overlay.textContent === 'Παύση') showOverlay('');
+  else if (overlay.dataset.raw === 'Παύση') showOverlay('');
 }
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -3622,6 +3627,119 @@ if (lastId && lastId.startsWith('user:')) {
   });
 } else bootCart(lastId && ROMS[lastId] ? lastId : 'libbet');
 renderMine();
+
+/* ---- language: Greek (as written) or English, translated on the fly ---- */
+const EN = {
+  '1η ταχύτητα': '1st gear', '2η ταχύτητα': '2nd gear', '3η ταχύτητα': '3rd gear',
+  'C αριστερά': 'C left', 'C δεξιά': 'C right', 'C κάτω': 'C down', 'C πάνω': 'C up',
+  'Ή διάλεξε από τη συλλογή:': 'Or pick one from the collection:', 'Ήχος: κλειστός': 'Sound: off', 'Ήχος: ανοιχτός': 'Sound: on',
+  'Όχι': 'Off', 'ΑΥΤΟ ΤΟ ΠΑΙΧΝΙΔΙ': 'THIS GAME', 'Από τις φωτογραφίες σου': 'From your photos', 'Αυτόματο': 'Automatic',
+  'Βιβλιοθήκη': 'Library', 'Γεμάτη': 'Full', 'Γκάζι': 'Gas', 'Δόνηση: ανοιχτή': 'Vibration: on', 'Δόνηση: κλειστή': 'Vibration: off',
+  'ΕΜΦΑΝΙΣΗ': 'APPEARANCE', 'Εξώφυλλο': 'Cover', 'Επανεκκίνηση': 'Restart', 'Επεξεργασία': 'Edit', 'Τέλος': 'Done',
+  'ΗΧΟΣ ΚΑΙ ΔΟΝΗΣΗ': 'SOUND AND VIBRATION', 'Θέσεις αποθήκευσης': 'Save slots', 'Κέρμα': 'Coin', 'Κανονική': 'Normal',
+  'Κλείσιμο': 'Close', 'Κονσόλα': 'Console', 'Κύκλος': 'Circle', 'Τετράγωνο': 'Square', 'Τρίγωνο': 'Triangle', 'Χ': 'Cross',
+  'Με το A': 'With A', 'Με το B': 'With B', 'Με το 1': 'With 1', 'Με το 2': 'With 2', 'Μενού': 'Menu',
+  'Οθόνη παιχνιδιού': 'Game screen', 'ΠΑΙΧΝΙΔΙΑ': 'GAMES', 'ΠΩΣ ΠΑΙΖΕΙΣ': 'HOW TO PLAY', 'Πίσω στη βιβλιοθήκη': 'Back to the library',
+  'Παιχνίδι': 'Game', 'Παύση': 'Pause', 'Συνέχεια': 'Resume', 'Πρόσθεσε': 'Add', 'Ρυθμίσεις': 'Settings', 'Σταυρός': 'D-pad',
+  'Στρογγυλά': 'Round', 'Τετράγωνα': 'Square', 'Στυλ κονσόλας': 'Console style', 'Σχήμα κουμπιών': 'Button shape',
+  'Τρέξιμο με διπλό πάτημα': 'Run with a double tap', 'Φέρε πίσω τις δωρεάν κασέτες Game Boy': 'Bring back the free Game Boy carts',
+  'Φρένο': 'Brake', 'Φόρτωσε ROM (ένα ή πολλά μαζί)': 'Load ROMs (one or many at once)', 'Χειριστήριο': 'Controls',
+  'Χρώμα κονσόλας': 'Console colour', 'Χρώμα κουμπιών': 'Button colour', 'Χωρίς εξώφυλλο': 'No cover',
+  'Κουμπί 1': 'Button 1', 'Κουμπί 2': 'Button 2', 'Κουμπί 3': 'Button 3', 'Κουμπί 4': 'Button 4', 'Κουμπί 5': 'Button 5', 'Κουμπί 6': 'Button 6',
+  'Γλώσσα': 'Language', 'ΓΛΩΣΣΑ · LANGUAGE': 'LANGUAGE',
+  'Πάτα δεξιά (ή αριστερά) δύο φορές και κράτα: η εφαρμογή κρατάει πατημένο για σένα το κουμπί του τρεξίματος, κι ο αντίχειρας μένει ελεύθερος για άλμα. Διάλεξε με ποιο κουμπί τρέχει το παιχνίδι.':
+    'Tap right (or left) twice and hold: the app holds the run button for you, leaving your thumb free to jump. Pick the button the game runs with.',
+  'Παίζει NES (.nes), Game Boy και Game Boy Color (.gb, .gbc), Game Boy Advance (.gba), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin) και Nintendo 64 (.z64, .n64, .v64) και arcade (σετ MAME/FBNeo σε .zip, π.χ. wboy.zip), καθώς και .zip που περιέχουν ROM κονσόλας. Η κονσόλα αλλάζει κουμπιά ανάλογα με το παιχνίδι.':
+    'Plays NES (.nes), Game Boy and Game Boy Color (.gb, .gbc), Game Boy Advance (.gba), Sega Genesis / Mega Drive (.md, .gen, .smd, .bin), Nintendo 64 (.z64, .n64, .v64), PlayStation (.chd, .bin/.cue, .pbp, .iso) and arcade (MAME/FBNeo sets in .zip, e.g. wboy.zip), plus .zip files holding console ROMs. The console changes its buttons to suit each game.',
+  'Στον υπολογιστή, στο Game Boy: βελάκια για κατεύθυνση,': 'On a computer, for Game Boy: arrow keys to move,',
+  'Οι αποθηκεύσεις και τα ROM σου μένουν μόνο σε αυτή τη συσκευή. Τα NES, GBA, Genesis, N64 και arcade τρέχουν με το': 'Your saves and ROMs stay on this device only. NES, GBA, Genesis, N64, PlayStation and arcade run on',
+  'και χρειάζονται ίντερνετ την πρώτη φορά.': 'and need the internet the first time.',
+  'Οι κασέτες Game Boy είναι δωρεάν παιχνίδια ανοιχτού κώδικα:': 'The Game Boy carts are free, open-source games:', 'και': 'and',
+  'Ψάχνω…': 'Searching…', 'Ξεκίνα ένα παιχνίδι για να σώσεις την πρόοδό σου.': 'Start a game to save your progress.',
+  'Όλα': 'All', 'Όπως η κονσόλα': 'Like the console', 'Κενή': 'Empty', 'Σώσε': 'Save', 'Φόρτωσε': 'Load', 'Πάνω της;': 'Overwrite?',
+  'ΠΑΙΖΕΙΣ ΤΩΡΑ': 'NOW PLAYING', 'ΣΥΝΕΧΙΣΕ': 'CONTINUE', 'Συνέχισε': 'Continue', 'Παίξε': 'Play', 'Φορτώνει…': 'Loading…',
+  'Πάτα οποιοδήποτε κουμπί για να συνεχίσεις': 'Press any button to continue', 'μόλις τώρα': 'just now', '1 παιχνίδι': '1 game',
+  'Περσίμονο': 'Persimmon', 'Κλασικό γκρι': 'Classic grey', 'Τιρκουάζ': 'Turquoise', 'Μωβ': 'Purple', 'Λεμονί': 'Lemon', 'Φούξια': 'Fuchsia',
+  'Μαύρο': 'Black', 'Μέντα': 'Mint', 'Κόκκινο': 'Red', 'Πορτοκαλί': 'Orange', 'Κίτρινο': 'Yellow', 'Πράσινο': 'Green', 'Μπλε': 'Blue',
+  'Ροζ': 'Pink', 'Λευκό': 'White', 'Γκρι': 'Grey',
+  'Αυτό το παιχνίδι δεν υποστηρίζει αποθήκευση σε οποιοδήποτε σημείο.': "This game doesn't support saving at any point.",
+  'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.': "This browser doesn't allow storing games. ROMs will play, but you'll need to load them every time.",
+  'Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.': "The game's file wasn't found. Load it again.",
+  'Δεν μπόρεσα να ανοίξω αυτή την εικόνα.': "Couldn't open that image.", 'Δεν μπόρεσα να σώσω σε αυτόν τον browser.': "Couldn't save in this browser.",
+  'Δεν μπόρεσα να φορτώσω αυτή τη θέση.': "Couldn't load that slot.", 'Δεν φόρτωσε ο εξομοιωτής. Έλεγξε τη σύνδεσή σου στο ίντερνετ.': "The emulator didn't load. Check your internet connection.",
+  'Δεν χωράει άλλο εξώφυλλο στη μνήμη της εφαρμογής.': "There's no room for another cover in the app's storage.",
+  'Δεν χώρεσε στη μνήμη της εφαρμογής.': "It didn't fit in the app's storage.",
+  'Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.': 'The Neo Geo BIOS (neogeo.zip) is missing. Load it from the menu, or a Neo Geo game that contains it.',
+  'Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού, παίζει με FBNeo.': "MAME doesn't have this version of the game, so it plays on FBNeo.",
+  'Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού. Το ανοίγω με FBNeo…': "MAME doesn't have this version of the game. Opening it with FBNeo…",
+  'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.': 'Tap “Add” to bring in your own games. Until then, try the free Game Boy carts.',
+  'Συνεχίζεις από εκεί που είχες μείνει.': 'Picking up where you left off.', 'Το παιχνίδι ξεκίνησε από την αρχή.': 'The game restarted from the beginning.',
+  'Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.': 'N64 needs a lot of power. It may stutter on older phones.',
+  'Οι δωρεάν κασέτες γύρισαν στη βιβλιοθήκη.': 'The free carts are back in the library.',
+  'Δεν μπόρεσα να διαβάσω αυτό το αρχείο.': "Couldn't read that file.",
+  'Αποθηκεύτηκε το BIOS της Neo Geo. Τα παιχνίδια Neo Geo θα το βρίσκουν αυτόματα.': 'Neo Geo BIOS saved. Neo Geo games will find it automatically.',
+  'Αυτό το neogeo.zip δεν έχει τα αρχεία BIOS που χρειάζονται.': "This neogeo.zip doesn't have the BIOS files needed.",
+  'Δεν αναγνωρίζω αυτό το αρχείο. Δέχομαι ROM NES, Game Boy, GBA, Genesis, N64, PlayStation (.chd, .bin/.cue σε .zip, .pbp, .iso) και arcade (.zip).': "I don't recognise that file. I take NES, Game Boy, GBA, Genesis, N64, PlayStation (.chd, .bin/.cue in a .zip, .pbp, .iso) and arcade (.zip) ROMs.",
+  'Το .cue είναι μόνο η λίστα του δίσκου. Διάλεξέ το μαζί με τα .bin του, ή βάλ\' τα σε ένα .zip.': "A .cue is only the disc's track list. Pick it together with its .bin files, or put them in a .zip.",
+  'Μεγάλος δίσκος: αν το κινητό κλείσει την εφαρμογή, δοκίμασε το ίδιο παιχνίδι σε .chd (πιο μικρό).': 'Big disc: if the phone closes the app, try the same game as a .chd (smaller).',
+  'Οι αποθηκεύσεις': 'Saves',
+};
+const EN_RE = [
+  [/^Αποθηκεύτηκε στα παιχνίδια σου \((.+?)\): (.*)$/s, 'Saved to your games ($1): $2'],
+  [/^Φορτώθηκε: (.*) \(δεν αποθηκεύτηκε σε αυτόν τον browser\)$/s, "Loaded: $1 (not stored in this browser)"],
+  [/^Φορτώθηκε: (.*) \(δεν χώρεσε στη μνήμη της εφαρμογής\)$/s, "Loaded: $1 (it didn't fit in the app's storage)"],
+  [/^Προσθήκη (\d+)\/(\d+): (.*)$/s, 'Adding $1/$2: $3'],
+  [/^Προστέθηκαν (\d+) παιχνίδια\. Δεν αναγνώρισα: (.*?)( κ\.ά\.)?$/s, (m, a, b, c) => `Added ${a} games. Not recognised: ${b}${c ? ' and more' : ''}`],
+  [/^Προστέθηκαν (\d+) παιχνίδια\.$/, 'Added $1 games.'],
+  [/^(.*): Αποσυμπίεση δίσκου… (\d+)%$/s, '$1: Unpacking disc… $2%'],
+  [/^Αποσυμπίεση δίσκου… (\d+)%$/, 'Unpacking disc… $1%'],
+  [/^Το «(.*)» έκλεισε την εφαρμογή την προηγούμενη φορά, οπότε δεν το άνοιξα μόνο του\.( Μάλλον είναι πολύ μεγάλο για τη μνήμη του κινητού: δοκίμασε το ίδιο παιχνίδι σε \.chd\.)?$/s,
+    (m, a, b) => `“${a}” closed the app last time, so I didn't start it by itself.${b ? " It's probably too big for the phone's memory: try the same game as a .chd." : ''}`],
+  [/^Πάτα ξανά το × για να σβήσεις το «(.*)»\.$/s, 'Tap × again to delete “$1”.'],
+  [/^Σβήστηκε: (.*)$/s, 'Deleted: $1'], [/^Άλλαξε εξώφυλλο: (.*)$/s, 'Change cover: $1'], [/^Παίξε (.*)$/s, 'Play $1'], [/^Σβήσε το (.*)$/s, 'Delete $1'],
+  [/^Σώθηκε στη θέση (\d+)\.$/, 'Saved to slot $1.'], [/^Φορτώθηκε η θέση (\d+)\.$/, 'Loaded slot $1.'], [/^ΘΕΣΗ (\d+)$/, 'SLOT $1'],
+  [/^πριν (\d+) λεπτ[όά]$/, (m, a) => `${a} min ago`], [/^(.*) · μόλις τώρα$/s, '$1 · just now'], [/^(.*) · πριν (\d+) λεπτ[όά]$/s, '$1 · $2 min ago'],
+  [/^(\d+) παιχνίδια$/, '$1 games'],
+  [/^Αυτό το παιχνίδι θα παίζει με (.*)…$/s, 'This game will play on $1…'], [/^Τα arcade θα παίζουν με (.*)\.$/s, 'Arcade games will play on $1.'],
+  [/^Εξομοιωτής για αυτό το παιχνίδι: (.*)$/s, 'Emulator for this game: $1'], [/^Εξομοιωτής arcade: (.*)$/s, 'Arcade emulator: $1'],
+  [/^Το παιχνίδι έκλεισε απότομα μετά από (\d+)'\.$/, 'The game closed unexpectedly after $1 min.'],
+  [/^Δεν βρέθηκαν εξώφυλλα με παρόμοιο όνομα( \(χρειάζεται ίντερνετ\))?\.$/, (m, a) => `No covers with a similar name were found${a ? ' (needs the internet)' : ''}.`],
+  [/^Τα (.*) παίζουν μόνο στην εφαρμογή: (.*)$/s, '$1 games only play in the app: $2'],
+];
+const GREEK = /[Ͱ-Ͽἀ-῿]/;
+let lang = 'el';
+try { lang = localStorage.getItem('pb-lang') || ((navigator.language || '').toLowerCase().startsWith('el') ? 'el' : 'en'); } catch (e) {}
+function tr(t) {
+  if (lang !== 'en' || !t || !GREEK.test(t)) return t;
+  const lead = t.match(/^\s*/)[0], trail = t.match(/\s*$/)[0], core = t.trim();
+  if (EN[core] !== undefined) return lead + EN[core] + trail;
+  for (const [re, to] of EN_RE) if (re.test(core)) return lead + core.replace(re, to) + trail;
+  return t;
+}
+function trNode(n) {
+  if (n.nodeType === 3) { const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; return; }
+  if (n.nodeType !== 1 || n.tagName === 'SCRIPT' || n.tagName === 'STYLE') return;
+  for (const a of ['aria-label', 'title']) { const v = n.getAttribute(a); if (v && GREEK.test(v)) { const w = tr(v); if (w !== v) n.setAttribute(a, w); } }
+  for (const c of n.childNodes) trNode(c);
+}
+if (lang === 'en') {
+  document.documentElement.lang = 'en';
+  trNode(document.body);
+  new MutationObserver(ms => { for (const m of ms) {
+    if (m.type === 'characterData') trNode(m.target);
+    else if (m.type === 'attributes') trNode(m.target);
+    else m.addedNodes.forEach(trNode);
+  } }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-label', 'title'] });
+}
+function setLang(l) {
+  try { localStorage.setItem('pb-lang', l); } catch (e) {}
+  if (l !== lang) { try { snapshotState(true); } catch (e) {} location.reload(); }
+}
+document.querySelectorAll('#langPick button').forEach(b => {
+  b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  b.addEventListener('click', () => setLang(b.dataset.lang));
+});
+
 </script>
 
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {}));</script>
