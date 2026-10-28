@@ -328,33 +328,33 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 #menu .menu-head { position: static; margin: 0 auto; padding: 0; background: none; border: 0; display: flex; align-items: center; justify-content: space-between; }
 #menu .menu-title { font: 800 20px var(--body); color: #e9ebee; letter-spacing: 0; }
 #menu .menu-head-pad { width: 42px; }
-#menu .set-card { padding: 16px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1);
+.pane .set-card { padding: 16px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1);
   box-shadow: 0 14px 26px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 10px; }
-#menu .set-kicker { font: 800 11px var(--body); letter-spacing: .12em; color: var(--accent); }
-#menu h2 { font: 700 13px var(--body); letter-spacing: 0; color: #9aa1ab; margin: 6px 0 0; }
-#menu .slot-game { font: 800 17px var(--body); color: #e9ebee; margin: -4px 0 2px; }
-#menu .toolbar { gap: 10px; }
-#menu .tool { min-height: 44px; border-radius: 14px; border: 0; color: #e9ebee; font: 700 14px var(--body);
+.pane .set-kicker { font: 800 11px var(--body); letter-spacing: .12em; color: var(--accent); }
+.pane h2 { font: 700 13px var(--body); letter-spacing: 0; color: #9aa1ab; margin: 6px 0 0; }
+.pane .slot-game { font: 800 17px var(--body); color: #e9ebee; margin: -4px 0 2px; }
+.pane .toolbar { gap: 10px; }
+.pane .tool { min-height: 44px; border-radius: 14px; border: 0; color: #e9ebee; font: 700 14px var(--body);
   background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 4px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
-#menu .tool.wide { flex-basis: 100%; }
-#menu .tool:active { transform: translateY(3px); box-shadow: 0 1px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
-#menu .tool.primary { color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.3);
+.pane .tool.wide { flex-basis: 100%; }
+.pane .tool:active { transform: translateY(3px); box-shadow: 0 1px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
+.pane .tool.primary { color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.3);
   background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
   box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 50%, #000), inset 0 1px 0 rgba(255,255,255,.4); }
-#menu .style-pick { margin: 0; padding: 4px; gap: 4px; border-radius: 14px; background: #0c0d0f; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.08); }
-#menu .style-pick button { min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: #8b929c; font: 800 13px var(--body); letter-spacing: 0; }
-#menu .style-pick button[aria-pressed="true"] { color: #fff; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.18); }
-#menu .slot { border: 0; border-radius: 14px; padding: 10px 10px 10px 14px; background: #0f1012; box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.07); }
-#menu .slot .info b { font: 800 13px var(--body); letter-spacing: 0; color: #e9ebee; }
-#menu .slot .info span { color: #8b929c; }
-#menu .slot button { min-height: 38px; border: 0; border-radius: 12px; color: #e9ebee; font: 800 13px var(--body);
+.pane .style-pick { margin: 0; padding: 4px; gap: 4px; border-radius: 14px; background: #0c0d0f; box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.08); }
+.pane .style-pick button { min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: #8b929c; font: 800 13px var(--body); letter-spacing: 0; }
+.pane .style-pick button[aria-pressed="true"] { color: #fff; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.18); }
+.pane .slot { border: 0; border-radius: 14px; padding: 10px 10px 10px 14px; background: #0f1012; box-shadow: inset 0 2px 5px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.07); }
+.pane .slot .info b { font: 800 13px var(--body); letter-spacing: 0; color: #e9ebee; }
+.pane .slot .info span { color: #8b929c; }
+.pane .slot button { min-height: 38px; border: 0; border-radius: 12px; color: #e9ebee; font: 800 13px var(--body);
   background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 3px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.16); }
-#menu .slot button.save { color: #fff; background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
+.pane .slot button.save { color: #fff; background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
   box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 50%, #000), inset 0 1px 0 rgba(255,255,255,.4); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
-#menu .slot button.confirm { background: #c0392b; box-shadow: 0 3px 0 #6e1d14; color: #fff; }
-#menu .slot button:active:not(:disabled) { transform: translateY(2px); }
-#menu .swatch-name { color: #8b929c; }
-#menu .help { color: #9aa1ab; }
+.pane .slot button.confirm { background: #c0392b; box-shadow: 0 3px 0 #6e1d14; color: #fff; }
+.pane .slot button:active:not(:disabled) { transform: translateY(2px); }
+.pane .swatch-name { color: #8b929c; }
+.pane .help { color: #9aa1ab; }
 .scrim { display: none; }
 .case-cov { position: absolute; top: -8px; right: -8px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #0b0c0e; background: #3a3f47; color: #fff;
   display: none; place-items: center; cursor: pointer; padding: 0; }
@@ -385,6 +385,25 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 /* PlayStation keys stay dark with coloured symbols, in the same wells */
 .console.modern .psb { box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 5px 0 #0d0e10, 0 8px 12px rgba(0,0,0,.45), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1); }
 .console.modern.sq .psb { border-radius: 24%; background: linear-gradient(180deg, #4a4f57 0%, #33373e 14%, #24272c 100%); }
+/* menu nav: three parts */
+.lib-nav { max-width: 720px; margin: 16px auto 0; display: flex; gap: 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.lib-nav button { flex: 1; min-height: 44px; border: 0; background: none; color: #8b929c; font: 800 15px var(--body); cursor: pointer; position: relative; padding: 0 4px; }
+.lib-nav button[aria-current="page"] { color: #fff; }
+.lib-nav button[aria-current="page"]::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 3px; border-radius: 2px; background: #fff; }
+.pane { max-width: 720px; margin: 0 auto; }
+.pane[hidden] { display: none; }
+#paneGame, #paneSet { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+#paneGame[hidden], #paneSet[hidden] { display: none; }
+.lib-add[hidden] { display: none; }
+/* menus in white, not yellow, and without the glossy 3D */
+.lib, .cover-sheet { --accent: #f2f3f5; }
+.lib .key3d:not(.dark), .lib-add, .pane .tool.primary, .pane .slot button.save, .cover-sheet .key3d:not(.dark) {
+  background: #f2f3f5 !important; color: #121316 !important; text-shadow: none !important; box-shadow: 0 2px 0 #8d939b, 0 6px 14px rgba(0,0,0,.35) !important; }
+.lib .key3d:not(.dark):active, .lib-add:active, .pane .tool.primary:active, .pane .slot button.save:active { transform: translateY(2px); box-shadow: 0 0 0 #8d939b !important; }
+.lib .cont-kicker, .pane .set-kicker { color: #9aa1ab; }
+.lib .lib-edit { color: #fff; }
+.case-card.active .case-art { outline-color: #fff; }
+.pane .tool[hidden] { display: none; }
 @keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
 @media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
 .lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
@@ -554,15 +573,21 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 <div class="lib" id="lib" role="dialog" aria-label="Βιβλιοθήκη" hidden>
   <div class="lib-head">
     <span class="lib-logo">POCKET BYTE</span>
-    <div class="lib-acts">
-      <button class="lib-key" id="libSettings" aria-label="Ρυθμίσεις"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-      <button class="lib-key" id="libClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
+    <button class="lib-key" id="libClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <nav class="lib-nav" id="libNav" aria-label="Μενού">
+    <button data-pane="lib" aria-current="page">Βιβλιοθήκη</button>
+    <button data-pane="game">Παιχνίδι</button>
+    <button data-pane="set">Ρυθμίσεις</button>
+  </nav>
+  <div class="pane" id="paneLib">
   <div class="lib-cont" id="libCont"></div>
   <div class="lib-tabs" id="libTabs" role="tablist" aria-label="Κονσόλα"></div>
   <div class="lib-sub"><span id="libCount"></span><button class="lib-edit" id="libEdit">Επεξεργασία</button></div>
   <div class="lib-grid" id="libGrid"></div>
+  </div>
+  <div class="pane" id="paneGame" hidden></div>
+  <div class="pane" id="paneSet" hidden></div>
   <button class="lib-add" id="libAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Πρόσθεσε</button>
 </div>
 <div class="cover-sheet" id="coverSheet" role="dialog" aria-label="Εξώφυλλο" hidden>
@@ -2651,6 +2676,8 @@ const coreInUse = () => ((sys === 'arcade' || sys === 'nes') && ejsLoaded && win
 const NES_CORES = { nestopia: 'Nestopia', fceumm: 'FCEUmm' };
 function showArcCore() {
   const c = coreInUse();
+  // only meaningful for an arcade or NES game that is open
+  arcCoreBtn.hidden = !c;
   if (c && sys === 'nes') { arcCoreBtn.textContent = 'Εξομοιωτής για αυτό το παιχνίδι: ' + NES_CORES[c]; return; }
   arcCoreBtn.textContent = c ? 'Εξομοιωτής για αυτό το παιχνίδι: ' + (ARCADE_CORES[c] || c) : 'Εξομοιωτής arcade: ' + ARCADE_CORES[arcadeCore()];
 }
@@ -3119,14 +3146,31 @@ const menu = document.getElementById('menu'), scrim = document.getElementById('s
 // setMenu(false) closes everything and resumes the game.
 function setMenu(open) {
   lib.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
-  if (!open) { setSettings(false); lib.classList.remove('editing'); libEditBtn.textContent = 'Επεξεργασία'; }
-  else renderMine();
+  if (!open) { lib.classList.remove('editing'); libEditBtn.textContent = 'Επεξεργασία'; }
+  else { setPane('lib'); renderMine(); }
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
+// the menu's three parts: library, settings for the game being played, general settings
+let pane = 'lib';
+function setPane(name) {
+  pane = name;
+  for (const [n, id] of [['lib', 'paneLib'], ['game', 'paneGame'], ['set', 'paneSet']]) document.getElementById(id).hidden = n !== name;
+  document.querySelectorAll('#libNav button').forEach(b => { if (b.dataset.pane === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  document.getElementById('libAdd').hidden = name !== 'lib';
+  if (name === 'game') { renderSlots(); showArcCore(); }
+  if (name === 'set') showArcCore();
+  lib.scrollTop = 0;
+}
+document.querySelectorAll('#libNav button').forEach(b => b.addEventListener('click', () => setPane(b.dataset.pane)));
+// the setting cards live in the menu's panes (moved there from the old settings sheet)
+{
+  const g = document.getElementById('paneGame'), st = document.getElementById('paneSet');
+  g.appendChild(document.getElementById('slotsSec'));
+  for (const sec of [...document.querySelectorAll('#menu > section')]) st.appendChild(sec);
+}
 function setSettings(open) {
-  menu.hidden = !open; scrim.hidden = !open;
-  if (open) { renderSlots(); showArcCore(); if (lib.hidden) setMenu(true); }
+  if (open) { if (lib.hidden) setMenu(true); setPane('game'); } else setPane('lib');
 }
 const toggleMenu = () => { unlockAudio(); haptic(); setMenu(lib.hidden); };
 menuBtn.addEventListener('click', toggleMenu);
@@ -3135,11 +3179,11 @@ document.getElementById('dockMenu').addEventListener('pointerup', toggleMenu);
 document.getElementById('closeMenu').addEventListener('click', () => setSettings(false));
 scrim.addEventListener('click', () => setSettings(false));
 document.getElementById('libClose').addEventListener('click', () => setMenu(false));
-document.getElementById('libSettings').addEventListener('click', () => setSettings(true));
+
 document.getElementById('libAdd').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 const libEditBtn = document.getElementById('libEdit');
 libEditBtn.addEventListener('click', () => { const on = lib.classList.toggle('editing'); libEditBtn.textContent = on ? 'Τέλος' : 'Επεξεργασία'; });
-addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!menu.hidden) setSettings(false); else if (!lib.hidden) setMenu(false); });
+addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!coverSheet.hidden) closeCoverSheet(); else if (!lib.hidden) setMenu(false); });
 
 /* ---- console colour themes ---- */
 const SHELLS = [
