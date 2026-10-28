@@ -413,6 +413,34 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .console.land .btn .t:not(.in), .console.land .n64-c-label, .console.land .drive-lbl { color: #aab0b9; }
 .console.land .sys .lbl { color: #e9ebee; }
 .console.land .dpad { background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.07), rgba(255,255,255,.03) 70%); }
+/* ---------- picture size per game: a sheet over the controls, the game screen stays in view ---------- */
+.scr-adj { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; box-sizing: border-box; padding: 16px max(18px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, #2c3036, #1a1c20); border-top: 1px solid #4a505a; box-shadow: 0 -12px 30px rgba(0,0,0,.5); color: #e9ebee; font: 600 14px var(--body);
+  display: flex; flex-direction: column; justify-content: center; gap: 14px; touch-action: manipulation; }
+.scr-adj[hidden] { display: none; }
+.sa-head { display: flex; align-items: baseline; gap: 10px; } .sa-head b { font-size: 17px; font-weight: 800; }
+.sa-head span { color: #8b929c; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sa-row { display: flex; align-items: center; gap: 10px; }
+.sa-lbl { width: 54px; flex: none; color: #c9ced5; }
+.sa-row output { width: 48px; flex: none; text-align: right; font-variant-numeric: tabular-nums; color: #fff; }
+.sa-step { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 3px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.18);
+  color: #fff; font: 800 20px/1 var(--body); padding: 0; cursor: pointer; }
+.sa-step:active { transform: translateY(2px); box-shadow: 0 1px 0 #08090a; }
+.scr-adj input[type=range] { flex: 1; min-width: 0; height: 40px; -webkit-appearance: none; appearance: none; background: none; margin: 0; }
+.scr-adj input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #0c0d0f; box-shadow: inset 0 1px 2px rgba(0,0,0,.8); }
+.scr-adj input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #f2f3f5; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.scr-adj input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #0c0d0f; }
+.scr-adj input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #f2f3f5; }
+.sa-btns { display: flex; gap: 10px; }
+.sa-btns button { flex: 1; height: 44px; border-radius: 22px; border: 0; font: 800 14px var(--body); cursor: pointer; }
+.sa-reset { background: linear-gradient(180deg, #3a3f47, #262a30); color: #fff; box-shadow: 0 4px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.18); }
+.sa-done { background: #f2f3f5; color: #15171a; box-shadow: 0 4px 0 #9a9ea5; }
+.sa-btns button:active { transform: translateY(3px); }
+.sa-note { color: #8b929c; font-size: 12px; font-weight: 500; text-align: center; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .scr-adj { left: 50%; right: auto; width: min(420px, 60vw); transform: translateX(-50%); border-radius: 18px 18px 0 0; border: 1px solid #4a505a; gap: 8px; padding-top: 10px; background: rgba(26,28,32,.92); }
+  .sa-note { display: none; }
+}
 /* face buttons, translucent and lit from inside (MODERN): like illuminated arcade buttons */
 .console.modern.glow .round:not(.psb) {
   background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.85) 0%, color-mix(in srgb, var(--ab-1) 45%, #fff) 16%, color-mix(in srgb, var(--ab-1) 80%, transparent) 52%, color-mix(in srgb, var(--ab-1) 70%, #000) 100%);
@@ -609,6 +637,19 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="dock-wrap" id="dockWrap"><button class="dock-menu" id="dockMenu" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button></div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
+  <div class="scr-adj" id="scrAdj" hidden role="dialog" aria-label="Μέγεθος εικόνας">
+    <div class="sa-head"><b>Μέγεθος εικόνας</b><span id="saGame"></span></div>
+    <div class="sa-row"><span class="sa-lbl">Πλάτος</span>
+      <button class="sa-step" data-k="w" data-d="-1" aria-label="Πιο στενό">−</button>
+      <input type="range" id="saW" min="60" max="160" step="1" aria-label="Πλάτος">
+      <button class="sa-step" data-k="w" data-d="1" aria-label="Πιο φαρδύ">+</button><output id="saWv"></output></div>
+    <div class="sa-row"><span class="sa-lbl">Ύψος</span>
+      <button class="sa-step" data-k="h" data-d="-1" aria-label="Πιο κοντό">−</button>
+      <input type="range" id="saH" min="60" max="160" step="1" aria-label="Ύψος">
+      <button class="sa-step" data-k="h" data-d="1" aria-label="Πιο ψηλό">+</button><output id="saHv"></output></div>
+    <div class="sa-btns"><button class="sa-reset" id="saReset">Επαναφορά</button><button class="sa-done" id="saDone">Έτοιμο</button></div>
+    <div class="sa-note">Κρατιέται μόνο για αυτό το παιχνίδι.</div>
+  </div>
 </main>
 
 <div class="lib" id="lib" role="dialog" aria-label="Βιβλιοθήκη" hidden>
@@ -661,6 +702,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <button class="tool" id="pauseBtn">Παύση</button>
       <button class="tool" id="resetBtn">Επανεκκίνηση</button>
       <button class="tool wide" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
+      <button class="tool wide" id="scrAdjBtn">Μέγεθος εικόνας (πλάτος / ύψος)</button>
     </div>
     <h2>Θέσεις αποθήκευσης</h2>
     <div class="slots" id="slots"></div>
@@ -3238,6 +3280,35 @@ function fit() {
 /* ---- "full" game screen: stretch the picture over the black bars (only when that distorts it modestly) ---- */
 let fillOn = true;
 try { fillOn = localStorage.getItem('pb-fill') !== '0'; } catch (e) {}
+// ---- per-game picture size, on top of the automatic fit (1 = as fitted) ----
+const scrAdjEl = document.getElementById('scrAdj'), saW = document.getElementById('saW'), saH = document.getElementById('saH');
+function saShow() {
+  const v = scrAdj();
+  saW.value = Math.round(v.w * 100); saH.value = Math.round(v.h * 100);
+  document.getElementById('saWv').textContent = saW.value + '%'; document.getElementById('saHv').textContent = saH.value + '%';
+}
+function saSet(w, h) {
+  w = Math.max(60, Math.min(160, Math.round(w))); h = Math.max(60, Math.min(160, Math.round(h)));
+  try { if (w === 100 && h === 100) localStorage.removeItem('pb-scr:' + current); else localStorage.setItem('pb-scr:' + current, JSON.stringify({ w: w / 100, h: h / 100 })); } catch (e) {}
+  saShow(); fitGameScreen();
+}
+function openScrAdj() {
+  if (!current || !(gb || ejsStarted)) { toast('Ξεκίνα πρώτα ένα παιχνίδι.'); return; }
+  document.getElementById('saGame').textContent = document.getElementById('now').textContent;
+  setMenu(false); saShow(); scrAdjEl.hidden = false;
+  // portrait: cover exactly the control panel, so the whole game screen stays in view
+  const land = consoleEl.classList.contains('land'), pr = document.getElementById('controlsPanel').getBoundingClientRect();
+  scrAdjEl.style.minHeight = !land && consoleEl.classList.contains('modern') && pr.height ? Math.round(window.innerHeight - pr.top) + 'px' : '';
+}
+document.getElementById('scrAdjBtn').addEventListener('click', openScrAdj);
+saW.addEventListener('input', () => saSet(+saW.value, +saH.value));
+saH.addEventListener('input', () => saSet(+saW.value, +saH.value));
+scrAdjEl.querySelectorAll('.sa-step').forEach(b => b.addEventListener('click', () => {
+  const d = +b.dataset.d; if (b.dataset.k === 'w') saSet(+saW.value + d, +saH.value); else saSet(+saW.value, +saH.value + d);
+}));
+document.getElementById('saReset').addEventListener('click', () => saSet(100, 100));
+document.getElementById('saDone').addEventListener('click', () => { scrAdjEl.hidden = true; });
+function scrAdj() { try { const v = JSON.parse(localStorage.getItem('pb-scr:' + current) || 'null'); if (v && v.w > 0 && v.h > 0) return v; } catch (e) {} return { w: 1, h: 1 }; }
 // Where the picture really is on the emulator's canvas: sampled from the drawn frames (the black bars around it
 // differ per core and per screen shape, and what the core reports doesn't always match what it draws)
 let picBox = null, picKey = '', picBlank = 0;
@@ -3284,14 +3355,17 @@ function fitGameScreen() {
     const W = host.clientWidth, H = host.clientHeight;
     el.classList.remove('fill'); el.classList.add('fit2');
     el.style.width = W + 'px'; el.style.height = H + 'px';
-    if (!picBox || picKey !== picKeyNow()) { el.style.transform = ''; return; }
+    const adj = scrAdj();
+    const plain = () => { el.style.transform = adj.w === 1 && adj.h === 1 ? '' : `translate(${(W / 2 * (1 - adj.w)).toFixed(2)}px, ${(H / 2 * (1 - adj.h)).toFixed(2)}px) scale(${adj.w}, ${adj.h})`; };
+    if (!picBox || picKey !== picKeyNow()) { plain(); return; }
     const [x0, y0, x1, y1] = picBox, pw = (x1 - x0) * W, ph = (y1 - y0) * H;
-    if (pw < W * 0.4 || ph < H * 0.3) { el.style.transform = ''; return; }
+    if (pw < W * 0.4 || ph < H * 0.3) { plain(); return; }
     let sx = W / pw, sy = H / ph;
     const CAP = 1.3;
     if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
     const r = sy / sx;
     if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
+    sx *= adj.w; sy *= adj.h;
     const tx = W / 2 - (x0 * W + pw / 2) * sx, ty = H / 2 - (y0 * H + ph / 2) * sy;
     el.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
     return;
@@ -3300,8 +3374,10 @@ function fitGameScreen() {
   let a = 0;
   if (fillOn && ejsStarted && window.EJS_emulator) try { a = +EJS_emulator.gameManager.getVideoDimensions('aspect') || 0; } catch (e) {}
   const W = host.clientWidth, H = host.clientHeight;
+  const adj = scrAdj();
   if (!a || !W || !H || Math.abs(a / (W / H) - 1) < 0.02) {
-    if (el.classList.contains('fill')) { el.classList.remove('fill'); el.style.width = el.style.height = el.style.transform = ''; }
+    if (el.classList.contains('fill')) { el.classList.remove('fill'); el.style.width = el.style.height = ''; }
+    el.style.transform = adj.w === 1 && adj.h === 1 ? '' : `scale(${adj.w}, ${adj.h})`;
     return;
   }
   let w = W, h = W / a;
@@ -3316,20 +3392,21 @@ function fitGameScreen() {
   if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
   const r = sy / sx;
   if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
-  el.style.transform = `translate(-50%, -50%) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+  el.style.transform = `translate(-50%, -50%) scale(${(sx * adj.w).toFixed(4)}, ${(sy * adj.h).toFixed(4)})`;
 }
 // the Game Boy screen (our own canvas) gets the same treatment in the full-screen style
 function fitLcd() {
   const c = document.getElementById('lcd'), wrap = document.getElementById('screenWrap');
   const on = fillOn && consoleEl.classList.contains('modern');
-  const W = wrap.clientWidth, H = wrap.clientHeight, a = 160 / 144;
-  if (!on || !W || !H) { c.style.cssText = ''; return; }
+  const W = wrap.clientWidth, H = wrap.clientHeight, a = 160 / 144, adj = scrAdj();
+  if (!on || !W || !H) { c.style.cssText = adj.w === 1 && adj.h === 1 ? '' : `transform:scale(${adj.w},${adj.h})`; return; }
   let w = W, h = W / a; if (h > H) { h = H; w = H * a; }
   let sx = W / w, sy = H / h;
   const CAP = 1.3;
   if (sy / sx > CAP) sy = sx * CAP; else if (sx / sy > CAP) sx = sy * CAP;
   const r = sy / sx;
   if (r > 1) sx *= Math.pow(r, 1 / 3); else sy *= Math.pow(1 / r, 1 / 3);
+  sx *= adj.w; sy *= adj.h;
   c.style.cssText = `position:absolute;left:50%;top:50%;width:${w}px;height:${h}px;transform:translate(-50%,-50%) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
 }
 function setFill(on) {
@@ -4002,6 +4079,9 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Μέγεθος εικόνας (πλάτος / ύψος)': 'Picture size (width / height)', 'Μέγεθος εικόνας': 'Picture size', 'Πλάτος': 'Width', 'Ύψος': 'Height',
+  'Πιο στενό': 'Narrower', 'Πιο φαρδύ': 'Wider', 'Πιο κοντό': 'Shorter', 'Πιο ψηλό': 'Taller', 'Επαναφορά': 'Reset', 'Έτοιμο': 'Done',
+  'Κρατιέται μόνο για αυτό το παιχνίδι.': 'Kept for this game only.', 'Ξεκίνα πρώτα ένα παιχνίδι.': 'Start a game first.',
   'Αναζήτηση παιχνιδιού': 'Search games', 'Καθάρισε': 'Clear', 'ΑΝΤΙΓΡΑΦΟ ΑΣΦΑΛΕΙΑΣ': 'BACKUP', 'Δημιούργησε αντίγραφο': 'Make a backup',
   'Αντίγραφο μαζί με τα παιχνίδια': 'Backup including the games', 'Αποθήκευσε το αρχείο': 'Save the file', 'Επαναφορά από αντίγραφο': 'Restore from a backup',
   'Επαναφορά…': 'Restoring…', 'Ετοιμάζω το αντίγραφο…': 'Preparing the backup…', 'Δεν έγινε το αντίγραφο. Δοκίμασε ξανά.': "The backup didn't work. Try again.",
