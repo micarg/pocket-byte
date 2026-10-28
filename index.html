@@ -310,6 +310,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   box-shadow: inset 5px 0 0 rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.3), 0 12px 18px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5); }
 .case-art img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .case-art img.cov { object-fit: cover; }
+.lib-grid.sys .case-art, .cont-card .case-art { aspect-ratio: var(--ar, 3 / 4); }
 .case-card { justify-content: flex-end; }
 .case-name { min-height: 2.5em; }
 .case-art::after { content: ""; position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
@@ -3456,7 +3457,7 @@ function caseArt(g) {
     if (!url) return;
     const im = document.createElement('img'); im.className = 'cov'; im.alt = ''; im.decoding = 'async';
     im.crossOrigin = 'anonymous'; im.src = url;
-    im.onload = () => { ph.remove(); if (im.naturalWidth && im.naturalHeight) art.style.aspectRatio = String(Math.min(1.25, Math.max(0.6, im.naturalWidth / im.naturalHeight))); };
+    im.onload = () => { ph.remove(); if (im.naturalWidth && im.naturalHeight) art.style.setProperty('--ar', String(Math.min(1.25, Math.max(0.6, im.naturalWidth / im.naturalHeight)))); };
     im.onerror = () => im.remove();
     art.insertBefore(im, tag);
   };
@@ -3577,6 +3578,8 @@ async function renderMine() {
   const mine = list.filter(g => !g.cart).length;
   document.getElementById('libCount').textContent = mine === 1 ? '1 παιχνίδι' : mine + ' παιχνίδια';
   const grid = document.getElementById('libGrid'); grid.innerHTML = '';
+  // "All": every case the same size; one system: each cover in its own shape
+  grid.classList.toggle('sys', libFilter !== 'all');
   if (metas === null) { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.'; grid.appendChild(e); }
   else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
   for (const g of list) {
