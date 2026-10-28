@@ -377,18 +377,18 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .cs-pick { border: 0; padding: 0; background: none; cursor: pointer; display: flex; flex-direction: column; gap: 6px; text-align: left; color: #c9ced5; font: 600 11px/1.25 var(--body); }
 .cs-pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; background: #2a2e34; box-shadow: 0 8px 14px rgba(0,0,0,.5); }
 .cs-empty { grid-column: 1 / -1; color: #8b929c; font-size: 13px; }
-/* face buttons, squared (MODERN): flat-topped keys with rounded corners, in square wells */
-.console.modern.sq .round:not(.psb) { border-radius: 24%;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ab-1) 70%, #fff) 0%, var(--ab-1) 14%, var(--ab-2) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -3px 0 rgba(0,0,0,.18), 0 5px 0 var(--ab-3), 0 8px 12px rgba(0,0,0,.45), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1); }
-.console.modern.sq .round:not(.psb).down { transform: translateY(3px); filter: brightness(1.1);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -2px 0 rgba(0,0,0,.18), 0 2px 0 var(--ab-3), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1) !important; }
-.console.btn-light .round .t.in, .console.btn-light .psb .t.in { color: #222; text-shadow: none; }
-.console.modern.btn-light .btn .t.in { color: #222; text-shadow: none; }
-.swatch.auto { background: conic-gradient(#d93a32, #f2c230, #3fae55, #2f6fe0, #7a4fd0, #d93a32); }
+/* face buttons, translucent and lit from inside (MODERN): like illuminated arcade buttons */
+.console.modern.glow .round:not(.psb) {
+  background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.85) 0%, color-mix(in srgb, var(--ab-1) 45%, #fff) 16%, color-mix(in srgb, var(--ab-1) 80%, transparent) 52%, color-mix(in srgb, var(--ab-1) 70%, #000) 100%);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ab-1) 50%, #fff), inset 0 -6px 12px color-mix(in srgb, var(--ab-1) 60%, #000), inset 0 4px 6px rgba(255,255,255,.35),
+    0 0 18px color-mix(in srgb, var(--ab-1) 70%, transparent), 0 0 34px color-mix(in srgb, var(--ab-1) 35%, transparent),
+    0 0 0 7px #121316, 0 0 0 8px rgba(255,255,255,.12); }
+.console.modern.glow .round:not(.psb).down { transform: translateY(2px); filter: brightness(1.35) saturate(1.1);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ab-1) 40%, #fff), inset 0 4px 8px rgba(255,255,255,.45),
+    0 0 26px var(--ab-1), 0 0 50px color-mix(in srgb, var(--ab-1) 60%, transparent), 0 0 0 7px #121316, 0 0 0 8px rgba(255,255,255,.12) !important; }
+.console.modern.glow .btn.round:not(.psb) .t.in { color: #fff; text-shadow: 0 0 6px rgba(0,0,0,.45); }
 /* PlayStation keys stay dark with coloured symbols, in the same wells */
 .console.modern .psb { box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 5px 0 #0d0e10, 0 8px 12px rgba(0,0,0,.45), 0 0 0 7px rgba(0,0,0,.32), 0 0 0 8px rgba(255,255,255,.1); }
-.console.modern.sq .psb { border-radius: 24%; background: linear-gradient(180deg, #4a4f57 0%, #33373e 14%, #24272c 100%); }
 /* menu nav: three parts */
 .lib-nav { max-width: 720px; margin: 16px auto 0; display: flex; gap: 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
 .lib-nav button { flex: 1; min-height: 44px; border: 0; background: none; color: #8b929c; font: 800 15px var(--body); cursor: pointer; position: relative; padding: 0 4px; }
@@ -659,8 +659,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <h2>Χρώμα κουμπιών</h2>
     <div class="swatches" id="btnSwatches"></div>
     <div class="swatch-name" id="btnSwatchName"></div>
-    <h2>Σχήμα κουμπιών</h2>
-    <div class="style-pick" id="shapePick"><button data-shape="round">Στρογγυλά</button><button data-shape="sq">Τετράγωνα</button></div>
+    <h2>Είδος κουμπιών</h2>
+    <div class="style-pick" id="shapePick"><button data-shape="round">Κλασικά</button><button data-shape="glow">Διάφανα με φως</button></div>
   </section>
 
   <section class="set-card">
@@ -3319,10 +3319,11 @@ for (const t of BTN_COLORS) {
   btnWrap.appendChild(b);
 }
 function applyShape(sh) {
-  const sq = sh !== 'round';
-  consoleEl.classList.toggle('sq', sq);
-  document.querySelectorAll('#shapePick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.shape === 'sq') === sq)));
-  try { localStorage.setItem('pb-btnshape-2', sq ? 'sq' : 'round'); } catch (e) {}
+  const glow = sh === 'glow';
+  consoleEl.classList.remove('sq');
+  consoleEl.classList.toggle('glow', glow);
+  document.querySelectorAll('#shapePick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.shape === 'glow') === glow)));
+  try { localStorage.setItem('pb-btnshape-2', glow ? 'glow' : 'round'); } catch (e) {}
 }
 document.querySelectorAll('#shapePick button').forEach(b => b.addEventListener('click', () => applyShape(b.dataset.shape)));
 try { applyBtnColor(localStorage.getItem('pb-btncolor') || 'auto'); applyShape(localStorage.getItem('pb-btnshape-2') || 'round'); } catch (e) { applyBtnColor('auto'); applyShape('round'); }
@@ -3641,7 +3642,7 @@ const EN = {
   'Με το A': 'With A', 'Με το B': 'With B', 'Με το 1': 'With 1', 'Με το 2': 'With 2', 'Μενού': 'Menu',
   'Οθόνη παιχνιδιού': 'Game screen', 'ΠΑΙΧΝΙΔΙΑ': 'GAMES', 'ΠΩΣ ΠΑΙΖΕΙΣ': 'HOW TO PLAY', 'Πίσω στη βιβλιοθήκη': 'Back to the library',
   'Παιχνίδι': 'Game', 'Παύση': 'Pause', 'Συνέχεια': 'Resume', 'Πρόσθεσε': 'Add', 'Ρυθμίσεις': 'Settings', 'Σταυρός': 'D-pad',
-  'Στρογγυλά': 'Round', 'Τετράγωνα': 'Square', 'Στυλ κονσόλας': 'Console style', 'Σχήμα κουμπιών': 'Button shape',
+  'Κλασικά': 'Classic', 'Διάφανα με φως': 'Translucent, lit', 'Στυλ κονσόλας': 'Console style', 'Είδος κουμπιών': 'Button type',
   'Τρέξιμο με διπλό πάτημα': 'Run with a double tap', 'Φέρε πίσω τις δωρεάν κασέτες Game Boy': 'Bring back the free Game Boy carts',
   'Φρένο': 'Brake', 'Φόρτωσε ROM (ένα ή πολλά μαζί)': 'Load ROMs (one or many at once)', 'Χειριστήριο': 'Controls',
   'Χρώμα κονσόλας': 'Console colour', 'Χρώμα κουμπιών': 'Button colour', 'Χωρίς εξώφυλλο': 'No cover',
