@@ -630,8 +630,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <h2>Χειριστήριο</h2>
     <div class="style-pick" id="padPick"><button data-pad="stick">Joystick</button><button data-pad="cross">Σταυρός</button></div>
     <h2>Τρέξιμο με διπλό πάτημα</h2>
-    <div class="style-pick" id="runPick"><button data-run="0">Όχι</button><button data-run="1">Ναι</button></div>
-    <div class="set-note">Πάτα δεξιά (ή αριστερά) δύο φορές και κράτα: ο χαρακτήρας τρέχει, γιατί η εφαρμογή κρατάει πατημένο και το κουμπί 1 / B μαζί με την κατεύθυνση.</div>
+    <div class="style-pick" id="runPick"><button data-run="0">Όχι</button><button data-run="1">Με το B</button><button data-run="2">Με το A</button></div>
+    <div class="set-note">Πάτα δεξιά (ή αριστερά) δύο φορές και κράτα: η εφαρμογή κρατάει πατημένο για σένα το κουμπί του τρεξίματος, κι ο αντίχειρας μένει ελεύθερος για άλμα. Διάλεξε με ποιο κουμπί τρέχει το παιχνίδι.</div>
   </section>
 
   <section class="set-card">
@@ -1717,7 +1717,7 @@ function applyN64Labels(name) {
 }
 
 /* ---- joystick or cross-shaped D-pad, remembered per game (driving games always use the stick) ---- */
-let crossOn = false, currentName = '';
+let crossOn = false, currentName = '', currentFile = '';
 // N64 fighting games: the cross makes the special-move combinations much easier, so it's their default
 const N64_FIGHTERS = /mortal kombat|killer instinct|\bmace\b|fighters destiny|flying dragon|clay ?fighter|bio ?f\.?r\.?e\.?a\.?k|dual heroes|rakuga/i;
 const crossEl = document.getElementById('cross');
@@ -1837,7 +1837,7 @@ function bootEJS(entry) {
   ejsLoaded = true;
   current = entry.id;
   consoleEl.dataset.prof = entry.sys === 'arcade' ? arcadeProfile(entry.fileName) : '';
-  currentName = entry.name || '';
+  currentName = entry.name || ''; currentFile = (entry.fileName || '').toLowerCase();
   try { localStorage.setItem('pb-boot', JSON.stringify({ id: entry.id })); } catch (e) {}
   setSys(entry.sys); setNow(entry.sys === 'arcade' && entry.fileName ? arcadeName(entry.fileName) : entry.name);
   if (entry.sys === 'n64') applyN64Labels(entry.name || '');
@@ -2862,11 +2862,11 @@ function dpadFrom(e, prev) {
 }
 // ---- run with a double tap (per game, off by default): tap left/right, then tap again and hold, and the
 // game's first button (B on Game Boy/NES/GBA, button 1 on arcade) is held too while that direction is ---
-let runOn = false, runDir = 0, lastDirM = 0;
+let runOn = false, runSlot = 1, runDir = 0, lastDirM = 0;
 const relAt = {};
 function runButtonPress(on) {
-  if (sys === 'gb') { held.run = on ? K.B : 0; applyKeys(); return; }
-  const idx = sys === 'arcade' ? +(document.getElementById('arc1').dataset.ej || 0) : 0;
+  if (sys === 'gb') { held.run = on ? (runSlot === 2 ? K.A : K.B) : 0; applyKeys(); return; }
+  const idx = sys === 'arcade' ? +(document.getElementById('arc' + runSlot).dataset.ej || 0) : (runSlot === 2 ? 8 : 0);
   ejsInput(idx, on ? 1 : 0);
 }
 function runCheck(m) {
@@ -2880,10 +2880,16 @@ function runCheck(m) {
   lastDirM = m;
 }
 function applyRunMode() {
-  let on = false; try { on = !!current && localStorage.getItem('pb-run-' + current) === '1'; } catch (e) {}
-  if (!on && runDir) { runDir = 0; runButtonPress(false); }
-  runOn = on;
-  document.querySelectorAll('#runPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.run === '1') === on)));
+  let v = null; try { v = current ? localStorage.getItem('pb-run-' + current) : null; } catch (e) {}
+  // Wonder Boy runs with its top button (2) held: on by default there
+  if (v === null && current && sys === 'arcade' && /^wboy/.test(currentFile)) v = '2';
+  if (runDir) { runDir = 0; runButtonPress(false); }
+  runOn = v === '1' || v === '2'; runSlot = v === '2' ? 2 : 1;
+  const arc = sys === 'arcade';
+  document.querySelectorAll('#runPick button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.run === (runOn ? String(runSlot) : '0')));
+    if (b.dataset.run !== '0') b.textContent = arc ? 'Με το ' + b.dataset.run : (b.dataset.run === '1' ? 'Με το B' : 'Με το A');
+  });
 }
 document.querySelectorAll('#runPick button').forEach(b => b.addEventListener('click', () => {
   if (!current) return;
