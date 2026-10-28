@@ -350,6 +350,23 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 #menu .swatch-name { color: #8b929c; }
 #menu .help { color: #9aa1ab; }
 .scrim { display: none; }
+.case-cov { position: absolute; top: -8px; right: -8px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #0b0c0e; background: #3a3f47; color: #fff;
+  display: none; place-items: center; cursor: pointer; padding: 0; }
+.case-cov svg { width: 15px; height: 15px; }
+.lib.editing .case-cov { display: grid; }
+.cover-sheet { position: fixed; inset: 0; z-index: 27; background: rgba(5,6,8,.7); display: flex; align-items: flex-end; justify-content: center; }
+.cover-sheet[hidden] { display: none; }
+.cs-panel { width: 100%; max-width: 640px; max-height: 86vh; overflow-y: auto; box-sizing: border-box; border-radius: 24px 24px 0 0; color: #e9ebee; font-family: var(--body);
+  background: linear-gradient(180deg, #24272c, #15171a); border-top: 1px solid rgba(255,255,255,.14); box-shadow: 0 -20px 40px rgba(0,0,0,.6);
+  padding: 16px max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }
+.cs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cs-head .menu-title { font: 800 18px var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.cs-label { margin-top: 16px; font: 700 13px var(--body); color: #9aa1ab; }
+.cs-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 14px 12px; }
+.cs-pick { border: 0; padding: 0; background: none; cursor: pointer; display: flex; flex-direction: column; gap: 6px; text-align: left; color: #c9ced5; font: 600 11px/1.25 var(--body); }
+.cs-pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; background: #2a2e34; box-shadow: 0 8px 14px rgba(0,0,0,.5); }
+.cs-empty { grid-column: 1 / -1; color: #8b929c; font-size: 13px; }
 @keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
 @media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
 .lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
@@ -529,6 +546,20 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <div class="lib-sub"><span id="libCount"></span><button class="lib-edit" id="libEdit">Επεξεργασία</button></div>
   <div class="lib-grid" id="libGrid"></div>
   <button class="lib-add" id="libAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Πρόσθεσε</button>
+</div>
+<div class="cover-sheet" id="coverSheet" role="dialog" aria-label="Εξώφυλλο" hidden>
+  <div class="cs-panel">
+    <div class="cs-head"><span class="menu-title" id="csTitle">Εξώφυλλο</span>
+      <button class="lib-key" id="csClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="cs-acts">
+      <button class="key3d" id="csPhoto">Από τις φωτογραφίες σου</button>
+      <button class="key3d dark" id="csNone">Χωρίς εξώφυλλο</button>
+      <button class="key3d dark" id="csAuto">Αυτόματο</button>
+    </div>
+    <div class="cs-label">Ή διάλεξε από τη συλλογή:</div>
+    <div class="cs-grid" id="csGrid"></div>
+    <input type="file" id="csFile" accept="image/*" hidden>
+  </div>
 </div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="menu" id="menu" role="dialog" aria-label="Ρυθμίσεις" hidden>
@@ -2884,6 +2915,11 @@ function applyLayout(tall) {
     Object.assign(el.style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' });
   }
   const n = +consoleEl.dataset.btns || 3;
+  // 1 or 2 buttons: bigger, and placed like the Game Boy's B/A (no empty spot where a 3rd would be)
+  if (n <= 2 && consoleEl.dataset.sys === 'arcade') {
+    const spots = n === 1 ? [tall ? [52, 56, 74] : [52, 46, 66]] : (tall ? [[14, 100, 74], [96, 22, 74]] : [[18, 66, 66], [100, 26, 66]]);
+    spots.forEach(([l, t, sz], i) => Object.assign(document.getElementById('arc' + (i + 1)).style, { left: l + 'px', top: t + 'px', width: sz + 'px', height: sz + 'px' }));
+  }
   if (n >= 4) {
     const T = tall ? 1 : 0, sz = tall ? 54 : 48;
     // 4 buttons (e.g. Neo Geo A B C D): A B on the bottom row, C D on the top row
@@ -3237,6 +3273,60 @@ function playGame(g) {
   if (g.cart) { bootCart(g.id); return; }
   dbGet(g.id).then(full => { if (full) bootEntry(full); else { toast('Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.', 3500); renderMine(); } });
 }
+// ---- change a game's cover: own photo, another box from the collection, none, or back to automatic ----
+let csGame = null;
+const coverSheet = document.getElementById('coverSheet');
+function setCover(id, val) { try { if (val === null) localStorage.removeItem(coverKey(id)); else localStorage.setItem(coverKey(id), val); } catch (e) { toast('Δεν χωράει άλλο εξώφυλλο στη μνήμη της εφαρμογής.', 3500); return false; } return true; }
+async function coverSuggestions(g) {
+  const dirs = g.sys === 'arcade' ? ['MAME', 'FBNeo_-_Arcade_Games'] : [THUMB_DIRS[g.sys === 'gb' && g.cgb ? 'gbc' : g.sys]].concat(g.sys === 'gb' ? [THUMB_DIRS[g.cgb ? 'gb' : 'gbc']] : []);
+  const words = normT(titleOf(g.sys === 'arcade' ? (arcFullName(g.fileName) || arcadeName(g.fileName)) : g.name)).split(' ').filter(w => w.length > 1);
+  const out = [];
+  for (const dir of dirs) {
+    const list = await coverIndex(dir);
+    for (const e of list) {
+      const t = e.title.split(' '); let hit = 0;
+      for (const w of words) if (t.includes(w)) hit++;
+      if (hit) out.push({ dir, n: e.n, sc: hit / Math.max(words.length, t.length) + (e.title === words.join(' ') ? 1 : 0) });
+    }
+  }
+  return out.sort((a, b) => b.sc - a.sc).slice(0, 24);
+}
+async function openCoverSheet(g) {
+  csGame = g;
+  document.getElementById('csTitle').textContent = displayName(g);
+  const grid = document.getElementById('csGrid'); grid.innerHTML = '<div class="cs-empty">Ψάχνω…</div>';
+  coverSheet.hidden = false;
+  const list = await coverSuggestions(g).catch(() => []);
+  if (csGame !== g) return;
+  grid.innerHTML = '';
+  if (!list.length) { grid.innerHTML = '<div class="cs-empty">Δεν βρέθηκαν εξώφυλλα με παρόμοιο όνομα' + (navigator.onLine ? '' : ' (χρειάζεται ίντερνετ)') + '.</div>'; return; }
+  for (const c of list) {
+    const url = `https://raw.githubusercontent.com/libretro-thumbnails/${c.dir}/master/Named_Boxarts/${encodeURIComponent(c.n)}.png`;
+    const b = document.createElement('button'); b.className = 'cs-pick';
+    const im = document.createElement('img'); im.crossOrigin = 'anonymous'; im.loading = 'lazy'; im.alt = ''; im.src = url; im.onerror = () => b.remove();
+    const t = document.createElement('span'); t.textContent = c.n;
+    b.append(im, t);
+    b.addEventListener('click', () => { if (setCover(g.id, url)) { closeCoverSheet(); renderMine(); } });
+    grid.appendChild(b);
+  }
+}
+function closeCoverSheet() { coverSheet.hidden = true; csGame = null; }
+document.getElementById('csClose').addEventListener('click', closeCoverSheet);
+coverSheet.addEventListener('click', e => { if (e.target === coverSheet) closeCoverSheet(); });
+document.getElementById('csNone').addEventListener('click', () => { if (csGame && setCover(csGame.id, 'none')) { closeCoverSheet(); renderMine(); } });
+document.getElementById('csAuto').addEventListener('click', () => { if (csGame) { setCover(csGame.id, null); closeCoverSheet(); renderMine(); } });
+document.getElementById('csPhoto').addEventListener('click', () => document.getElementById('csFile').click());
+document.getElementById('csFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f || !csGame) return;
+  // shrink to box size and keep it as a small JPEG, so it fits the app's storage
+  try {
+    const bmp = await createImageBitmap(f);
+    const W = 300, H = 400, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const k = Math.max(W / bmp.width, H / bmp.height), w = bmp.width * k, h = bmp.height * k;
+    c.getContext('2d').drawImage(bmp, (W - w) / 2, (H - h) / 2, w, h);
+    if (setCover(csGame.id, c.toDataURL('image/jpeg', 0.82))) { closeCoverSheet(); renderMine(); }
+  } catch (err) { toast('Δεν μπόρεσα να ανοίξω αυτή την εικόνα.', 3000); }
+});
 async function renderMine() {
   const seq = ++renderSeq;
   const metas = await dbMeta();
@@ -3305,6 +3395,10 @@ async function renderMine() {
         toast('Σβήστηκε: ' + displayName(g)); renderMine();
       });
       card.appendChild(del);
+      const cov = document.createElement('button'); cov.className = 'case-cov'; cov.setAttribute('aria-label', 'Άλλαξε εξώφυλλο: ' + displayName(g));
+      cov.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>';
+      cov.addEventListener('click', () => openCoverSheet(g));
+      card.appendChild(cov);
     }
     grid.appendChild(card);
   }
