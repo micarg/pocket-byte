@@ -3107,35 +3107,63 @@ let renderSeq = 0;
 // ---- box art: libretro-thumbnails (the covers RetroArch shows), by the game's name; remembered per game ----
 const THUMB_DIRS = { nes: 'Nintendo_-_Nintendo_Entertainment_System', gb: 'Nintendo_-_Game_Boy', gbc: 'Nintendo_-_Game_Boy_Color', gba: 'Nintendo_-_Game_Boy_Advance',
   md: 'Sega_-_Mega_Drive_-_Genesis', n64: 'Nintendo_-_Nintendo_64', psx: 'Sony_-_PlayStation', arcade: 'MAME' };
-function coverCandidates(g) {
-  const dir = THUMB_DIRS[g.sys === 'gb' && g.cgb ? 'gbc' : g.sys];
-  if (!dir || g.cart) return [];
-  const base = g.sys === 'arcade' ? (arcFullName(g.fileName) || '') : (g.name || '');
-  if (!base) return [];
-  const bare = base.replace(/\s*[\(\[].*$/, '').trim(), first = base.replace(/^([^\(\[]*\([^)]*\)).*$/, '$1').trim();
-  const names = [...new Set(g.sys === 'arcade' ? [base, bare] : [base, first, bare + ' (USA)', bare + ' (Europe)', bare + ' (World)', bare + ' (Japan)'])];
-  const safe = n => encodeURIComponent(n.replace(/[&*\/:`<>?\\|"]/g, '_'));
-  const out = [];
-  for (const kind of ['Named_Boxarts', 'Named_Titles']) for (const n of names) out.push(`https://raw.githubusercontent.com/libretro-thumbnails/${dir}/master/${kind}/${safe(n)}.png`);
-  return out;
+// The list of box art names each collection has (covers/<collection>.json, built from the repositories), so a game's
+// cover is picked by name — even when the file is named a little differently — instead of guessing URLs.
+const coverIdx = new Map();
+function coverIndex(dir) {
+  if (!coverIdx.has(dir)) coverIdx.set(dir, fetch('covers/' + dir + '.json').then(r => r.ok ? r.json() : []).then(list => list.map(n => ({ n, norm: normT(n), title: normT(titleOf(n)), tags: tagsOf(n) }))).catch(() => { coverIdx.delete(dir); return []; }));
+  return coverIdx.get(dir);
 }
-const coverKey = id => 'pb-cover:' + id;
+const normT = t => t.toLowerCase().replace(/\.(zip|nes|gba?c?|z64|n64|v64|md|bin|gen|smd|chd|cue|iso|pbp)$/, '').replace(/[_&:'’.!,\-\/~+]+/g, ' ').replace(/\band\b/g, ' ').replace(/^the\s+/, '').replace(/\s+/g, ' ').trim();
+const titleOf = t => t.replace(/\s*[\(\[].*$/, '');
+const tagsOf = t => (t.match(/[\(\[]([^\)\]]*)[\)\]]/g) || []).join(' ').toLowerCase();
+function regionOf(t) {
+  const x = tagsOf(t);
+  if (/\busa?\b|\(u\)|\bus\b/.test(x)) return 'usa';
+  if (/europe|\(e\)|\beu\b/.test(x)) return 'europe';
+  if (/japan|\(j\)/.test(x)) return 'japan';
+  return /world/.test(x) ? 'world' : '';
+}
+function bestCover(list, name) {
+  const full = normT(name), title = normT(titleOf(name)), reg = regionOf(name);
+  if (!title) return null;
+  const exact = list.find(e => e.norm === full); if (exact) return exact.n;
+  let best = null, bs = -1e9;
+  for (const e of list) {
+    let sc;
+    if (e.title === title) sc = 100;
+    else if (title.length >= 6 && (e.title.startsWith(title + ' ') || e.title.endsWith(' ' + title))) sc = 60;
+    else if (e.title.length >= 6 && title.startsWith(e.title + ' ')) sc = 50;
+    else continue;
+    if (reg && e.tags.includes(reg)) sc += 8;
+    if (/\b(usa|world)\b/.test(e.tags)) sc += 3; else if (/europe/.test(e.tags)) sc += 2;
+    if (/beta|proto|demo|sample|hack|bootleg|pirate|unl/.test(e.tags)) sc -= 10;
+    sc -= e.tags.length / 40;
+    if (sc > bs) { bs = sc; best = e.n; }
+  }
+  return best;
+}
+const coverKey = id => 'pb-cover2:' + id;
 function coverKnown(id) { try { return localStorage.getItem(coverKey(id)); } catch (e) { return null; } }
-let coverQueue = Promise.resolve();
-function findCover(g) {
-  // one game at a time, so a big library doesn't fire hundreds of requests at once
-  return coverQueue = coverQueue.then(async () => {
-    const known = coverKnown(g.id);
-    if (known && !known.startsWith('none:')) return known;
-    if (known && Date.now() - +known.slice(5) < 7 * 864e5) return null;
-    if (!navigator.onLine) return null;
-    for (const url of coverCandidates(g)) {
-      const ok = await new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im.naturalWidth > 8); im.onerror = () => res(false); im.src = url; });
-      if (ok) { try { localStorage.setItem(coverKey(g.id), url); } catch (e) {} return url; }
+async function findCover(g) {
+  if (g.cart) return null;
+  const known = coverKnown(g.id);
+  if (known) return known === 'none' ? null : known;
+  const dirs = g.sys === 'arcade' ? ['MAME', 'FBNeo_-_Arcade_Games'] : [THUMB_DIRS[g.sys === 'gb' && g.cgb ? 'gbc' : g.sys]].concat(g.sys === 'gb' ? [THUMB_DIRS[g.cgb ? 'gb' : 'gbc']] : []);
+  const name = g.sys === 'arcade' ? (arcFullName(g.fileName) || arcadeName(g.fileName)) : g.name;
+  for (const dir of dirs) {
+    if (!dir) continue;
+    const list = await coverIndex(dir);
+    if (!list.length) return null; // index not reachable now (offline): try again next time
+    const hit = bestCover(list, name || '');
+    if (hit) {
+      const url = `https://raw.githubusercontent.com/libretro-thumbnails/${dir}/master/Named_Boxarts/${encodeURIComponent(hit)}.png`;
+      try { localStorage.setItem(coverKey(g.id), url); } catch (e) {}
+      return url;
     }
-    try { localStorage.setItem(coverKey(g.id), 'none:' + Date.now()); } catch (e) {}
-    return null;
-  });
+  }
+  try { localStorage.setItem(coverKey(g.id), 'none'); } catch (e) {}
+  return null;
 }
 const SYS_ORDER = ['arcade', 'psx', 'n64', 'md', 'gba', 'nes', 'gb'];
 const SYS_SHORT = { arcade: 'Arcade', psx: 'PS1', n64: 'N64', md: 'Genesis', gba: 'GBA', nes: 'NES', gb: 'Game Boy' };
@@ -3149,7 +3177,7 @@ function caseArt(g) {
   const tag = document.createElement('span'); tag.className = 'case-tag'; tag.textContent = g.sys === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[g.sys].tag; art.appendChild(tag);
   const known = coverKnown(g.id);
   const show = url => { if (!url) return; const im = document.createElement('img'); im.crossOrigin = 'anonymous'; im.alt = ''; im.decoding = 'async'; im.src = url; im.onload = () => ph.remove(); im.onerror = () => im.remove(); art.insertBefore(im, tag); };
-  if (known && !known.startsWith('none:')) show(known); else if (!g.cart) findCover(g).then(show);
+  if (known && known !== 'none') show(known); else if (!known && !g.cart) findCover(g).then(show);
   return art;
 }
 function playGame(g) {
