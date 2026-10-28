@@ -265,6 +265,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib { position: fixed; inset: 0; z-index: 22; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
   background: radial-gradient(ellipse at 50% 0%, #2a2d33 0%, #131417 55%, #0b0c0e 100%) fixed; color: #e9ebee; font-family: var(--body);
   padding: calc(14px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+.lib, .lib *, .cover-sheet, .cover-sheet *, #menu, #menu * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .lib-head { display: flex; align-items: center; justify-content: space-between; max-width: 720px; margin: 0 auto; }
 .lib-logo { font: 18px var(--display); letter-spacing: .18em; text-shadow: 0 2px 0 #000; }
 .lib-acts { display: flex; gap: 8px; }
@@ -621,7 +622,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 
   <section class="set-card">
     <div class="set-kicker">ΠΑΙΧΝΙΔΙΑ</div>
-    <div class="toolbar"><button class="tool wide" id="loadBtn">Φόρτωσε ROM (ένα ή πολλά μαζί)</button></div>
+    <div class="toolbar"><button class="tool wide" id="loadBtn">Φόρτωσε ROM (ένα ή πολλά μαζί)</button>
+      <button class="tool wide" id="cartsBack" hidden>Φέρε πίσω τις δωρεάν κασέτες Game Boy</button></div>
     <input type="file" id="romFile" multiple hidden>
   </section>
 
@@ -2363,6 +2365,8 @@ async function unzipFirstRom(buf) {
   }
   throw new Error('nozip');
 }
+document.getElementById('lib').addEventListener('contextmenu', e => e.preventDefault());
+document.getElementById('cartsBack').addEventListener('click', () => { setHiddenCarts([]); renderMine(); toast('Οι δωρεάν κασέτες γύρισαν στη βιβλιοθήκη.'); });
 document.getElementById('loadBtn').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 document.getElementById('romFile').addEventListener('change', async e => {
   let files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
@@ -3387,6 +3391,9 @@ document.getElementById('csFile').addEventListener('change', async e => {
     if (setCover(csGame.id, c.toDataURL('image/jpeg', 0.82))) { closeCoverSheet(); renderMine(); }
   } catch (err) { toast('Δεν μπόρεσα να ανοίξω αυτή την εικόνα.', 3000); }
 });
+// the free Game Boy carts that come with the app can be removed from the library (and brought back in Settings)
+function hiddenCarts() { try { return JSON.parse(localStorage.getItem('pb-hidden-carts') || '[]'); } catch (e) { return []; } }
+function setHiddenCarts(list) { try { localStorage.setItem('pb-hidden-carts', JSON.stringify(list)); } catch (e) {} }
 async function renderMine() {
   const seq = ++renderSeq;
   const metas = await dbMeta();
@@ -3396,7 +3403,9 @@ async function renderMine() {
     if (seq !== renderSeq) return;
     if (sys === 'arcade' && current) { const g = metas.find(x => x.id === current); if (g && g.fileName) setNow(arcadeName(g.fileName)); }
   }
-  const all = [...(metas || []), ...CARTS.map(c => ({ id: c.id, name: c.name, sys: 'gb', cgb: c.tag === 'GBC', cart: true, bg: c.bg }))];
+  const hidden = hiddenCarts();
+  const all = [...(metas || []), ...CARTS.filter(c => !hidden.includes(c.id)).map(c => ({ id: c.id, name: c.name, sys: 'gb', cgb: c.tag === 'GBC', cart: true, bg: c.bg }))];
+  document.getElementById('cartsBack').hidden = !hidden.length;
   let played = {}; try { played = JSON.parse(localStorage.getItem('pb-played') || '{}'); } catch (e) {}
   // continue card: the game on screen, else the last one played
   const contEl = document.getElementById('libCont'); contEl.innerHTML = '';
@@ -3446,15 +3455,17 @@ async function renderMine() {
     btn.addEventListener('click', () => { if (!lib.classList.contains('editing')) playGame(g); });
     const name = document.createElement('span'); name.className = 'case-name'; name.textContent = displayName(g);
     card.append(btn, name);
-    if (!g.cart) {
+    {
       const del = document.createElement('button'); del.className = 'case-del'; del.setAttribute('aria-label', 'Σβήσε το ' + displayName(g));
       del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
       del.addEventListener('click', async () => {
         if (!del.dataset.sure) { del.dataset.sure = '1'; toast('Πάτα ξανά το × για να σβήσεις το «' + displayName(g) + '».', 3000); setTimeout(() => delete del.dataset.sure, 3000); return; }
-        await dbDel(g.id); try { localStorage.removeItem(coverKey(g.id)); } catch (e) {}
+        if (g.cart) setHiddenCarts([...hiddenCarts(), g.id]);
+        else { await dbDel(g.id); try { localStorage.removeItem(coverKey(g.id)); } catch (e) {} }
         toast('Σβήστηκε: ' + displayName(g)); renderMine();
       });
       card.appendChild(del);
+      if (g.cart) { grid.appendChild(card); continue; }
       const cov = document.createElement('button'); cov.className = 'case-cov'; cov.setAttribute('aria-label', 'Άλλαξε εξώφυλλο: ' + displayName(g));
       cov.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>';
       cov.addEventListener('click', () => openCoverSheet(g));
