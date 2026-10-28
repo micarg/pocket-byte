@@ -1799,7 +1799,23 @@ const OUTRUN_SPR = [['7cc86208', '10371', '0a1c98de'], ['b557078c', '10372', '16
   ['8051e517', '10374', '22744340'], ['59b60bd7', '10375', '62a472bd'], ['f3b8f318', '10376', '8337ace7'],
   ['17a1b04a', '10377', 'c86daecb'], ['a1062984', '10378', '544068fd']];
 const OUTRUN_OLD_PROG = { outrun: [], outruna: ['434fadbc', '1ddcc04e', 'dcc586e7'] };
+// Newer program-ROM revisions MAME 2003 never had, run under a set it has with the same hardware setup:
+// the files go in under that set's names (MAME only warns about the checksums).
+const MAME_REVS = [
+  // Street Fighter II' Champion Edition, World 920513: like MAME 2003's sf2ce (World 920313) board, newer code
+  { match: /^sf2ce$/, need: ['0aaa1a3a', '2bbe15ed', '925a7877'], set: 'sf2ce', files: [['0aaa1a3a', 'sf2ce.23', '3f846b74'], ['2bbe15ed', 'sf2ce.22', '99f1cca4']] },
+];
 async function mameConvert(dbm, set, u) {
+  const rev = MAME_REVS.find(r => r.match.test(set));
+  if (rev) {
+    const list = zipEntryList(u), byCrc = new Map(list.map(e => [e.crc, e]));
+    if (!rev.need.every(c => byCrc.has(c)) || !dbm[rev.set]) return null;
+    const have = new Set(byCrc.keys()), aliases = [];
+    for (const [crc, name, oldCrc] of rev.files) { aliases.push([name, [byCrc.get(crc).name]]); have.add(oldCrc); }
+    if (!mameCanRun(dbm, rev.set, have)) return null;
+    const zip = zipBuild([{ u, keep: () => true }], aliases);
+    return zip ? { zip, set: rev.set } : null;
+  }
   if (!/^outrun/.test(set)) return null;
   const list = zipEntryList(u), byCrc = new Map(list.map(e => [e.crc, e]));
   const have = new Set(byCrc.keys());
@@ -2083,7 +2099,13 @@ const ARCADE_NAMES = { outruna: 'Out Run', outrunra: 'Out Run', mslug: 'Metal Sl
 const DRIVING_SETS = new Set(['crusnusa', 'crusnu40', 'crusnu21', 'crusnwld', 'crusnw20', 'crusnw17', 'crusnw13', 'offroadc', 'offroadc4', 'offroadc3', 'offroadc1',
   'outrun', 'outruna', 'outrunb', 'toutrun', 'toutruna', 'chasehq', 'chasehqj', 'harddriv', 'harddrvc', 'hdrivair', 'racedriv', 'racedrvc', 'stunrun', 'roadblst', 'pdrift', 'hangon', 'superhng', 'enduror', 'contcirc', 'nightstr', 'sci', 'topspeed', 'scud', 'daytona', 'srallyc', 'rdft']);
 function arcadeProfile(fileName) { return DRIVING_SETS.has((fileName || '').toLowerCase().replace(/\.zip$/, '')) ? 'drive' : 'std'; }
-function arcadeName(file) { const k = file.toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || k; }
+function arcadeName(file) { const k = (file || '').toLowerCase().replace(/\.zip$/, ''); return ARCADE_NAMES[k] || (arcNames && arcNames[k]) || k; }
+// full titles of every arcade set MAME 2003 / FBNeo know, loaded when the library has arcade games
+let arcNames = null, arcNamesP = null;
+function loadArcNames() {
+  if (!arcNamesP) arcNamesP = fetch('arcade-names.json').then(r => r.ok ? r.json() : null).then(j => { arcNames = j; return j; }).catch(() => null);
+  return arcNamesP;
+}
 async function unzipFirstRom(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf);
   let p = 0;
@@ -2917,7 +2939,14 @@ async function renderMine() {
   mylist.innerHTML = '';
   if (all === null) { mylist.innerHTML = '<div class="empty">Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.</div>'; return; }
   if (!all.length) { mylist.innerHTML = '<div class="empty">Δεν έχεις ακόμα δικά σου παιχνίδια. Πάτα «Φόρτωσε δικό σου ROM» και θα μπει εδώ, στην κατηγορία της κονσόλας του.</div>'; return; }
-  all.sort((a, b) => a.name.localeCompare(b.name, 'el'));
+  if (!arcNames && all.some(g => g.sys === 'arcade')) {
+    await loadArcNames();
+    if (seq !== renderSeq) return;
+    // the title shown on the console too
+    if (sys === 'arcade' && current) { const g = all.find(x => x.id === current); if (g && g.fileName) setNow(arcadeName(g.fileName)); }
+  }
+  const shown = g => g.sys === 'arcade' && g.fileName ? arcadeName(g.fileName) : g.name;
+  all.sort((a, b) => shown(a).localeCompare(shown(b), 'el'));
   for (const key of ['nes', 'gb', 'gba', 'md', 'n64', 'psx', 'arcade']) {
     const group = all.filter(g => (g.sys || 'gb') === key);
     if (!group.length) continue;
@@ -2929,7 +2958,7 @@ async function renderMine() {
       const row = document.createElement('div');
       row.className = 'mygame' + (g.id === current ? ' active' : '');
       const play = document.createElement('button'); play.className = 'play';
-      const n = document.createElement('span'); n.className = 'n'; n.textContent = g.name;
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = key === 'arcade' && g.fileName ? arcadeName(g.fileName) : g.name;
       const tag = document.createElement('small'); tag.textContent = key === 'gb' ? (g.cgb ? 'GBC' : 'GB') : SYSTEMS[key].tag;
       play.append(n, tag);
       play.addEventListener('click', async () => {
