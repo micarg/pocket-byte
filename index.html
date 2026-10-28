@@ -3325,7 +3325,7 @@ document.getElementById('saDone').addEventListener('click', () => { scrAdjEl.hid
 function scrAdj() { try { const v = JSON.parse(localStorage.getItem('pb-scr:' + current) || 'null'); if (v && v.w > 0 && v.h > 0) return { w: v.w, h: v.h, y: +v.y || 0 }; } catch (e) {} return { w: 1, h: 1, y: 0 }; }
 // Where the picture really is on the emulator's canvas: sampled from the drawn frames (the black bars around it
 // differ per core and per screen shape, and what the core reports doesn't always match what it draws)
-let picBox = null, picKey = '', picBlank = 0;
+let picBox = null, picKey = '', picBlank = 0, picNew = null;
 const picCv = document.createElement('canvas');
 function picKeyNow() { const c = document.querySelector('#ejs canvas'), h = document.getElementById('ejs-host'); return c ? [c.width, c.height, h.clientWidth, h.clientHeight].join('x') : ''; }
 function samplePicture() {
@@ -3344,19 +3344,26 @@ function samplePicture() {
         const k = (y * w + i) * 4;
         if (d[k] + d[k + 1] + d[k + 2] > 40) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
       }
-      if (x1 < 0) { picBlank++; if (picBlank === 4) fitGameScreen(); return; }
+      // a black frame (fade between scenes) says nothing: keep the fit; give up only if no picture was ever found
+      if (x1 < 0) { picBlank++; if (picBlank === 4 && !picBox) fitGameScreen(); return; }
       picBlank = 0;
       const b = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h], key = picKeyNow();
-      // frames add up (a dark scene shows less), until the canvas or the screen changes size
-      if (picKey !== key || !picBox) { picKey = key; picBox = b; }
-      else picBox = [Math.min(picBox[0], b[0]), Math.min(picBox[1], b[1]), Math.max(picBox[2], b[2]), Math.max(picBox[3], b[3])];
-      const m = Math.min(picBox[0], 1 - picBox[2]); picBox[0] = m; picBox[2] = 1 - m; // always centred across
+      const uni = (p, q) => { const u = [Math.min(p[0], q[0]), Math.min(p[1], q[1]), Math.max(p[2], q[2]), Math.max(p[3], q[3])]; const m = Math.min(u[0], 1 - u[2]); u[0] = m; u[2] = 1 - m; return u; };
+      // frames add up (a dark scene shows less). When the canvas or the screen changes size, the picture keeps its
+      // current fit until three frames at the new size agree, so it never jumps back to the small unfitted picture
+      if (!picBox) { picKey = key; picBox = uni(b, b); }
+      else if (picKey === key) picBox = uni(picBox, b);
+      else {
+        picNew = picNew && picNew.key === key ? { key, box: uni(picNew.box, b), n: picNew.n + 1 } : { key, box: uni(b, b), n: 1 };
+        if (picNew.n < 3) return;
+        picKey = key; picBox = picNew.box; picNew = null;
+      }
       fitGameScreen();
     } catch (e) { picBlank = 9; }
   });
 }
 function pictureAspect() {
-  if (!picBox || picKey !== picKeyNow()) return 0;
+  if (!picBox) return 0;
   const h = document.getElementById('ejs-host');
   const pw = (picBox[2] - picBox[0]) * h.clientWidth, ph = (picBox[3] - picBox[1]) * h.clientHeight;
   return pw > 0 && ph > 0 ? pw / ph : 0;
@@ -3365,13 +3372,13 @@ function fitGameScreen() {
   fitLcd();
   const host = document.getElementById('ejs-host'), el = document.getElementById('ejs');
   // the measured picture, stretched over the bars (same limits as below)
-  if (fillOn && ejsStarted && picBlank < 4) {
+  if (fillOn && ejsStarted && (picBox || picBlank < 4)) {
     const W = host.clientWidth, H = host.clientHeight;
     el.classList.remove('fill'); el.classList.add('fit2');
     el.style.width = W + 'px'; el.style.height = H + 'px';
     const adj = scrAdj();
     const plain = () => { el.style.transform = adj.w === 1 && adj.h === 1 && !adj.y ? '' : `translate(${(W / 2 * (1 - adj.w)).toFixed(2)}px, ${(H / 2 * (1 - adj.h) + adj.y * H).toFixed(2)}px) scale(${adj.w}, ${adj.h})`; };
-    if (!picBox || picKey !== picKeyNow()) { plain(); return; }
+    if (!picBox) { plain(); return; }
     const [x0, y0, x1, y1] = picBox, pw = (x1 - x0) * W, ph = (y1 - y0) * H;
     if (pw < W * 0.4 || ph < H * 0.3) { plain(); return; }
     let sx = W / pw, sy = H / ph;
@@ -3424,7 +3431,7 @@ function fitLcd() {
   c.style.cssText = `position:absolute;left:50%;top:50%;width:${w}px;height:${h}px;transform:translate(-50%,calc(-50% + ${(adj.y * H).toFixed(1)}px)) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
 }
 function setFill(on) {
-  fillOn = on; picBox = null; picBlank = 0;
+  fillOn = on; picBox = null; picNew = null; picBlank = 0;
   try { localStorage.setItem('pb-fill', on ? '1' : '0'); } catch (e) {}
   document.querySelectorAll('#fillPick button').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.fill === '1') === on)));
   fitGameScreen();
@@ -3436,7 +3443,7 @@ setFill(fillOn);
 setInterval(() => {
   if (!ejsStarted || document.hidden) return;
   const was = fitAspect;
-  if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.01) { fit(); setTimeout(samplePicture, 350); }
+  if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.06) { fit(); setTimeout(samplePicture, 350); }
   else { fitGameScreen(); samplePicture(); }
 }, 1500);
 addEventListener('resize', () => setTimeout(fitGameScreen, 50));
