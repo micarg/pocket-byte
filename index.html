@@ -1809,6 +1809,8 @@ const OUTRUN_OLD_PROG = { outrun: [], outruna: ['434fadbc', '1ddcc04e', 'dcc586e
 const MAME_REVS = [
   // Street Fighter II' Champion Edition, World 920513: like MAME 2003's sf2ce (World 920313) board, newer code
   { match: /^sf2ce$/, need: ['0aaa1a3a', '2bbe15ed', '925a7877'], set: 'sf2ce', files: [['0aaa1a3a', 'sf2ce.23', '3f846b74'], ['2bbe15ed', 'sf2ce.22', '99f1cca4']] },
+  // Metamorphic Force, Europe ver EAA: MAME 2003 has the US ver UAA (same board, other program ROMs)
+  { match: /^metamrph$/, need: ['30962c2b', 'e314330a'], set: 'metamrph', files: [['30962c2b', '224a01', 'e1d9b516'], ['e314330a', '224a02', '289c926b']] },
 ];
 async function mameConvert(dbm, set, u) {
   const rev = MAME_REVS.find(r => r.match.test(set));
