@@ -407,7 +407,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .console.land .sys .b-wrap { flex: none; width: 66px; max-width: none; }
 .console.land .sys.only-psx .b-wrap { width: 46px; }
 .console.land .land-gap { display: block; flex: 1; pointer-events: none; }
-.console.land .foot-lbl { display: none; }
+.console.land .foot-lbl, .console.snug .foot-lbl { display: none; }
 .console.land .dock-menu { width: 40px; height: 40px; }
 .console.land .btn .t:not(.in), .console.land .n64-c-label, .console.land .drive-lbl { color: #aab0b9; }
 .console.land .sys .lbl { color: #e9ebee; }
@@ -1899,6 +1899,13 @@ function bootEJS(entry) {
   try { localStorage.setItem('pb-boot', JSON.stringify({ id: entry.id })); } catch (e) {}
   setSys(entry.sys); setNow(entry.sys === 'arcade' && entry.fileName ? arcadeName(entry.fileName) : entry.name);
   if (entry.sys === 'n64') applyN64Labels(entry.name || '');
+  saveUi({ sys: entry.sys, prof: consoleEl.dataset.prof, name: entry.name || '', file: currentFile });
+  // arcade: the remembered (or looked-up) number of buttons right away; the emulator's wiring is settled below
+  if (entry.sys === 'arcade' && consoleEl.dataset.prof !== 'drive') {
+    const u = uiCache(entry.id);
+    if (u.n) applyArcadeButtons(u.n, u.sf, window.EJS_core);
+    setupArcadeButtons(currentFile.replace(/\.zip$/, ''), window.EJS_core);
+  }
   document.getElementById('led').classList.add('on');
   document.getElementById('ejs-host').hidden = false;
   showOverlay('Φορτώνει…');
@@ -3093,9 +3100,16 @@ function applyLayout(tall) {
 /* ---- arcade buttons: as many as the game uses, wired to where each emulator expects them ---- */
 let arcBtnsP = null;
 const arcBtnTable = () => arcBtnsP || (arcBtnsP = fetch('arcade-buttons.json').then(r => r.ok ? r.json() : {}).catch(() => ({})));
+// per game: console, controls and picture shape, so after a reload the right buttons are there at once
+function uiCache(id) { try { return JSON.parse(localStorage.getItem('pb-ui:' + id) || '{}') || {}; } catch (e) { return {}; } }
+function saveUi(o, id) { id = id || current; if (!id) return; try { localStorage.setItem('pb-ui:' + id, JSON.stringify({ ...uiCache(id), ...o })); } catch (e) {} }
 async function setupArcadeButtons(set, core) {
   const info = (await arcBtnTable())[set] || [3, 0];
-  const n = Math.max(1, Math.min(6, info[0])), sf = !!info[1];
+  applyArcadeButtons(info[0], info[1], core);
+  saveUi({ n: info[0], sf: info[1] ? 1 : 0 });
+}
+function applyArcadeButtons(n0, sf0, core) {
+  const n = Math.max(1, Math.min(6, n0 || 3)), sf = !!sf0;
   // RetroPad index for button 1..6: MAME 2003 (classic pad) = B A Y X L R; FBNeo = B A Y X R L,
   // and FBNeo's Street Fighter layout = punches Y X L, kicks B A R
   const map = core === 'arcade' ? (sf ? [1, 9, 10, 0, 8, 11] : [0, 8, 1, 9, 11, 10]) : [0, 8, 1, 9, 10, 11];
@@ -3127,6 +3141,22 @@ function fitLand(vw, vh) {
   consoleEl.style.setProperty('--scr-h', vh + 'px');
   setTimeout(fitGameScreen, 0);
 }
+// the game picture's width / height (0 while unknown); remembered per game so the layout is right from the start
+let fitAspect = 0;
+function gameAspect() {
+  let a = 0;
+  if (gb) a = 160 / 144;
+  else if (ejsStarted && window.EJS_emulator) try {
+    const g = EJS_emulator.gameManager;
+    a = +g.getVideoDimensions('aspect') || 0;
+    if (!a) { const w = +g.getVideoDimensions('width'), h = +g.getVideoDimensions('height'); if (w && h) a = w / h; }
+  } catch (e) {}
+  if (!(a > 0.3 && a < 4)) a = 0;
+  if (a && current) { if (Math.abs(a - (uiCache(current).a || 0)) > 0.005) saveUi({ a }); }
+  else if (!a && current) a = uiCache(current).a || 0;
+  fitAspect = a;
+  return a;
+}
 function fitModern() {
   const vw = window.innerWidth, vh = window.innerHeight;
   if (consoleEl.classList.contains('land')) { fitLand(vw, vh); return; }
@@ -3140,7 +3170,20 @@ function fitModern() {
   consoleEl.style.setProperty('--ctl-z', z.toFixed(3));
   const bez = consoleEl.querySelector('.bezel');
   const cs = getComputedStyle(bez);
-  const availH = bez.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const room = () => bez.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  let availH = room();
+  // the picture should span the whole width: if the screen is too short for that, drop the footer label and
+  // make the controls a little smaller (never below 80%) to give the screen the height it needs
+  consoleEl.classList.remove('snug');
+  const a = gameAspect();
+  if (a) {
+    const need = Math.min(vw / a, vh * 0.64);
+    if (need > availH + 2) { consoleEl.classList.add('snug'); availH = room(); }
+    if (need > availH + 2) {
+      const z2 = Math.max(0.8, z - (need - availH) / natH);
+      if (z2 < z) { consoleEl.style.setProperty('--ctl-z', z2.toFixed(3)); availH = room(); }
+    }
+  }
   // the screen takes the whole width and all the height left above the controls (the picture is fitted inside it)
   consoleEl.style.setProperty('--scr-w', vw + 'px');
   consoleEl.style.setProperty('--scr-h', Math.max(160, availH) + 'px');
@@ -3237,7 +3280,11 @@ document.querySelectorAll('#padPick button').forEach(b => b.addEventListener('cl
 document.querySelectorAll('#fillPick button').forEach(b => b.addEventListener('click', () => setFill(b.dataset.fill === '1')));
 setFill(fillOn);
 // the picture size can change mid-game (menus, resolution switches), so check now and then
-setInterval(() => { if (ejsStarted && !document.hidden) fitGameScreen(); }, 1500);
+setInterval(() => {
+  if (!ejsStarted || document.hidden) return;
+  const was = fitAspect;
+  if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.005) fit(); else fitGameScreen();
+}, 1500);
 addEventListener('resize', () => setTimeout(fitGameScreen, 50));
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
 fit(); document.fonts && document.fonts.ready.then(fit);
@@ -3865,6 +3912,16 @@ try {
 } catch (e) { applyShell('persimmon'); applyStyle('modern'); setHaptics(true); }
 let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
 if (lastId && lastId.startsWith('user:')) {
+  // show this game's controls straight away, while its file is still being read
+  const u = uiCache(lastId);
+  if (u.sys && u.sys !== 'gb') {
+    const was = current; current = lastId;
+    consoleEl.dataset.prof = u.prof || ''; currentName = u.name || ''; currentFile = u.file || '';
+    setSys(u.sys);
+    if (u.sys === 'n64') applyN64Labels(currentName);
+    if (u.sys === 'arcade' && u.prof !== 'drive' && u.n) applyArcadeButtons(u.n, u.sf, null);
+    current = was;
+  }
   // if this game took the whole app down while starting last time, don't start it again by itself (that loops)
   let crashed = null;
   try { crashed = JSON.parse(localStorage.getItem('pb-boot') || 'null'); localStorage.removeItem('pb-boot'); } catch (e) {}
