@@ -677,6 +677,8 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .hap-test input { width: 46px; height: 26px; accent-color: #34c759; }
 .pause-ic span { width: 10px; height: 32px; border-radius: 4px; background: #f2f3f5; }
 /* 4-6 arcade buttons: thinner wells, so the keys keep clear space between them */
+.console[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]) .face.only-arcade-std { display: none !important; }
+.console[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]):not(.land) .pad-row { justify-content: center; }
 .console.modern[data-btns="4"] .only-arcade-std .round, .console.modern[data-btns="5"] .only-arcade-std .round, .console.modern[data-btns="6"] .only-arcade-std .round {
   box-shadow: inset 0 2px 1px rgba(255,255,255,.45), inset 0 -4px 6px rgba(0,0,0,.25), 0 4px 0 var(--ab-3), 0 6px 10px rgba(0,0,0,.45), 0 0 0 4px #16171a, 0 0 0 5px rgba(255,255,255,.12); }
 /* face buttons, translucent and lit from inside (MODERN): like illuminated arcade buttons */
@@ -2395,7 +2397,7 @@ function bootEJS(entry) {
   // arcade: the remembered (or looked-up) number of buttons right away; the emulator's wiring is settled below
   if (entry.sys === 'arcade' && consoleEl.dataset.prof !== 'drive') {
     const u = uiCache(entry.id);
-    if (u.n) applyArcadeButtons(u.n, u.sf, window.EJS_core);
+    if (u.n != null) applyArcadeButtons(u.n, u.sf, window.EJS_core);
     setupArcadeButtons(currentFile.replace(/\.zip$/, ''), window.EJS_core);
   }
   document.getElementById('led').classList.add('on');
@@ -3553,7 +3555,7 @@ function spCfg() {
 }
 function spSave(c) { try { localStorage.setItem('pb-sp:' + current, JSON.stringify(c)); } catch (e) {} }
 function spApply() {
-  const on = !!current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive' && !!spCfg().on;
+  const on = !!current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive' && consoleEl.dataset.btns !== '0' && !!spCfg().on;
   const was = consoleEl.classList.contains('sp-on');
   consoleEl.classList.toggle('sp-on', on);
   if (on) { const c = spCfg(); [1, 2].forEach(i => { const [m, a] = c.k[i - 1]; document.getElementById('spKey' + i).dataset.lbl = SP_LBL[m] + ' ' + spAtkLabel(a); }); }
@@ -3587,7 +3589,7 @@ function spRun(k) {
 });
 function renderSp() {
   const sec = document.getElementById('spSec');
-  sec.hidden = !(current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive');
+  sec.hidden = !(current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive' && consoleEl.dataset.btns !== '0');
   if (sec.hidden) return;
   const c = spCfg(), n = Math.max(1, Math.min(6, +consoleEl.dataset.btns || 3));
   document.querySelectorAll('#spPick button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.sp === (c.on ? 1 : 0))));
@@ -3823,13 +3825,13 @@ function uiCache(id) { try { return JSON.parse(localStorage.getItem('pb-ui:' + i
 function saveUi(o, id) { id = id || current; if (!id) return; try { localStorage.setItem('pb-ui:' + id, JSON.stringify({ ...uiCache(id), ...o })); } catch (e) {} }
 async function setupArcadeButtons(set, core) {
   const table = await arcBtnTable();
-  if (!table) { const u = uiCache(current); applyArcadeButtons(u.n || 3, u.sf, core); return; }
+  if (!table) { const u = uiCache(current); applyArcadeButtons(u.n != null ? u.n : 3, u.sf, core); return; }
   const info = table[set] || [3, 0];
   applyArcadeButtons(info[0], info[1], core);
   saveUi({ n: info[0], sf: info[1] ? 1 : 0 });
 }
 function applyArcadeButtons(n0, sf0, core) {
-  const n = Math.max(1, Math.min(6, n0 || 3)), sf = !!sf0;
+  const n = Math.max(0, Math.min(6, n0 == null ? 3 : n0)), sf = !!sf0;
   // RetroPad index for button 1..6: MAME 2003 (classic pad) = B A Y X L R; FBNeo = B A Y X R L,
   // and FBNeo's Street Fighter layout = punches Y X L, kicks B A R
   const map = core === 'arcade' ? (sf ? [1, 9, 10, 0, 8, 11] : [0, 8, 1, 9, 11, 10]) : [0, 8, 1, 9, 10, 11];
@@ -5062,7 +5064,7 @@ if (lastId && lastId.startsWith('user:')) {
     consoleEl.dataset.prof = u.prof || ''; currentName = u.name || ''; currentFile = u.file || '';
     setSys(u.sys);
     if (u.sys === 'n64') applyN64Labels(currentName);
-    if (u.sys === 'arcade' && u.prof !== 'drive' && u.n) applyArcadeButtons(u.n, u.sf, null);
+    if (u.sys === 'arcade' && u.prof !== 'drive' && u.n != null) applyArcadeButtons(u.n, u.sf, null);
     current = was;
   }
   // if this game took the whole app down while starting last time, don't start it again by itself (that loops)
