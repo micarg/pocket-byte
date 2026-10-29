@@ -564,13 +564,7 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .face .btn > .hap-sw { pointer-events: auto; left: -12%; top: -12%; width: 124%; height: 124%; right: auto; bottom: auto; }
 .face .btn.round > .hap-sw { clip-path: circle(50%); border-radius: 50%; }
 .lay-edit .face .btn > .hap-sw, .hap-off .face .btn > .hap-sw { pointer-events: none; }
-/* while a finger holds the stick, iOS ignores a second finger's tap on a small switch; one big switch over the whole
-   button area took those presses before, so it comes back for as long as the stick is held */
-.face > .hap-sw { pointer-events: none; top: var(--ft, 0px); left: var(--fl, 0px); right: auto; bottom: auto;
-  width: calc(100% - var(--fl, 0px) - var(--fr, 0px)); height: calc(100% - var(--ft, 0px) - var(--fb, 0px)); }
-.console.stick-held:not(.lay-edit) .face > .hap-sw { pointer-events: auto; }
-.console.stick-held .face .btn > .hap-sw { pointer-events: none; }
-.hap-off .face > .hap-sw { pointer-events: none !important; }
+
 .hap-sw.tap { touch-action: manipulation; border-radius: inherit; -webkit-appearance: none; appearance: none; display: block; background: none; }
 .hap-hidden { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; visibility: hidden; }
 .sys .b-wrap { position: relative; }
@@ -791,14 +785,15 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
   padding: 13px 20px; border-radius: 22px; background: rgba(58, 61, 67, .94); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid rgba(255,255,255,.1); box-shadow: 0 12px 32px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
   color: #f2f3f5; font: 600 14.5px/1.4 var(--body); text-align: center; letter-spacing: .005em;
-  transform: translate(-50%, var(--ty, 0px)); opacity: 1; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  transform: translate(calc(-50% + var(--tx, 0px)), var(--ty, 0px)); opacity: 1; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
   transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s ease; }
+.toast.top { bottom: auto; top: calc(10px + env(safe-area-inset-top, 0px)); }
+.toast.has-act { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 10px 10px 18px; }
+.toast .t-act { flex: none; min-height: 34px; padding: 0 14px; border: 0; border-radius: 17px; background: #f2f3f5; color: #15171b; font: 800 13.5px var(--body); cursor: pointer; }
 .toast::before { content: ""; position: absolute; left: 50%; top: 5px; width: 28px; height: 3px; margin-left: -14px; border-radius: 2px; background: rgba(255,255,255,.22); }
-/* while playing, a message never takes a touch meant for the buttons under it (it goes by itself) */
-html:has(#lib[hidden]) .toast { pointer-events: none; }
-.toast.enter { --ty: 24px; opacity: 0; }
+.toast.enter { --ty: 24px; opacity: 0; } .toast.top.enter { --ty: -24px; }
 .toast.dragging { transition: none; }
-.toast.leave { --ty: 120px; opacity: 0; }
+.toast.leave { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* ---------- liquid glass across the menu ---------- */
 /* the cover of the game you're playing glows softly behind the menu, so the glass has colour to bend */
@@ -2202,34 +2197,53 @@ let mameSet = '', mameVerified = false; // the MAME 2003 set name a rebuilt zip 
 let audioCtx = null, node = null;
 const SR = (() => { try { const C = window.AudioContext || window.webkitAudioContext; audioCtx = new C(); return audioCtx.sampleRate; } catch (e) { return 48000; } })();
 
-// a grey bubble at the bottom, in the chosen language; swipe it down to dismiss
-function toast(msg, ms) {
+// a grey bubble in the chosen language: at the bottom over the menus, at the top while playing (so it never sits on
+// the buttons); swipe it away in any direction. An optional action shows as a small button inside it.
+function toast(msg, ms, act) {
   let text = msg; try { text = tr(msg); } catch (e) {} // the language settings load further down
   toastEl.textContent = text;
+  toastEl.classList.toggle('has-act', !!act);
+  if (act) {
+    const b = document.createElement('button'); b.className = 't-act'; b.textContent = act.label;
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+    b.addEventListener('click', e => { e.stopPropagation(); hideToast(); act.fn(); });
+    toastEl.appendChild(b);
+  }
+  const libEl = document.getElementById('lib');
+  toastEl.classList.toggle('top', !!(libEl && libEl.hidden));
   clearTimeout(toast.t); clearTimeout(toast.h);
   if (toastEl.hidden || toastEl.classList.contains('leave')) {
     toastEl.classList.remove('leave'); toastEl.classList.add('enter'); toastEl.hidden = false;
     toastEl.offsetWidth; toastEl.classList.remove('enter');
   }
-  toastEl.style.removeProperty('--ty');
+  toastEl.style.removeProperty('--ty'); toastEl.style.removeProperty('--tx');
   toast.t = setTimeout(hideToast, ms || 2600);
 }
-function hideToast() {
+function hideToast(dx, dy) {
   clearTimeout(toast.t); if (toastEl.hidden) return;
-  toastEl.style.removeProperty('--ty'); toastEl.classList.remove('dragging'); toastEl.classList.add('leave');
-  toast.h = setTimeout(() => { toastEl.hidden = true; toastEl.classList.remove('leave'); }, 300);
+  // off in the direction it was swiped (or away from the nearest edge)
+  const top = toastEl.classList.contains('top');
+  if (typeof dx !== 'number') { dx = 0; dy = top ? -1 : 1; }
+  const L = Math.hypot(dx, dy) || 1;
+  toastEl.style.setProperty('--tx', (dx / L * 160).toFixed(0) + 'px'); toastEl.style.setProperty('--ty', (dy / L * 160).toFixed(0) + 'px');
+  toastEl.classList.remove('dragging'); toastEl.classList.add('leave');
+  toast.h = setTimeout(() => { toastEl.hidden = true; toastEl.classList.remove('leave'); toastEl.style.removeProperty('--tx'); toastEl.style.removeProperty('--ty'); }, 300);
 }
 {
-  let y0 = null, dy = 0;
-  toastEl.addEventListener('pointerdown', e => { y0 = e.clientY; dy = 0; toastEl.classList.add('dragging'); clearTimeout(toast.t); try { toastEl.setPointerCapture(e.pointerId); } catch (_) {} });
+  let x0 = null, y0 = null, dx = 0, dy = 0;
+  toastEl.addEventListener('pointerdown', e => { e.stopPropagation(); x0 = e.clientX; y0 = e.clientY; dx = dy = 0; toastEl.classList.add('dragging'); clearTimeout(toast.t); try { toastEl.setPointerCapture(e.pointerId); } catch (_) {} });
   toastEl.addEventListener('pointermove', e => {
     if (y0 === null) return;
-    dy = e.clientY - y0;
-    toastEl.style.setProperty('--ty', (dy > 0 ? dy : dy / 4) + 'px'); // downwards follows the finger, upwards resists
+    dx = e.clientX - x0; dy = e.clientY - y0;
+    // follows the finger sideways and away from the screen edge it sits at; towards the middle it resists
+    const top = toastEl.classList.contains('top'), inward = top ? dy > 0 : dy < 0;
+    toastEl.style.setProperty('--tx', dx + 'px'); toastEl.style.setProperty('--ty', (inward ? dy / 4 : dy) + 'px');
   });
   const end = () => {
     if (y0 === null) return; y0 = null; toastEl.classList.remove('dragging');
-    if (dy > 28) hideToast(); else { toastEl.style.removeProperty('--ty'); toast.t = setTimeout(hideToast, 1800); }
+    const top = toastEl.classList.contains('top'), away = top ? -dy : dy;
+    if (Math.abs(dx) > 44 || away > 26) hideToast(Math.abs(dx) > Math.abs(away) ? dx : 0, Math.abs(dx) > Math.abs(away) ? 0 : dy);
+    else { toastEl.style.removeProperty('--ty'); toastEl.style.removeProperty('--tx'); toast.t = setTimeout(hideToast, 1800); }
   };
   toastEl.addEventListener('pointerup', end); toastEl.addEventListener('pointercancel', end);
 }
@@ -3463,6 +3477,23 @@ addEventListener('pointerup', hapEnd, true); addEventListener('pointercancel', h
 // a tick in the middle of a hold (stick turning to a new direction, finger sliding onto another button)
 // (the tick for a press made with another finger also comes from here: iOS doesn't count a second finger's tap as a
 // tap, so that switch never flips. The finger already holding the stick ticks instead, on its very next movement.)
+// While iOS tracks a finger on one switch (the stick's), it seems to ignore taps on other switches (the buttons').
+// So once the stick has been held for a second, its switch steps aside: the buttons tick again, the stick's
+// direction changes stop ticking until it is let go.
+const stickHapT = new Map();
+function stickHapAside(host) {
+  if (!isApple) return;
+  clearTimeout(stickHapT.get(host));
+  stickHapT.set(host, setTimeout(() => {
+    const sw = host.querySelector(':scope > .hap-sw'); if (!sw) return;
+    sw.style.display = 'none';
+    for (const st of hapActive) if (st.sw === sw) hapActive.delete(st);
+  }, 1000));
+}
+function stickHapBack(host) {
+  clearTimeout(stickHapT.get(host)); stickHapT.delete(host);
+  const sw = host.querySelector(':scope > .hap-sw'); if (sw) sw.style.display = '';
+}
 function hapMid() { const now = performance.now(); for (const st of hapActive) if (now >= st.armedAt) { st.pend = 1; st.moves = Math.max(st.moves, 1); } }
 // iPhone shows its text magnifier after a long press, even on non-selectable controls; cancelling the touch's
 // default action on the control panel stops that (the buttons themselves run on pointer events, which still fire).
@@ -3472,7 +3503,7 @@ ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.cl
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) {
-  document.querySelectorAll('.controls .face .btn, .controls .face, #dpad, #tpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
+  document.querySelectorAll('.controls .face .btn, #dpad, #tpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
 }
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
@@ -3793,7 +3824,7 @@ function dpadUpdate() {
     ejsInput(18, ay > 0 ? v(ay) : 0); ejsInput(19, ay < 0 ? v(-ay) : 0);
   }
 }
-dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); consoleEl.classList.add('stick-held'); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e, null); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
+dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); consoleEl.classList.add('stick-held'); stickHapAside(dpad); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e, null); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
 function dpadMove(e) {
   const prev = dpadPointers.get(e.pointerId); if (!prev) return;
   e.preventDefault();
@@ -3803,7 +3834,7 @@ function dpadMove(e) {
 }
 // pointerrawupdate (where supported) delivers moves without waiting for the next frame
 dpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', dpadMove);
-const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); if (![...dpadPointers.keys()].some(k => k !== 'tp')) consoleEl.classList.remove('stick-held'); };
+const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); if (![...dpadPointers.keys()].some(k => k !== 'tp')) { consoleEl.classList.remove('stick-held'); stickHapBack(dpad); } };
 dpad.addEventListener('pointerup', dEnd); dpad.addEventListener('pointercancel', dEnd); dpad.addEventListener('lostpointercapture', dEnd);
 dpad.addEventListener('contextmenu', e => e.preventDefault());
 // Swipe pad (joystick-only games): drag ~16px in a direction to turn; another drag (without lifting) turns again.
@@ -3822,7 +3853,7 @@ function tpSet(m) {
 tpad.addEventListener('pointerdown', e => {
   e.preventDefault(); unlockAudio();
   try { tpad.setPointerCapture(e.pointerId); } catch (_) {}
-  tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch'); consoleEl.classList.add('stick-held');
+  tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch'); consoleEl.classList.add('stick-held'); stickHapAside(tpad);
   // a press toward a side (outside the middle) turns that way at once, like the arms of a d-pad;
   // the middle is left to swipes
   const r = tpad.getBoundingClientRect();
@@ -3842,7 +3873,7 @@ tpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'poi
 });
 const tpEnd = e => {
   if (!tpStart || e.pointerId !== tpStart.id) return;
-  tpStart = null; tpad.classList.remove('touch'); if (![...dpadPointers.keys()].some(k => k !== 'tp')) consoleEl.classList.remove('stick-held');
+  tpStart = null; tpad.classList.remove('touch'); stickHapBack(tpad); if (![...dpadPointers.keys()].some(k => k !== 'tp')) consoleEl.classList.remove('stick-held');
   if (!TP_LATCH.test(arcSet || mameSet || '')) tpSet(0);
 };
 tpad.addEventListener('pointerup', tpEnd); tpad.addEventListener('pointercancel', tpEnd); tpad.addEventListener('lostpointercapture', tpEnd);
@@ -5236,6 +5267,28 @@ async function renderMine() {
   applySearch();
 }
 
+/* ---- new version: said once after an update, and offered while the app is open when a newer one is out ---- */
+const appVer = { now: null, offered: null };
+function readVer() {
+  return fetch('sw.js', { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(t => (t.match(/pocket-byte-v(\d+)/) || [])[1] || null).catch(() => null);
+}
+readVer().then(v => {
+  if (!v) return; // (not served with the app's files, e.g. inside an artifact)
+  appVer.now = v;
+  let was = null; try { was = localStorage.getItem('pb-ver'); localStorage.setItem('pb-ver', v); } catch (e) {}
+  if (was && was !== v) setTimeout(() => toast('Ενημερώθηκε στη νέα έκδοση (' + v + ').', 4000), 3500);
+});
+function checkNewVer() {
+  if (!appVer.now || document.hidden) return;
+  readVer().then(v => {
+    if (!v || v === appVer.now || v === appVer.offered) return;
+    appVer.offered = v;
+    toast('Υπάρχει νέα έκδοση.', 12000, { label: 'Ανανέωση', fn: () => { try { storeAll(); } catch (e) {} setTimeout(() => location.reload(), 300); } });
+  });
+}
+setInterval(checkNewVer, 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(checkNewVer, 1500); });
+
 /* ---- start ---- */
 try {
   applyShell(localStorage.getItem('pb-shell') || 'persimmon');
@@ -5286,6 +5339,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Υπάρχει νέα έκδοση.': 'A new version is out.', 'Ανανέωση': 'Update',
   'Πάτα προς μια πλευρά ή σύρε': 'Tap a side or swipe', 'Επιφάνεια αφής για κατευθύνσεις': 'Swipe pad for directions',
   'Δεξί κουμπί': 'Right key', 'Αριστερό κουμπί': 'Left key',
   'Κουμπιά ειδικών κινήσεων': 'Special move keys', 'Ναι': 'Yes', 'Ειδική κίνηση 1': 'Special move 1', 'Ειδική κίνηση 2': 'Special move 2',
@@ -5366,6 +5420,7 @@ const EN = {
   'Οι αποθηκεύσεις': 'Saves',
 };
 const EN_RE = [
+  [/^Ενημερώθηκε στη νέα έκδοση \((\d+)\)\.$/, 'Updated to the new version ($1).'],
   [/^Το «(.*)» έκλεισε την εφαρμογή (\d+) φορές ενώ έπαιζε, οπότε δεν το ξανάνοιξα μόνο του\. Δοκίμασέ το με (.*): άνοιξέ το και πάτα Μενού → Παιχνίδι → «Εξομοιωτής για αυτό το παιχνίδι»\.$/s, "«$1» closed the app $2 times while playing, so I didn't reopen it by itself. Try it with $3: open it and tap Menu → Game → “Emulator for this game”."],
   [/^Το «(.*)» έκλεισε την εφαρμογή (\d+) φορές ενώ έπαιζε, οπότε δεν το ξανάνοιξα μόνο του\.$/s, "«$1» closed the app $2 times while playing, so I didn't reopen it by itself."],
   [/^Το «(.*)» γέμιζε τη μνήμη όταν κρατούσε αυτόματα την πρόοδο, κι η εφαρμογή ξανάνοιγε\. Το σταμάτησα γι' αυτό το παιχνίδι: για να κρατήσεις την πρόοδο, σώσε σε μια θέση από την παύση\.$/s, "«$1» filled the memory while saving your progress automatically, so the app kept reopening. I turned that off for this game: to keep your progress, save to a slot from the pause menu."],
