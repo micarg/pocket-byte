@@ -475,7 +475,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .hap-sw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; -webkit-appearance: auto; appearance: auto;
   touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: inherit; }
 .hap-off .hap-sw, :disabled > .hap-sw { pointer-events: none; }
-.hap-sw.tap { touch-action: manipulation; border-radius: inherit; }
+.hap-sw.tap { touch-action: manipulation; border-radius: inherit; -webkit-appearance: none; appearance: none; display: block; background: none; }
+.hap-hidden { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; visibility: hidden; }
 .sys .b-wrap { position: relative; }
 /* button layout editor: a panel over the game screen; the controls below show what can be moved */
 .lay-bar { position: fixed; z-index: 30; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); max-width: 460px; margin: 0 auto; box-sizing: border-box;
@@ -552,11 +553,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .pane .set-note { font-size: 12.5px; line-height: 1.45; color: #8b929c; margin-top: -2px; }
 @keyframes pb-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
 @media (prefers-reduced-motion: reduce) { .lib.editing .case-art { animation: none; } }
-.lib-add { position: fixed; z-index: 23; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: 54px; padding: 0 22px; border-radius: 27px; border: 0;
-  display: flex; align-items: center; gap: 8px; cursor: pointer; font: 800 15px var(--body); color: #fff;
+.lib-sub-r { display: flex; align-items: center; gap: 14px; }
+.lib-add { position: relative; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 0; flex: none;
+  display: grid; place-items: center; cursor: pointer; color: #fff;
   background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 50%, #000));
   box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 50%, #000), 0 14px 26px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.4); text-shadow: 0 1px 1px rgba(0,0,0,.3); }
-.lib-add svg { width: 18px; height: 18px; }
+.lib-add svg { width: 17px; height: 17px; }
 .lib-add:active { transform: translateY(3px); }
 
 .menu { position: fixed; z-index: 26; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: calc(16px + env(safe-area-inset-left, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); max-width: 400px; margin-left: auto; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; background: var(--desk); border: 1px solid #3a444a; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
@@ -768,12 +770,11 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   <div class="lib-cont" id="libCont"></div>
   <div class="lib-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input type="search" id="libSearch" placeholder="Αναζήτηση παιχνιδιού" aria-label="Αναζήτηση παιχνιδιού" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"><button id="libSearchX" aria-label="Καθάρισε" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div>
   <div class="lib-tabs" id="libTabs" role="tablist" aria-label="Κονσόλα"></div>
-  <div class="lib-sub"><span id="libCount"></span><button class="lib-edit" id="libEdit">Επεξεργασία</button></div>
+  <div class="lib-sub"><span id="libCount"></span><span class="lib-sub-r"><button class="lib-edit" id="libEdit">Επεξεργασία</button><button class="lib-add" id="libAdd" aria-label="Πρόσθεσε παιχνίδια"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></span></div>
   <div class="lib-grid" id="libGrid"></div>
   </div>
   <div class="pane" id="paneGame" hidden></div>
   <div class="pane" id="paneSet" hidden></div>
-  <button class="lib-add" id="libAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Πρόσθεσε</button>
 </div>
 <div class="cover-sheet" id="coverSheet" role="dialog" aria-label="Εξώφυλλο" hidden>
   <div class="cs-panel">
@@ -3065,24 +3066,13 @@ const HAP_MENU = '#lib button, #coverSheet button, #scrAdj button, #dockMenu';
 function hapTap(host) {
   if (host.querySelector(':scope > .hap-sw')) return;
   if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-  const sw = document.createElement('input');
-  sw.type = 'checkbox'; sw.setAttribute('switch', ''); sw.className = 'hap-sw tap'; sw.tabIndex = -1; sw.setAttribute('aria-hidden', 'true');
-  let x0 = 0, y0 = 0, swiped = false, unwatch = null;
-  const finish = () => { if (unwatch) unwatch(); unwatch = null; sw.style.transform = ''; };
-  sw.addEventListener('pointerdown', e => {
-    finish(); x0 = e.clientX; y0 = e.clientY; swiped = false;
-    const id = e.pointerId;
-    const mv = ev => { if (ev.pointerId === id && !swiped && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) { swiped = true; sw.style.transform = `translateX(${sw.checked ? -HAP_PARK : HAP_PARK}px)`; } };
-    const end = ev => { if (ev.pointerId !== id) return; if (ev.type === 'pointercancel') swiped = true; setTimeout(finish, 0); };
-    addEventListener('pointermove', mv, { capture: true, passive: true });
-    addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
-    unwatch = () => { removeEventListener('pointermove', mv, { capture: true }); removeEventListener('pointerup', end, true); removeEventListener('pointercancel', end, true); };
-  });
-  sw.addEventListener('click', e => {
-    if (swiped) { e.preventDefault(); e.stopPropagation(); }
-    swiped = false;
-  });
-  host.appendChild(sw);
+  // A switch under the finger would take the whole gesture (WebKit treats its touchstart as handled, so the page
+  // can't scroll). A label over the button doesn't: iOS turns a real tap on it into a trusted click, which the label
+  // passes to its hidden switch (the tick) and which carries on to the button as usual.
+  const l = document.createElement('label'); l.className = 'hap-sw tap'; l.setAttribute('aria-hidden', 'true');
+  const sw = document.createElement('input'); sw.type = 'checkbox'; sw.setAttribute('switch', ''); sw.className = 'hap-hidden';
+  sw.addEventListener('click', e => e.stopPropagation()); // the label's own click already reaches the button
+  l.appendChild(sw); host.appendChild(l);
 }
 if (isApple) {
   const scan = root => { if (root.matches && root.matches(HAP_MENU)) hapTap(root); if (root.querySelectorAll) root.querySelectorAll(HAP_MENU).forEach(hapTap); };
@@ -3863,7 +3853,6 @@ function setPane(name) {
   pane = name;
   for (const [n, id] of [['lib', 'paneLib'], ['game', 'paneGame'], ['set', 'paneSet']]) document.getElementById(id).hidden = n !== name;
   document.querySelectorAll('#libNav button').forEach(b => { if (b.dataset.pane === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  document.getElementById('libAdd').hidden = name !== 'lib';
   if (name === 'game') { renderSlots(); showArcCore(); }
   if (name === 'set') showArcCore();
   lib.scrollTop = 0;
@@ -4457,7 +4446,7 @@ async function renderMine() {
   // "All": every case the same size; one system: each cover in its own shape
   grid.classList.toggle('sys', libFilter !== 'all' && libFilter !== 'fav');
   if (metas === null) { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.'; grid.appendChild(e); }
-  else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
+  else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα το + για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
   for (const g of list) {
     const card = document.createElement('div'); card.className = 'case-card' + (g.id === current ? ' active' : '');
     const btn = document.createElement('button'); btn.className = 'case'; btn.setAttribute('aria-label', 'Παίξε ' + displayName(g));
@@ -4531,6 +4520,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Πρόσθεσε παιχνίδια': 'Add games',
   'Διάταξη κουμπιών (θέση / μέγεθος)': 'Button layout (position / size)', 'Διάταξη κουμπιών': 'Button layout', 'Μέγεθος': 'Size', 'Μικρότερο': 'Smaller', 'Μεγαλύτερο': 'Bigger',
   'Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.': 'Drag the stick or a button to move it. Tap one to change its size.',
   'Μπήκε στα αγαπημένα.': 'Added to favourites.', 'Βγήκε από τα αγαπημένα.': 'Removed from favourites.', 'Αγαπημένα': 'Favourites',
@@ -4591,7 +4581,7 @@ const EN = {
   'Λείπει το BIOS της Neo Geo (neogeo.zip). Φόρτωσέ το από το μενού, ή ένα παιχνίδι Neo Geo που το περιέχει.': 'The Neo Geo BIOS (neogeo.zip) is missing. Load it from the menu, or a Neo Geo game that contains it.',
   'Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού, παίζει με FBNeo.': "MAME doesn't have this version of the game, so it plays on FBNeo.",
   'Ο MAME δεν έχει αυτή την έκδοση του παιχνιδιού. Το ανοίγω με FBNeo…': "MAME doesn't have this version of the game. Opening it with FBNeo…",
-  'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.': 'Tap “Add” to bring in your own games. Until then, try the free Game Boy carts.',
+  'Πάτα το + για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.': 'Tap + to bring in your own games. Until then, try the free Game Boy carts.',
   'Συνεχίζεις από εκεί που είχες μείνει.': 'Picking up where you left off.', 'Το παιχνίδι ξεκίνησε από την αρχή.': 'The game restarted from the beginning.',
   'Το N64 θέλει αρκετή δύναμη. Σε παλιότερα κινητά μπορεί να κολλάει.': 'N64 needs a lot of power. It may stutter on older phones.',
   'Οι δωρεάν κασέτες γύρισαν στη βιβλιοθήκη.': 'The free carts are back in the library.',
