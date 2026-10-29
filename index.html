@@ -264,6 +264,20 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.modern .shoulders .pill::after { font-size: 16px; letter-spacing: 0; text-indent: 0; }
 .console.modern .shoulders .pill.down { transform: translateY(2px); }
 .console.modern:is([data-sys="gba"], [data-sys="psx"], [data-sys="n64"]):not(.land) .pad-row { margin-top: calc(66px / var(--ctl-z, 1)); }
+/* special moves for fighting games: two keys at the top right, over the attack buttons */
+.console.modern.sp-on[data-sys="arcade"]:not([data-prof="drive"]) .shoulders.only-sp { display: block; position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 3; margin: 0; }
+.console.modern.sp-on[data-sys="arcade"]:not([data-prof="drive"]):not(.land) .pad-row { margin-top: calc(66px / var(--ctl-z, 1)); }
+.console.modern .shoulders .sp-k { width: 30%; max-width: 132px; }
+.console.modern .shoulders .sp-1 { right: 0; }
+.console.modern .shoulders .sp-2 { right: calc(min(30%, 132px) + 10px); }
+.console.modern .shoulders .sp-1 .pill { border-radius: 0 0 0 24px; }
+.console.modern .shoulders .sp-2 .pill { border-radius: 0 0 16px 16px; }
+.console.modern .shoulders .sp-k .pill::after { font-size: 14px; letter-spacing: .02em; text-indent: 0; white-space: nowrap; }
+.console.land .shoulders .sp-k { width: 120px; } .console.land .shoulders .sp-2 { right: 130px; }
+.console.land.sp-on[data-sys="arcade"] .sys:not(.shoulders) { padding-top: calc(54px / var(--ctl-z, 1)); }
+.sp-row { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 12px; }
+.sp-row > b { font: 800 13px var(--body); color: rgba(255,255,255,.85); }
+.sp-row .style-pick button { flex: 1 1 0; min-width: 0; padding: 0 2px; }
 /* PS1: L2 at the outer corner, L1 next to it (R1, R2 mirrored) */
 .console.modern .shoulders .sh-out, .console.modern .shoulders .sh-in { width: 21%; max-width: 100px; }
 .console.modern .shoulders .sh-l.sh-in { left: calc(min(21%, 100px) + 10px); }
@@ -845,6 +859,10 @@ svg.star-ic { overflow: visible; display: block; }
       <div class="b-wrap sh-r sh-in"><button class="pill" data-ej="11" aria-label="R1"></button><span class="lbl">R1</span></div>
       <div class="b-wrap sh-r sh-out"><button class="pill" data-ej="13" aria-label="R2"></button><span class="lbl">R2</span></div>
     </div>
+    <div class="sys shoulders only-sp">
+      <div class="b-wrap sp-k sp-2"><button class="pill named" id="spKey2" aria-label="Ειδική κίνηση 2"></button></div>
+      <div class="b-wrap sp-k sp-1"><button class="pill named" id="spKey1" aria-label="Ειδική κίνηση 1"></button></div>
+    </div>
     <div class="sys shoulders only-n64">
       <div class="b-wrap sh-l"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
       <div class="b-wrap sh-r"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
@@ -1067,6 +1085,12 @@ svg.star-ic { overflow: visible; display: block; }
     <h2>Τρέξιμο με διπλό πάτημα</h2>
     <div class="style-pick" id="runPick"><button data-run="0">Όχι</button><button data-run="1">Με το B</button><button data-run="2">Με το A</button></div>
     <div class="set-note">Πάτα δεξιά (ή αριστερά) δύο φορές και κράτα: η εφαρμογή κρατάει πατημένο για σένα το κουμπί του τρεξίματος, κι ο αντίχειρας μένει ελεύθερος για άλμα. Διάλεξε με ποιο κουμπί τρέχει το παιχνίδι.</div>
+    <div id="spSec" hidden>
+      <h2>Κουμπιά ειδικών κινήσεων</h2>
+      <div class="style-pick" id="spPick"><button data-sp="0">Όχι</button><button data-sp="1">Ναι</button></div>
+      <div id="spOpts"></div>
+      <div class="set-note">Για παιχνίδια μάχης. Κράτα τον μοχλό προς τον αντίπαλο και πάτα το κουμπί: η κίνηση γίνεται μόνη της προς τα εκεί. Αν δεν κρατάς τον μοχλό, γίνεται προς την τελευταία πλευρά που διάλεξες.</div>
+    </div>
   </section>
 
   <section class="set-card">
@@ -3514,6 +3538,79 @@ const arrows = { [K.UP]: dpad.querySelector('i.u'), [K.DOWN]: dpad.querySelector
 const dpadPointers = new Map(); // pointerId -> { m, x, y } (x, y in unscaled px)
 const STICK_TRAVEL = 34;
 let lastEjDigital = 0;
+/* ---- special moves (fighting games): one key plays the whole motion + attack ---- */
+const SP_MOTIONS = { qcf: [['D'], ['D', 'F'], ['F']], dp: [['F'], ['D'], ['D', 'F']], qcb: [['D'], ['D', 'B'], ['B']] };
+const SP_LBL = { qcf: '↓↘→', dp: '→↓↘', qcb: '↓↙←' };
+let spBusy = false, spFacing = 1;
+function spAtkLabel(i) { const t = document.querySelector('#arc' + i + ' .t'); return t ? t.textContent : String(i); }
+function spCfg() {
+  const u = current ? uiCache(current) : {}, n = Math.max(1, Math.min(6, +consoleEl.dataset.btns || u.n || 3));
+  const atk = u.sf ? Math.min(3, n) : 1;
+  let c = null; try { c = JSON.parse(localStorage.getItem('pb-sp:' + current) || 'null'); } catch (e) {}
+  c = Object.assign({ on: u.sf ? 1 : 0, k: [['qcf', atk], ['dp', atk]] }, c || {});
+  c.k = c.k.map(([m, a]) => [SP_MOTIONS[m] ? m : 'qcf', Math.max(1, Math.min(n, +a || 1))]);
+  return c;
+}
+function spSave(c) { try { localStorage.setItem('pb-sp:' + current, JSON.stringify(c)); } catch (e) {} }
+function spApply() {
+  const on = !!current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive' && !!spCfg().on;
+  const was = consoleEl.classList.contains('sp-on');
+  consoleEl.classList.toggle('sp-on', on);
+  if (on) { const c = spCfg(); [1, 2].forEach(i => { const [m, a] = c.k[i - 1]; document.getElementById('spKey' + i).dataset.lbl = SP_LBL[m] + ' ' + spAtkLabel(a); }); }
+  if (was !== on) setTimeout(fit, 0);
+}
+function spRun(k) {
+  if (spBusy || !ejsStarted || sys !== 'arcade' || paused) return;
+  const [mo, atk] = spCfg().k[k - 1];
+  const m = held.dpad;
+  if (m & K.LEFT) spFacing = -1; else if (m & K.RIGHT) spFacing = 1;
+  const idx = { D: 5, U: 4, F: spFacing > 0 ? 7 : 6, B: spFacing > 0 ? 6 : 7 };
+  const atkIdx = +(document.getElementById('arc' + atk).dataset.ej || 0);
+  const steps = SP_MOTIONS[mo], STEP = 50; // ~3 frames per direction: well inside every game's input window
+  spBusy = true;
+  const dirs = on => { for (const i of [4, 5, 6, 7]) ejsInput(i, on.includes(i) ? 1 : 0); };
+  steps.forEach((st, j) => setTimeout(() => { dirs(st.map(c => idx[c])); if (j === steps.length - 1) ejsInput(atkIdx, 1); }, j * STEP));
+  setTimeout(() => {
+    ejsInput(atkIdx, 0); spBusy = false;
+    // back to whatever the stick holds now
+    const dm = held.dpad;
+    for (const [bit, i] of [[K.UP, 4], [K.DOWN, 5], [K.LEFT, 6], [K.RIGHT, 7]]) ejsInput(i, dm & bit ? 1 : 0);
+    lastEjDigital = dm;
+  }, steps.length * STEP + 60);
+}
+[1, 2].forEach(k => {
+  const btn = document.getElementById('spKey' + k), tgt = btn.closest('.b-wrap');
+  tgt.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); btn.classList.add('down'); haptic(); spRun(k); });
+  const up = () => btn.classList.remove('down');
+  tgt.addEventListener('pointerup', up); tgt.addEventListener('pointercancel', up); tgt.addEventListener('pointerleave', up);
+  tgt.addEventListener('contextmenu', e => e.preventDefault());
+});
+function renderSp() {
+  const sec = document.getElementById('spSec');
+  sec.hidden = !(current && sys === 'arcade' && consoleEl.dataset.prof !== 'drive');
+  if (sec.hidden) return;
+  const c = spCfg(), n = Math.max(1, Math.min(6, +consoleEl.dataset.btns || 3));
+  document.querySelectorAll('#spPick button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.sp === (c.on ? 1 : 0))));
+  const box = document.getElementById('spOpts'); box.innerHTML = ''; box.hidden = !c.on;
+  [0, 1].forEach(i => {
+    const row = document.createElement('div'); row.className = 'sp-row';
+    const lb = document.createElement('b'); lb.textContent = (i ? 'Αριστερό' : 'Δεξί') + ' κουμπί';
+    const mp = document.createElement('div'); mp.className = 'style-pick';
+    for (const m of Object.keys(SP_MOTIONS)) {
+      const b = document.createElement('button'); b.textContent = SP_LBL[m]; b.setAttribute('aria-pressed', String(c.k[i][0] === m));
+      b.addEventListener('click', () => { const d = spCfg(); d.k[i][0] = m; spSave(d); spApply(); renderSp(); });
+      mp.appendChild(b);
+    }
+    const ap = document.createElement('div'); ap.className = 'style-pick';
+    for (let a = 1; a <= n; a++) {
+      const b = document.createElement('button'); b.textContent = spAtkLabel(a); b.setAttribute('aria-pressed', String(c.k[i][1] === a));
+      b.addEventListener('click', () => { const d = spCfg(); d.k[i][1] = a; spSave(d); spApply(); renderSp(); });
+      ap.appendChild(b);
+    }
+    row.append(lb, mp, ap); box.appendChild(row);
+  });
+}
+document.querySelectorAll('#spPick button').forEach(b => b.addEventListener('click', () => { const d = spCfg(); d.on = +b.dataset.sp; spSave(d); spApply(); renderSp(); }));
 // Direction from the thumb's position relative to the stick centre.
 // Cardinal directions get 60° sectors and diagonals 30°, so a slightly-off push still reads as a clean up/down/left/right;
 // hysteresis keeps a direction held until the thumb clearly leaves it, so the edges don't flicker.
@@ -3596,8 +3693,10 @@ function dpadUpdate() {
     const drive = sys === 'arcade' && consoleEl.dataset.prof === 'drive';
     // when driving, steering is analog only: the digital left/right made the wheel snap to full lock
     const dm = drive ? (m & (K.UP | K.DOWN)) : m;
-    for (const [bit, idx] of map) if ((dm & bit) !== (lastEjDigital & bit)) ejsInput(idx, dm & bit ? 1 : 0);
-    lastEjDigital = dm;
+    if (!spBusy) {
+      for (const [bit, idx] of map) if ((dm & bit) !== (lastEjDigital & bit)) ejsInput(idx, dm & bit ? 1 : 0);
+      lastEjDigital = dm;
+    }
     if (drive) {
       // gentle response curve: small thumb movements make small corrections, full lock only at the edge
       // steering follows how far left/right the thumb is, whatever its height, so a push down-left still steers fully;
@@ -3741,6 +3840,7 @@ function applyArcadeButtons(n0, sf0, core) {
     const t = b.querySelector('.t'); t.textContent = labels[i - 1]; t.classList.toggle('in', n >= 4);
   }
   consoleEl.dataset.btns = String(n);
+  spApply();
   applyCustomLayout();
   fit();
 }
@@ -4223,7 +4323,7 @@ function setPane(name) {
   pane = name;
   for (const [n, id] of [['lib', 'paneLib'], ['game', 'paneGame'], ['set', 'paneSet']]) document.getElementById(id).hidden = n !== name;
   document.querySelectorAll('#libNav button').forEach(b => { if (b.dataset.pane === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  if (name === 'game') { renderSlots(); showArcCore(); }
+  if (name === 'game') { renderSlots(); showArcCore(); renderSp(); }
   if (name === 'set') showArcCore();
   lib.scrollTop = 0;
 }
@@ -4982,6 +5082,9 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Δεξί κουμπί': 'Right key', 'Αριστερό κουμπί': 'Left key',
+  'Κουμπιά ειδικών κινήσεων': 'Special move keys', 'Ναι': 'Yes', 'Ειδική κίνηση 1': 'Special move 1', 'Ειδική κίνηση 2': 'Special move 2',
+  'Για παιχνίδια μάχης. Κράτα τον μοχλό προς τον αντίπαλο και πάτα το κουμπί: η κίνηση γίνεται μόνη της προς τα εκεί. Αν δεν κρατάς τον μοχλό, γίνεται προς την τελευταία πλευρά που διάλεξες.': "For fighting games. Hold the stick toward your opponent and tap the key: the move is done for you in that direction. Without the stick, it goes the last way you chose.",
   'Αποθήκευση': 'Save', 'Φόρτωση': 'Load', 'Πίσω': 'Back',
   'Χρόνος παιχνιδιού': 'Play time', 'Τελευταία φορά': 'Last played', 'Στα αγαπημένα': 'Favourite', 'Αγαπημένο': 'Favourite ★', 'Εξώφυλλο': 'Cover', 'Σβήσε': 'Delete', 'Σίγουρα;': 'Sure?',
   'Πρόσθεσε παιχνίδια': 'Add games',
