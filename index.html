@@ -447,6 +447,11 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   .scr-adj { left: 50%; right: auto; width: min(420px, 60vw); transform: translateX(-50%); border-radius: 18px 18px 0 0; border: 1px solid #4a505a; gap: 8px; padding-top: 10px; background: rgba(26,28,32,.92); }
   .sa-note { display: none; }
 }
+/* iPhone haptics: the invisible native switch over each control (see hapAttach) */
+.hap-sw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; -webkit-appearance: auto; appearance: auto;
+  touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: inherit; }
+.hap-off .hap-sw { pointer-events: none; }
+.sys .b-wrap { position: relative; }
 /* paused: just the pause symbol in the middle of the game screen */
 .pause-ic { position: absolute; left: 50%; top: 50%; z-index: 5; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; pointer-events: none;
   background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
@@ -2902,43 +2907,57 @@ let lastTick = 0;
 function haptic() {
   if (!hapticsOn) return;
   if (!isApple && navigator.vibrate) { try { if (navigator.vibrate(12)) return; } catch (e) {} }
-  // iPhone: ticks only come from a real tap (see the touchend listener below)
+  if (isApple) hapMid(); // iPhone: a press ticks when the finger lifts; changes in the middle of a hold tick here
 }
-// iPhone has no vibration for web pages; toggling an iOS "switch" checkbox gives the system's haptic tick, but only
-// inside an event Safari treats as a real tap: the finger lifting (touchend) or a click, never touchstart/pointerdown
-function iosTick() {
-  if (!hapticsOn || performance.now() - lastTick < 60) return;
-  lastTick = performance.now();
-  try {
-    const l = document.createElement('label'), i = document.createElement('input');
-    l.setAttribute('aria-hidden', 'true'); l.style.display = 'none';
-    i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
-    document.head.appendChild(l); l.click(); l.remove();
-  } catch (e) {}
+/* ---- iPhone haptics. iOS has no vibration for web pages, and since iOS 26.5 a switch clicked from script no
+   longer ticks. What still ticks is a real finger on a native <input type=checkbox switch>: WebKit flips it when the
+   touch ends (a tick on every release) and, while the finger is held, whenever the finger crosses the switch's middle.
+   So each control gets an invisible switch on top; its touches still reach the control as usual. While a finger is
+   held, a tick is played by moving the switch to the other side of the finger: the next small movement flips it. ---- */
+const HAP_PARK = 10000, HAP_ARM_MS = 260; // WebKit starts tracking the finger ~200ms into a touch
+const hapActive = new Set();
+function hapAttach(host) {
+  const sw = document.createElement('input');
+  sw.type = 'checkbox'; sw.setAttribute('switch', ''); sw.className = 'hap-sw'; sw.tabIndex = -1; sw.setAttribute('aria-hidden', 'true');
+  host.appendChild(sw);
+  const st = { sw, id: null, armedAt: 0, vis: false, pend: 0, moves: 9, parked: false };
+  sw.addEventListener('pointerdown', e => {
+    Object.assign(st, { id: e.pointerId, armedAt: performance.now() + HAP_ARM_MS, vis: sw.checked, pend: 0, moves: 9, parked: false });
+    sw.style.transform = ''; hapActive.add(st);
+  });
+  // the closing click flips the switch (that is the tick); nothing else should read it as a tap
+  sw.addEventListener('click', e => e.stopPropagation());
 }
-// iPhone only gives the switch tick when the click happens inside a touch event Safari counts as a real tap;
-// a pointerdown from a finger doesn't count, touchstart does, so tick there for every control on the console
+// box to the left of the finger (left = true) or to its right; the thumb of an "off" switch sits on the left
+const hapPlace = (st, left) => { st.sw.style.transform = `translateX(${left ? -HAP_PARK : HAP_PARK}px)`; st.parked = true; };
+addEventListener('pointermove', e => {
+  if (!hapActive.size) return;
+  const now = performance.now();
+  for (const st of hapActive) {
+    if (st.id !== e.pointerId) continue;
+    st.moves++;
+    if (now < st.armedAt) continue;
+    if (st.pend && st.moves >= 2) { st.pend = 0; st.moves = 0; hapPlace(st, !st.vis); st.vis = !st.vis; } // flips on the next move
+    else if (!st.parked) hapPlace(st, st.vis); // out of the finger's way, so moving around doesn't tick by itself
+  }
+}, { capture: true, passive: true });
+const hapEnd = e => { for (const st of hapActive) if (st.id === e.pointerId) { hapActive.delete(st); st.sw.style.transform = ''; st.id = null; } };
+addEventListener('pointerup', hapEnd, true); addEventListener('pointercancel', hapEnd, true);
+// a tick in the middle of a hold (stick turning to a new direction, finger sliding onto another button)
+function hapMid() { const now = performance.now(); for (const st of hapActive) if (now >= st.armedAt) st.pend = 1; }
 // iPhone shows its text magnifier after a long press, even on non-selectable controls; cancelling the touch's
-// default action on the control panel stops that (the buttons themselves run on pointer events, which still fire)
+// default action on the control panel stops that (the buttons themselves run on pointer events, which still fire).
+// Touches on a haptic switch are left alone: WebKit needs them to track and flip it.
 const ctlPanel = document.getElementById('controlsPanel');
-ctlPanel.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.classList && e.target.classList.contains('hap-sw'))) e.preventDefault(); }, { passive: false });
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
-if (false) {
-  const HAP_SEL = '.btn, .pill, #dpad, #menuBtn, .dock-menu, .tool, .style-pick button, .lib-key, .key3d, .lib-add, .case, .face, .sa-step, .sa-btns button';
-  // every finger that lifts off a control ticks (the buttons themselves are touched with pointer events, which
-  // iPhone doesn't count as taps, so this listens for the touch ending wherever it ended)
-  document.addEventListener('touchend', e => {
-    const t = e.changedTouches && e.changedTouches[0];
-    const el = (t && document.elementFromPoint(t.clientX, t.clientY)) || e.target;
-    if ((el && el.closest && el.closest(HAP_SEL)) || (e.target.closest && e.target.closest(HAP_SEL))) iosTick();
-  }, { capture: true, passive: true });
+if (isApple) {
+  document.querySelectorAll('.controls .face, #dpad, .controls .sys .b-wrap').forEach(hapAttach);
 }
-// iPhone: web pages can't make it vibrate (only a finger on a real system switch does), so the option is hidden there
-if (isApple) { const hb = document.getElementById('hapticBtn'); hb.hidden = true; const k = hb.closest('section').querySelector('.set-kicker'); if (k) k.textContent = 'ΗΧΟΣ'; }
 function setHaptics(on) {
   hapticsOn = on;
-  if (on) iosTick();
+  document.documentElement.classList.toggle('hap-off', !on);
   document.getElementById('hapticBtn').textContent = on ? 'Δόνηση: ανοιχτή' : 'Δόνηση: κλειστή';
   document.getElementById('hapticBtn').classList.toggle('primary', on);
   try { localStorage.setItem('pb-haptic', on ? '1' : '0'); } catch (e) {}
@@ -3008,9 +3027,10 @@ document.querySelectorAll('.face').forEach(face => {
 // START: a tap is the game's Start; held for half a second it pauses the game, and the next tap resumes it
 document.querySelectorAll('.sys [data-gb="START"], .sys [data-ej="3"]').forEach(btn => {
   let timer = null, held = false, resume = false;
-  btn.addEventListener('pointerdown', e => {
+  const tgt = btn.closest('.b-wrap') || btn;
+  tgt.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
-    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    try { tgt.setPointerCapture(e.pointerId); } catch (_) {}
     btn.classList.add('down'); haptic();
     resume = paused && !pausedByMenu; held = false;
     if (resume) return;
@@ -3025,21 +3045,22 @@ document.querySelectorAll('.sys [data-gb="START"], .sys [data-ej="3"]').forEach(
     // a short tap: send it to the game
     pressBtn(btn); btn.classList.add('down'); setTimeout(() => releaseBtn(btn), 90);
   };
-  btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', () => { if (timer) { clearTimeout(timer); timer = null; } btn.classList.remove('down'); resume = held = false; });
-  btn.addEventListener('lostpointercapture', up);
-  btn.addEventListener('contextmenu', e => e.preventDefault());
+  tgt.addEventListener('pointerup', up); tgt.addEventListener('pointercancel', () => { if (timer) { clearTimeout(timer); timer = null; } btn.classList.remove('down'); resume = held = false; });
+  tgt.addEventListener('lostpointercapture', up);
+  tgt.addEventListener('contextmenu', e => e.preventDefault());
 });
 document.querySelectorAll('.sys [data-gb], .sys [data-ej]').forEach(btn => {
   if (btn.dataset.gb === 'START' || btn.dataset.ej === '3') return;
   let isDown = false;
-  btn.addEventListener('pointerdown', e => {
+  const tgt = btn.closest('.b-wrap') || btn;
+  tgt.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
-    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    try { tgt.setPointerCapture(e.pointerId); } catch (_) {}
     if (isDown) return; isDown = true; pressBtn(btn);
   });
   const up = () => { if (!isDown) return; isDown = false; releaseBtn(btn); };
-  btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
-  btn.addEventListener('contextmenu', e => e.preventDefault());
+  tgt.addEventListener('pointerup', up); tgt.addEventListener('pointercancel', up); tgt.addEventListener('lostpointercapture', up);
+  tgt.addEventListener('contextmenu', e => e.preventDefault());
 });
 
 const dpad = document.getElementById('dpad'), knob = document.getElementById('knob');
