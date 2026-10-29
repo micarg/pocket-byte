@@ -682,6 +682,19 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 /* the lone stick: no extra zoom layer (Safari placed a zoomed stick off-centre in the zoomed row); the same size comes
    from a scale, which doesn't change where it is laid out */
 .console.modern[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]):not(.land) .pad-row { position: relative; min-height: 160px; }
+/* joystick-only games (Pac-Man...): a swipe pad over the whole area instead of a stick */
+.tpad { display: none; }
+.console.modern[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]):not(.land) .tpad { display: block; }
+.console.modern[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]):not(.land) .pad-row .dpad { display: none; }
+.tpad { position: absolute; left: 0; right: 0; top: -4px; bottom: -14px; border-radius: 28px; touch-action: none; overflow: hidden;
+  background: rgba(0,0,0,.26); box-shadow: inset 0 3px 12px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07), 0 1px 0 rgba(255,255,255,.08); }
+.tpad .ta { position: absolute; left: 50%; top: 42%; width: 30px; height: 30px; margin: -15px 0 0 -15px; color: rgba(255,255,255,.32); transition: color .12s, scale .12s; pointer-events: none; }
+.tpad .ta svg { width: 100%; height: 100%; display: block; }
+.tpad .ta.u { translate: 0 -48px; } .tpad .ta.d { translate: 0 48px; rotate: 180deg; }
+.tpad .ta.l { translate: -66px 0; rotate: -90deg; } .tpad .ta.r { translate: 66px 0; rotate: 90deg; }
+.tpad .ta.on { color: #fff; scale: 1.25; filter: drop-shadow(0 0 8px rgba(255,255,255,.5)); }
+.tpad .tp-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font: 700 12.5px var(--body); color: rgba(255,255,255,.4); pointer-events: none; }
+.tpad.touch { background: rgba(0,0,0,.32); }
 .console.modern[data-sys="arcade"][data-btns="0"]:not([data-prof="drive"]):not(.land) .dpad { zoom: 1; transform: scale(1.1);
   position: absolute; left: 50%; top: 50%; margin: -70px 0 0 -70px; translate: none !important; }
 .console.modern[data-btns="4"] .only-arcade-std .round, .console.modern[data-btns="5"] .only-arcade-std .round, .console.modern[data-btns="6"] .only-arcade-std .round {
@@ -880,6 +893,10 @@ svg.star-ic { overflow: visible; display: block; }
     </div>
     <div class="controls" id="controls">
     <div class="pad-row">
+      <div class="tpad" id="tpad" aria-label="Επιφάνεια αφής για κατευθύνσεις">
+        <i class="ta u"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i>
+        <span class="tp-hint">Σύρε το δάχτυλο οπουδήποτε εδώ</span>
+      </div>
       <div class="dpad" id="dpad" aria-label="Joystick">
         <div class="ring"></div>
         <div class="cross" id="cross"><span class="cv"></span><span class="ch"></span><span class="cc"></span></div>
@@ -3408,7 +3425,7 @@ ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.cl
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) {
-  document.querySelectorAll('.controls .face, #dpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
+  document.querySelectorAll('.controls .face, #dpad, #tpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
 }
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
@@ -3742,6 +3759,39 @@ dpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'poi
 const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); };
 dpad.addEventListener('pointerup', dEnd); dpad.addEventListener('pointercancel', dEnd); dpad.addEventListener('lostpointercapture', dEnd);
 dpad.addEventListener('contextmenu', e => e.preventDefault());
+// Swipe pad (joystick-only games): drag ~16px in a direction to turn; another drag (without lifting) turns again.
+// In maze games (Pac-Man...) the last direction stays held after the finger lifts, so a turn swiped early still
+// happens at the next corner; in the others the stick lets go with the finger.
+const tpad = document.getElementById('tpad');
+const TP_LATCH = /^(pac|puck|mspac|jrpac|hangly|newpuc|joyman|piranha|nmouse|crush|maketr|mbrush|paintrlr|nibbler|mschamp|pacplus|pacgal)/;
+let tpStart = null, tpM = 0;
+function tpSet(m) {
+  if (m === tpM) return;
+  tpM = m;
+  if (m) dpadPointers.set('tp', { m, x: 0, y: 0, rawX: 0 }); else dpadPointers.delete('tp');
+  dpadUpdate();
+  tpad.querySelectorAll('.ta').forEach(a => a.classList.toggle('on', !!(m & ({ u: K.UP, d: K.DOWN, l: K.LEFT, r: K.RIGHT })[a.classList[1]])));
+}
+tpad.addEventListener('pointerdown', e => {
+  e.preventDefault(); unlockAudio();
+  try { tpad.setPointerCapture(e.pointerId); } catch (_) {}
+  tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch');
+});
+tpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', e => {
+  if (!tpStart || e.pointerId !== tpStart.id) return;
+  const dx = e.clientX - tpStart.x, dy = e.clientY - tpStart.y;
+  if (Math.hypot(dx, dy) < 16) return;
+  const m = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? K.RIGHT : K.LEFT) : (dy > 0 ? K.DOWN : K.UP);
+  tpStart.x = e.clientX; tpStart.y = e.clientY; // the next turn is measured from here
+  if (m !== tpM) { tpSet(m); haptic(); }
+});
+const tpEnd = e => {
+  if (!tpStart || e.pointerId !== tpStart.id) return;
+  tpStart = null; tpad.classList.remove('touch');
+  if (!TP_LATCH.test(arcSet || mameSet || '')) tpSet(0);
+};
+tpad.addEventListener('pointerup', tpEnd); tpad.addEventListener('pointercancel', tpEnd); tpad.addEventListener('lostpointercapture', tpEnd);
+tpad.addEventListener('contextmenu', e => e.preventDefault());
 document.getElementById('stage').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 const KEYMAP = { ArrowUp: K.UP, ArrowDown: K.DOWN, ArrowLeft: K.LEFT, ArrowRight: K.RIGHT, KeyW: K.UP, KeyS: K.DOWN, KeyA: K.LEFT, KeyD: K.RIGHT,
@@ -3828,7 +3878,9 @@ const arcBtnTable = (tries = 3) => arcBtnsP || (arcBtnsP = fetch('arcade-buttons
 // per game: console, controls and picture shape, so after a reload the right buttons are there at once
 function uiCache(id) { try { return JSON.parse(localStorage.getItem('pb-ui:' + id) || '{}') || {}; } catch (e) { return {}; } }
 function saveUi(o, id) { id = id || current; if (!id) return; try { localStorage.setItem('pb-ui:' + id, JSON.stringify({ ...uiCache(id), ...o })); } catch (e) {} }
+let arcSet = '';
 async function setupArcadeButtons(set, core) {
+  arcSet = set || '';
   const table = await arcBtnTable();
   if (!table) { const u = uiCache(current); applyArcadeButtons(u.n != null ? u.n : 3, u.sf, core); return; }
   const info = table[set] || [3, 0];
@@ -5089,6 +5141,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Σύρε το δάχτυλο οπουδήποτε εδώ': 'Swipe anywhere here', 'Επιφάνεια αφής για κατευθύνσεις': 'Swipe pad for directions',
   'Δεξί κουμπί': 'Right key', 'Αριστερό κουμπί': 'Left key',
   'Κουμπιά ειδικών κινήσεων': 'Special move keys', 'Ναι': 'Yes', 'Ειδική κίνηση 1': 'Special move 1', 'Ειδική κίνηση 2': 'Special move 2',
   'Για παιχνίδια μάχης. Κράτα τον μοχλό προς τον αντίπαλο και πάτα το κουμπί: η κίνηση γίνεται μόνη της προς τα εκεί. Αν δεν κρατάς τον μοχλό, γίνεται προς την τελευταία πλευρά που διάλεξες.': "For fighting games. Hold the stick toward your opponent and tap the key: the move is done for you in that direction. Without the stick, it goes the last way you chose.",
