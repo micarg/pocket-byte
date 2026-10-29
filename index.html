@@ -618,6 +618,42 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
   background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
   display: flex; align-items: center; justify-content: center; gap: 12px; }
 .pause-ic[hidden] { display: none; }
+/* pause menu: a glass card over the (blurred) game */
+.pause-menu { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center; padding: 8px; }
+.pause-menu[hidden], .pm-card[hidden] { display: none; }
+.console.lay-edit .pause-menu { display: none; }
+.pm-card { width: min(320px, 100%); padding: 14px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; transform-origin: 50% 50%;
+  background: rgba(30,32,38,.5); -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.35), 0 16px 40px rgba(0,0,0,.45);
+  animation: pm-in .18s ease-out; }
+@keyframes pm-in { from { opacity: 0; scale: .94; } to { opacity: 1; scale: 1; } }
+.pm-title { display: flex; align-items: center; justify-content: center; gap: 8px; color: #fff; font: 800 15px var(--body); letter-spacing: .02em; margin: 0 0 2px; }
+.pm-ic { display: inline-flex; gap: 3px; } .pm-ic i { width: 4px; height: 13px; border-radius: 2px; background: #fff; }
+.pm-btn { position: relative; min-height: 42px; border: 0; border-radius: 14px; color: #fff; font: 800 14px var(--body); display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pm-btn:active { transform: scale(.97); background: rgba(255,255,255,.2); }
+.pm-btn svg { width: 16px; height: 16px; }
+.pm-go { background: #f4f5f7; color: #15171b; box-shadow: 0 3px 0 #8d939b; }
+.pm-go:active { background: #fff; box-shadow: 0 1px 0 #8d939b; transform: translateY(2px); }
+.pm-btn.confirm { background: #c0392b; box-shadow: none; }
+.pm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pm-head { display: flex; align-items: center; gap: 8px; color: #fff; font: 800 15px var(--body); }
+.pm-head > span:not(.pm-pad) { flex: 1; text-align: center; }
+.pm-back, .pm-pad { position: relative; width: 34px; height: 34px; flex: none; }
+.pm-back { border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.pm-back svg { width: 18px; height: 18px; }
+.pm-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pm-slot { position: relative; border: 0; padding: 6px 6px 8px; border-radius: 14px; background: rgba(255,255,255,.1); color: #fff; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); font: 800 12px var(--body); min-width: 0; }
+.pm-slot:active:not(:disabled) { transform: scale(.96); }
+.pm-slot:disabled { opacity: .45; }
+.pm-slot span { font: 600 10.5px var(--body); color: rgba(255,255,255,.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pm-slot.confirm { background: #c0392b; }
+.pm-th, .slot-th { width: 100%; aspect-ratio: 4 / 3; border-radius: 9px; background: rgba(0,0,0,.45); object-fit: cover; display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.45); font: 700 11px var(--body); overflow: hidden; }
+.pm-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slot-th { width: 64px; flex: none; margin-left: -4px; }
+.slot-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* paused: the game behind the symbol goes soft */
 #ejs-host, #lcd { transition: filter .3s ease; }
 .paused-blur #ejs-host, .paused-blur #lcd { filter: blur(4px) brightness(.8); }
@@ -780,6 +816,22 @@ svg.star-ic { overflow: visible; display: block; }
         <div id="ejs-host" hidden><div id="ejs"></div></div>
         <div class="overlay" id="overlay" hidden></div>
         <div class="pause-ic" id="pauseIc" hidden aria-label="Παύση"><span></span><span></span></div>
+        <div class="pause-menu" id="pauseMenu" hidden>
+          <div class="pm-card" id="pmMain">
+            <div class="pm-title"><span class="pm-ic" aria-hidden="true"><i></i><i></i></span>Παύση</div>
+            <button class="pm-btn pm-go" data-pm="resume"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Συνέχεια</button>
+            <div class="pm-grid">
+              <button class="pm-btn" data-pm="save">Αποθήκευση</button>
+              <button class="pm-btn" data-pm="load">Φόρτωση</button>
+              <button class="pm-btn" data-pm="reset">Επανεκκίνηση</button>
+              <button class="pm-btn" data-pm="exit">Βιβλιοθήκη</button>
+            </div>
+          </div>
+          <div class="pm-card" id="pmSlots" hidden>
+            <div class="pm-head"><button class="pm-back" data-pm="back" aria-label="Πίσω"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="pmSlotsTitle">Αποθήκευση</span><span class="pm-pad"></span></div>
+            <div class="pm-slots" id="pmSlotList"></div>
+          </div>
+        </div>
         <div class="load-art" id="loadArt" hidden aria-live="polite"><div class="la-bg" id="laBg"></div>
           <div class="la-card"><img class="la-cover" id="laCover" alt=""><div class="la-name" id="laName"></div><div class="la-bar" id="laBar"><i></i></div><div class="la-txt" id="laTxt"></div></div></div>
       </div>
@@ -3194,15 +3246,74 @@ showArcCore();
 const PAUSE_TXT = 'Παύση · πάτα START για να συνεχίσεις';
 function setPaused(p) {
   paused = p;
-  try { if (ejsStarted) p ? EJS_emulator.pause() : EJS_emulator.play(); } catch (e) {}
+  if (!p) pauseThumb = null;
+  else if (gb) pauseThumb = grabThumb() || pauseThumb;
+  if (p && ejsStarted) {
+    // the picture for a save slot is taken in the frame the emulator draws, just before it stops
+    requestAnimationFrame(() => { const t = grabThumb(); if (t) pauseThumb = t; if (paused) try { EJS_emulator.pause(); } catch (e) {} });
+  } else { try { if (ejsStarted) p ? EJS_emulator.pause() : EJS_emulator.play(); } catch (e) {} }
   updatePause();
 }
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
   const pz = paused && !pausedByMenu;
-  document.getElementById('pauseIc').hidden = !pz;
+  document.getElementById('pauseIc').hidden = true;
   document.getElementById('screenWrap').classList.toggle('paused-blur', pz);
+  const pm = document.getElementById('pauseMenu'), was = !pm.hidden;
+  pm.hidden = !pz;
+  if (pz && !was) pmShow('main');
 }
+/* ---- pause menu ---- */
+let pmMode = 'main';
+function pmFit() {
+  const pm = document.getElementById('pauseMenu'); if (pm.hidden) return;
+  const card = document.getElementById(pmMode === 'main' ? 'pmMain' : 'pmSlots');
+  card.style.transform = '';
+  const s = Math.min(1, (pm.clientHeight - 12) / card.offsetHeight, (pm.clientWidth - 12) / card.offsetWidth);
+  if (s < 1) card.style.transform = `scale(${s.toFixed(3)})`;
+}
+function pmShow(mode) {
+  pmMode = mode;
+  document.getElementById('pmMain').hidden = mode !== 'main';
+  document.getElementById('pmSlots').hidden = mode === 'main';
+  const rb = document.querySelector('#pauseMenu [data-pm="reset"]'); rb.classList.remove('confirm'); rb.textContent = 'Επανεκκίνηση';
+  if (mode !== 'main') { document.getElementById('pmSlotsTitle').textContent = mode === 'save' ? 'Αποθήκευση' : 'Φόρτωση'; pmSlots(); }
+  pmFit();
+}
+async function pmSlots() {
+  const list = document.getElementById('pmSlotList'), id = current, mode = pmMode;
+  const recs = current ? await Promise.all([1, 2, 3].map(n => dbGetState(id + '#' + n))) : [null, null, null];
+  if (id !== current || mode !== pmMode) return;
+  list.innerHTML = '';
+  recs.forEach((r, i) => {
+    const n = i + 1, b = document.createElement('button'); b.className = 'pm-slot';
+    const lb = document.createElement('b'); lb.textContent = 'Θέση ' + n;
+    const sp = document.createElement('span'); sp.textContent = r ? whenText(r.at) : 'Κενή';
+    b.append(thumbEl('pm-th', r), lb, sp);
+    if (mode === 'load' && !r) b.disabled = true;
+    b.addEventListener('click', async () => {
+      if (mode === 'save') {
+        if (r && !b.classList.contains('confirm')) { b.classList.add('confirm'); sp.textContent = 'Πάνω της;'; setTimeout(() => { if (b.isConnected) { b.classList.remove('confirm'); sp.textContent = whenText(r.at); } }, 3000); return; }
+        if (await saveSlot(n)) pmShow('main'); else pmSlots();
+      } else if (await loadSlot(n)) setPaused(false);
+    });
+    list.appendChild(b);
+  });
+  pmFit();
+}
+document.getElementById('pauseMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-pm]'); if (!b) return;
+  const a = b.dataset.pm;
+  if (a === 'resume') setPaused(false);
+  else if (a === 'save' || a === 'load') pmShow(a);
+  else if (a === 'back') pmShow('main');
+  else if (a === 'exit') { pausedByMenu = true; updatePause(); setMenu(true); }
+  else if (a === 'reset') {
+    if (!b.classList.contains('confirm')) { b.classList.add('confirm'); b.textContent = 'Σίγουρα;'; setTimeout(() => { if (b.classList.contains('confirm')) { b.classList.remove('confirm'); b.textContent = 'Επανεκκίνηση'; } }, 3000); return; }
+    setPaused(false); document.getElementById('resetBtn').click();
+  }
+});
+window.addEventListener('resize', () => requestAnimationFrame(pmFit));
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
   setMenu(false);
@@ -3271,7 +3382,7 @@ if (isApple) {
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
 // (no tick) and the closing click is swallowed, so nothing gets pressed by a scroll.
-const HAP_MENU = '#lib button, #coverSheet button, #scrAdj button, #layBar button, #gameSheet button, #dockMenu';
+const HAP_MENU = '#pauseMenu button, #lib button, #coverSheet button, #scrAdj button, #layBar button, #gameSheet button, #dockMenu';
 function hapTap(host) {
   if (host.querySelector(':scope > .hap-sw')) return;
   if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -4020,6 +4131,45 @@ function whenText(t) {
   const d = new Date(t), two = n => String(n).padStart(2, '0');
   return two(d.getDate()) + '/' + two(d.getMonth() + 1) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes());
 }
+// a small picture of the game for a save slot (cropped to where the picture really is on the emulator's canvas)
+let pauseThumb = null;
+function grabThumb() {
+  try {
+    const c = gb ? document.getElementById('lcd') : document.querySelector('#ejs canvas');
+    if (!c || !c.width || !c.height) return null;
+    let sx = 0, sy = 0, sw = c.width, sh = c.height;
+    if (!gb && picBox) { sx = picBox[0] * c.width; sy = picBox[1] * c.height; sw = (picBox[2] - picBox[0]) * c.width; sh = (picBox[3] - picBox[1]) * c.height; }
+    if (sw < 2 || sh < 2) return null;
+    const w = 240, h = Math.max(1, Math.round(w * sh / sw));
+    const t = document.createElement('canvas'); t.width = w; t.height = h;
+    const x = t.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = !gb;
+    x.drawImage(c, sx, sy, sw, sh, 0, 0, w, h);
+    // a cleared (black) buffer is no picture
+    const d = x.getImageData(0, 0, w, h).data; let lit = 0;
+    for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 30) { lit++; if (lit > 3) break; }
+    return lit > 3 ? t.toDataURL('image/jpeg', .75) : null;
+  } catch (e) { return null; }
+}
+function thumbEl(cls, r) {
+  const th = document.createElement('div'); th.className = cls;
+  if (r && r.thumb) { const im = document.createElement('img'); im.alt = ''; im.src = r.thumb; th.appendChild(im); }
+  else th.textContent = r ? '' : 'Κενή';
+  return th;
+}
+async function saveSlot(n) {
+  const rec = captureState();
+  if (!rec) { toast('Αυτό το παιχνίδι δεν υποστηρίζει αποθήκευση σε οποιοδήποτε σημείο.', 3500); return false; }
+  const th = (paused && pauseThumb) || grabThumb(); if (th) rec.thumb = th;
+  const ok = await dbPutState(current + '#' + n, rec);
+  haptic();
+  toast(ok ? 'Σώθηκε στη θέση ' + n + '.' : 'Δεν μπόρεσα να σώσω σε αυτόν τον browser.');
+  return ok;
+}
+async function loadSlot(n) {
+  const rec = await dbGetState(current + '#' + n);
+  if (applyState(rec)) { haptic(); toast('Φορτώθηκε η θέση ' + n + '.'); return true; }
+  toast('Δεν μπόρεσα να φορτώσω αυτή τη θέση.', 3000); return false;
+}
 async function renderSlots() {
   const playing = current && (gb || ejsStarted);
   slotGame.textContent = playing ? document.getElementById('now').textContent : '';
@@ -4031,6 +4181,7 @@ async function renderSlots() {
   recs.forEach((r, i) => {
     const n = i + 1, key = id + '#' + n;
     const row = document.createElement('div'); row.className = 'slot';
+    row.appendChild(thumbEl('slot-th', r));
     const info = document.createElement('div'); info.className = 'info';
     const b = document.createElement('b'); b.textContent = 'ΘΕΣΗ ' + n;
     const sp = document.createElement('span'); sp.textContent = r ? whenText(r.at) : 'Κενή';
@@ -4043,18 +4194,12 @@ async function renderSlots() {
         setTimeout(() => { save.classList.remove('confirm'); save.textContent = 'Σώσε'; }, 3000);
         return;
       }
-      const rec = captureState();
-      if (!rec) { toast('Αυτό το παιχνίδι δεν υποστηρίζει αποθήκευση σε οποιοδήποτε σημείο.', 3500); return; }
-      const ok = await dbPutState(key, rec);
-      haptic();
-      toast(ok ? 'Σώθηκε στη θέση ' + n + '.' : 'Δεν μπόρεσα να σώσω σε αυτόν τον browser.');
+      await saveSlot(n);
       renderSlots();
     });
     load.addEventListener('click', async () => {
-      const rec = await dbGetState(key);
       setMenu(false);
-      if (applyState(rec)) { haptic(); toast('Φορτώθηκε η θέση ' + n + '.'); }
-      else toast('Δεν μπόρεσα να φορτώσω αυτή τη θέση.', 3000);
+      await loadSlot(n);
     });
     row.append(info, save, load);
     slotsEl.appendChild(row);
@@ -4290,7 +4435,7 @@ function tx(stores, mode, fn) {
 const dbPut = item => tx(['roms', 'meta'], 'readwrite', t => { t.objectStore('roms').put(item); t.objectStore('meta').put(metaOf(item)); }).then(() => true).catch(() => false);
 const dbDel = id => tx(['roms', 'meta', 'states'], 'readwrite', t => { t.objectStore('roms').delete(id); t.objectStore('meta').delete(id); t.objectStore('states').delete(id); }).catch(() => {});
 const dbGet = id => tx('roms', 'readonly', t => t.objectStore('roms').get(id)).catch(() => null);
-const dbPutState = (id, rec) => tx('states', 'readwrite', t => t.objectStore('states').put({ id, kind: rec.kind, core: rec.core, state: rec.state, at: Date.now() })).then(() => true).catch(() => false);
+const dbPutState = (id, rec) => tx('states', 'readwrite', t => t.objectStore('states').put(Object.assign({ id, kind: rec.kind, core: rec.core, state: rec.state, at: Date.now() }, rec.thumb ? { thumb: rec.thumb } : {}))).then(() => true).catch(() => false);
 const dbGetState = id => tx('states', 'readonly', t => t.objectStore('states').get(id)).catch(() => null);
 const dbDelState = id => tx('states', 'readwrite', t => t.objectStore('states').delete(id)).catch(() => {});
 const dbMeta = () => tx('meta', 'readonly', t => t.objectStore('meta').getAll()).catch(() => null);
@@ -4837,6 +4982,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Αποθήκευση': 'Save', 'Φόρτωση': 'Load', 'Πίσω': 'Back',
   'Χρόνος παιχνιδιού': 'Play time', 'Τελευταία φορά': 'Last played', 'Στα αγαπημένα': 'Favourite', 'Αγαπημένο': 'Favourite ★', 'Εξώφυλλο': 'Cover', 'Σβήσε': 'Delete', 'Σίγουρα;': 'Sure?',
   'Πρόσθεσε παιχνίδια': 'Add games',
   'Διάταξη κουμπιών (θέση / μέγεθος)': 'Button layout (position / size)', 'Διάταξη κουμπιών': 'Button layout', 'Μέγεθος': 'Size', 'Μικρότερο': 'Smaller', 'Μεγαλύτερο': 'Bigger',
@@ -4912,6 +5058,7 @@ const EN = {
   'Οι αποθηκεύσεις': 'Saves',
 };
 const EN_RE = [
+  [/^Θέση (\d+)$/, 'Slot $1'],
   [/^(\d+) λεπ\.$/, '$1 min'], [/^(\d+) ώρ\. (\d+) λεπ\.$/, '$1 h $2 min'], [/^(\d+) ώρ\.$/, '$1 h'],
   [/^Βάλε στα αγαπημένα: (.*)$/s, 'Add to favourites: $1'], [/^Βγάλε από τα αγαπημένα: (.*)$/s, 'Remove from favourites: $1'],
   [/^Δεν βρέθηκε παιχνίδι για «(.*)»\.$/s, 'No game found for “$1”.'], [/^Αποθήκευσε το αρχείο \((.*)\)$/, 'Save the file ($1)'],
