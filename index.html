@@ -2359,12 +2359,22 @@ addEventListener('pagehide', storeAll);
 let runLog = null;
 try {
   const r = JSON.parse(localStorage.getItem('pb-run') || 'null');
-  if (r && !r.clean && r.last - r.start > 5000 && Date.now() - r.last < 10 * 60000)
+  if (r && !r.clean && r.last - r.start > 5000 && Date.now() - r.last < 10 * 60000) {
     runLog = 'Το παιχνίδι έκλεισε απότομα μετά από ' + Math.max(1, Math.round((r.last - r.start) / 60000)) + "'.";
+    // count these per game: a game that keeps taking the app down mid-play must not be reopened by itself (that loops)
+    if (r.id) {
+      let c = null; try { c = JSON.parse(localStorage.getItem('pb-crash:' + r.id) || 'null'); } catch (e) {}
+      const n = c && Date.now() - c.t < 15 * 60000 ? c.n + 1 : 1;
+      localStorage.setItem('pb-crash:' + r.id, JSON.stringify({ n, t: Date.now(), core: r.core || '' }));
+    }
+  }
   localStorage.removeItem('pb-run');
 } catch (e) {}
 function runBeat(start) {
-  try { localStorage.setItem('pb-run', JSON.stringify({ start, last: Date.now(), clean: false })); } catch (e) {}
+  try {
+    localStorage.setItem('pb-run', JSON.stringify({ start, last: Date.now(), clean: false, id: current, core: window.EJS_core || '' }));
+    if (Date.now() - start > 180000 && current) localStorage.removeItem('pb-crash:' + current); // 3 minutes fine: all good
+  } catch (e) {}
 }
 addEventListener('pagehide', () => { try { const r = JSON.parse(localStorage.getItem('pb-run') || 'null'); if (r) { r.clean = true; localStorage.setItem('pb-run', JSON.stringify(r)); } } catch (e) {} });
 document.addEventListener('visibilitychange', () => { if (document.hidden) storeAll(); });
@@ -5244,6 +5254,15 @@ if (lastId && lastId.startsWith('user:')) {
   let crashed = null;
   try { crashed = JSON.parse(localStorage.getItem('pb-boot') || 'null'); localStorage.removeItem('pb-boot'); } catch (e) {}
   dbGet(lastId).then(g => {
+    let cr = null; try { cr = g && JSON.parse(localStorage.getItem('pb-crash:' + g.id) || 'null'); } catch (e) {}
+    if (g && cr && cr.n >= 2 && Date.now() - cr.t < 15 * 60000) {
+      localStorage.removeItem('pb-crash:' + g.id);
+      bootCart('libbet');
+      const other = g.sys === 'arcade' ? ((cr.core || 'mame2003_plus') === 'mame2003_plus' ? 'FBNeo' : 'MAME 2003-Plus') : '';
+      setTimeout(() => toast('Το «' + g.name + '» έκλεισε την εφαρμογή ' + cr.n + ' φορές ενώ έπαιζε, οπότε δεν το ξανάνοιξα μόνο του.' +
+        (other ? ' Δοκίμασέ το με ' + other + ': άνοιξέ το και πάτα Μενού → Παιχνίδι → «Εξομοιωτής για αυτό το παιχνίδι».' : ''), 10000), 600);
+      return;
+    }
     if (g && snapCrash && snapCrash.id === g.id) setTimeout(() => toast('Το «' + g.name + '» γέμιζε τη μνήμη όταν κρατούσε αυτόματα την πρόοδο, κι η εφαρμογή ξανάνοιγε. Το σταμάτησα γι\' αυτό το παιχνίδι: για να κρατήσεις την πρόοδο, σώσε σε μια θέση από την παύση.', 9000), 2500);
     if (g && crashed && crashed.id === g.id) {
       bootCart('libbet');
@@ -5338,6 +5357,8 @@ const EN = {
   'Οι αποθηκεύσεις': 'Saves',
 };
 const EN_RE = [
+  [/^Το «(.*)» έκλεισε την εφαρμογή (\d+) φορές ενώ έπαιζε, οπότε δεν το ξανάνοιξα μόνο του\. Δοκίμασέ το με (.*): άνοιξέ το και πάτα Μενού → Παιχνίδι → «Εξομοιωτής για αυτό το παιχνίδι»\.$/s, "«$1» closed the app $2 times while playing, so I didn't reopen it by itself. Try it with $3: open it and tap Menu → Game → “Emulator for this game”."],
+  [/^Το «(.*)» έκλεισε την εφαρμογή (\d+) φορές ενώ έπαιζε, οπότε δεν το ξανάνοιξα μόνο του\.$/s, "«$1» closed the app $2 times while playing, so I didn't reopen it by itself."],
   [/^Το «(.*)» γέμιζε τη μνήμη όταν κρατούσε αυτόματα την πρόοδο, κι η εφαρμογή ξανάνοιγε\. Το σταμάτησα γι' αυτό το παιχνίδι: για να κρατήσεις την πρόοδο, σώσε σε μια θέση από την παύση\.$/s, "«$1» filled the memory while saving your progress automatically, so the app kept reopening. I turned that off for this game: to keep your progress, save to a slot from the pause menu."],
   [/^Θέση (\d+)$/, 'Slot $1'],
   [/^(\d+) λεπ\.$/, '$1 min'], [/^(\d+) ώρ\. (\d+) λεπ\.$/, '$1 h $2 min'], [/^(\d+) ώρ\.$/, '$1 h'],
