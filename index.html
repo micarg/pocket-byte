@@ -326,6 +326,9 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib::before { content: ""; position: sticky; top: calc(-14px - env(safe-area-inset-top, 0px)); display: block; z-index: 8; pointer-events: none;
   height: calc(env(safe-area-inset-top, 0px) + 6px); margin: calc(-14px - env(safe-area-inset-top, 0px)) calc(-1 * max(18px, env(safe-area-inset-left, 0px))) calc(8px);
   background: linear-gradient(180deg, #16171a 75%, rgba(22,23,26,0)); }
+/* nothing in the app is text to select or copy (no magnifier or Copy/Look Up on a long press); typing fields still work */
+body, body *:not(input):not(textarea) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input[type="search"], input[type="text"], textarea { -webkit-user-select: text; user-select: text; }
 .lib, .lib *, .cover-sheet, .cover-sheet *, #menu, #menu * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .lib-head { display: flex; align-items: center; justify-content: space-between; max-width: 720px; margin: 0 auto; }
 .lib-logo { font: 18px var(--display); letter-spacing: .18em; text-shadow: 0 2px 0 #000; }
@@ -4087,6 +4090,11 @@ const libEditBtn = document.getElementById('libEdit');
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => grid.addEventListener(ev, cancel));
   grid.addEventListener('contextmenu', e => e.preventDefault());
 }
+// no text selection or Copy/Look Up bubble anywhere (except in the search field)
+for (const ev of ['selectstart', 'contextmenu']) document.addEventListener(ev, e => {
+  const t = e.target && e.target.nodeType === 3 ? e.target.parentElement : e.target;
+  if (!(t && t.closest && t.closest('input, textarea'))) e.preventDefault();
+});
 const gameSheet = document.getElementById('gameSheet');
 let gsGame = null;
 function openGameSheet(g, art) {
