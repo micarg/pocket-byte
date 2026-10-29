@@ -352,7 +352,10 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
   background: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.35) 60%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 40%); }
 .cont-card .cont-kicker { color: rgba(255,255,255,.75); } .cont-card .cont-meta { color: rgba(255,255,255,.72); }
 .cont-card .cont-name { text-shadow: 0 1px 6px rgba(0,0,0,.35); }
-.cont-card .case-art { width: 92px; flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); transform: perspective(300px) rotateY(-14deg); }
+.cont-card .case-art { flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); transform: perspective(300px) rotateY(-14deg); }
+/* the cover as tall as the text beside it: its top at "Now playing", its bottom at the last key */
+.cont-card .cont-cover { display: flex; }
+.cont-card .case-art { width: auto !important; height: 150px; }
 /* the box's spine on the near (left) edge, like before */
 .cont-card .case-art::after { box-shadow: inset 6px 0 0 rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.3), inset 0 1.5px 0 rgba(255,255,255,.7); }
 .cont-info { flex: 1; min-width: 0; }
@@ -4691,6 +4694,13 @@ async function renderMine() {
     }
 
     info.append(k, n, m, btns); card.appendChild(info); contEl.appendChild(card);
+    // the cover exactly as tall as the text beside it (top at "Now playing", bottom at the last key)
+    const fitCover = () => {
+      const a = cc.querySelector('.case-art'); if (!a || !card.isConnected) return;
+      const kt = k.getBoundingClientRect().top, bb = Math.max(...[...btns.children].map(x => x.getBoundingClientRect().bottom));
+      if (bb > kt) a.style.height = Math.round(bb - kt) + 'px';
+    };
+    requestAnimationFrame(fitCover); setTimeout(fitCover, 300);
   }
   // console tabs: only the systems in the library
   const present = SYS_ORDER.filter(k => all.some(g => g.sys === k));
