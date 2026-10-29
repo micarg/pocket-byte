@@ -3454,7 +3454,9 @@ addEventListener('pointermove', e => {
 const hapEnd = e => { for (const st of hapActive) if (st.id === e.pointerId) { hapActive.delete(st); st.sw.style.transform = ''; st.id = null; } };
 addEventListener('pointerup', hapEnd, true); addEventListener('pointercancel', hapEnd, true);
 // a tick in the middle of a hold (stick turning to a new direction, finger sliding onto another button)
-function hapMid() { const now = performance.now(); for (const st of hapActive) if (now >= st.armedAt) st.pend = 1; }
+// (the tick for a press made with another finger also comes from here: iOS doesn't count a second finger's tap as a
+// tap, so that switch never flips. The finger already holding the stick ticks instead, on its very next movement.)
+function hapMid() { const now = performance.now(); for (const st of hapActive) if (now >= st.armedAt) { st.pend = 1; st.moves = Math.max(st.moves, 1); } }
 // iPhone shows its text magnifier after a long press, even on non-selectable controls; cancelling the touch's
 // default action on the control panel stops that (the buttons themselves run on pointer events, which still fire).
 // Touches on a haptic switch are left alone: WebKit needs them to track and flip it.
