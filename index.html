@@ -489,6 +489,26 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .console.lay-edit #dpad { border-radius: 50%; }
 .console.lay-edit .controls .lay-sel { outline: 3px solid #ffd34d !important; outline-offset: 4px; }
 .console.lay-edit .pause-ic { display: none; }
+/* loading screen */
+.load-art { position: absolute; inset: 0; z-index: 6; overflow: hidden; display: grid; place-items: center; background: #0b0c0e; transition: opacity .4s ease; }
+.load-art[hidden] { display: none; }
+.load-art.gone { opacity: 0; pointer-events: none; }
+.la-bg { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(28px) brightness(.55) saturate(1.3); transform: scale(1.1); }
+.la-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 22px 16px; border-radius: 22px; max-width: 72%;
+  background: rgba(255,255,255,.1); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.4), 0 18px 40px rgba(0,0,0,.45); }
+.la-cover { max-height: 120px; max-width: 120px; border-radius: 10px; box-shadow: 0 10px 22px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.3); }
+.la-cover[hidden] { display: none; }
+.la-name { color: #fff; font: 800 16px/1.25 var(--body); text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.la-bar { width: 160px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+.la-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: #fff; transition: width .3s ease; }
+.la-bar.busy i { width: 34% !important; animation: la-busy 1.1s ease-in-out infinite; }
+@keyframes la-busy { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
+.la-txt { color: rgba(255,255,255,.75); font: 600 12px var(--body); }
+/* cover flying into the screen */
+.zoom-clone { position: fixed !important; z-index: 80; margin: 0; overflow: hidden; pointer-events: none; }
+.zoom-clone img.cov { object-fit: cover; }
+.lib.leaving { opacity: 0; transition: opacity .3s ease; }
 /* paused: just the pause symbol in the middle of the game screen */
 .pause-ic { position: absolute; left: 50%; top: 50%; z-index: 5; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; pointer-events: none;
   background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
@@ -591,6 +611,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <div id="ejs-host" hidden><div id="ejs"></div></div>
         <div class="overlay" id="overlay" hidden></div>
         <div class="pause-ic" id="pauseIc" hidden aria-label="Παύση"><span></span><span></span></div>
+        <div class="load-art" id="loadArt" hidden aria-live="polite"><div class="la-bg" id="laBg"></div>
+          <div class="la-card"><img class="la-cover" id="laCover" alt=""><div class="la-name" id="laName"></div><div class="la-bar" id="laBar"><i></i></div><div class="la-txt" id="laTxt"></div></div></div>
       </div>
     </div>
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
@@ -1898,7 +1920,36 @@ function setLast(id) {
     if (id) { const p = JSON.parse(localStorage.getItem('pb-played') || '{}'); p[id] = Date.now(); localStorage.setItem('pb-played', JSON.stringify(p)); }
   } catch (e) {}
 }
-function showOverlay(text) { overlay.dataset.raw = text; overlay.textContent = text; overlay.hidden = !text; }
+function showOverlay(text) {
+  // while a game loads, progress messages go to the loading screen; anything else (an error) replaces it
+  if (loadingOn && text && /Φορτώνει|%|Loading/.test(text)) { overlay.dataset.raw = text; overlay.hidden = true; setLoadText(text); return; }
+  if (loadingOn && text) hideLoading();
+  overlay.dataset.raw = text; overlay.textContent = text; overlay.hidden = !text;
+}
+/* ---- loading screen: the game's cover, blurred behind a glass card with its name and a progress bar ---- */
+let loadingOn = false;
+function showLoading(g) {
+  const el = document.getElementById('loadArt'), bg = document.getElementById('laBg'), cv = document.getElementById('laCover');
+  let url = null; try { url = coverKnown(g.id); } catch (e) {}
+  if (url && url !== 'none') { bg.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`; cv.src = url; cv.hidden = false; }
+  else { bg.style.backgroundImage = ''; cv.removeAttribute('src'); cv.hidden = true; }
+  bg.style.backgroundColor = `hsl(${hueOf(g.id || 'x')} 40% 28%)`;
+  let name = g.name || ''; try { name = displayName(g); } catch (e) {}
+  document.getElementById('laName').textContent = name;
+  el.classList.remove('gone'); el.hidden = false; loadingOn = true; setLoadText('Φορτώνει…');
+}
+function setLoadText(text) {
+  const m = /(\d+)\s*%/.exec(text), bar = document.getElementById('laBar');
+  bar.classList.toggle('busy', !m);
+  if (m) bar.firstElementChild.style.width = Math.min(100, +m[1]) + '%';
+  let t = text; try { t = tr(text); } catch (e) {}
+  document.getElementById('laTxt').textContent = t;
+}
+function hideLoading() {
+  if (!loadingOn) return; loadingOn = false;
+  const el = document.getElementById('loadArt'); el.classList.add('gone');
+  setTimeout(() => { if (!loadingOn) el.hidden = true; }, 450);
+}
 function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); if (typeof applyCustomLayout === 'function') applyCustomLayout(); if (typeof applyRunMode === 'function') applyRunMode(); requestAnimationFrame(fit); }
 /* ---- N64: what each button does, for games where that is well known (in English) ---- */
 const N64_LABELS = [
@@ -2023,6 +2074,7 @@ const ROM_EXT = /\.(nes|unf|unif|fds|gba|agb|gbc?|md|gen|smd|sg|bin|n64|z64|v64)
 
 /* ---- Game Boy boot ---- */
 function bootGB(bytes, label, id) {
+  hideLoading();
   if (ejsLoaded) { setLast(id); location.reload(); return; }
   if (gb) { storeSave(); snapshotState(true); }
   gb = new GBCore(bytes, { sampleRate: SR });
@@ -2064,7 +2116,7 @@ function bootEJS(entry) {
   }
   document.getElementById('led').classList.add('on');
   document.getElementById('ejs-host').hidden = false;
-  showOverlay('Φορτώνει…');
+  showLoading(entry); showOverlay('Φορτώνει…');
   setLast(entry.id); markActive();
 
   // arcade sets are recognised by their zip file name (e.g. wboy.zip), so keep it
@@ -2149,6 +2201,7 @@ function bootEJS(entry) {
       } catch (e) {}
     },
     EJS_onGameStart: () => {
+      hideLoading();
       ejsStarted = true; showOverlay('');
       // the picture's place on the canvas as measured last time: fitted at once, then checked against real frames
       { const u = uiCache(entry.id); if (fillOn && Array.isArray(u.pb) && u.pb.length === 4) { picBox = u.pb.slice(); picKey = u.pk || ''; picNew = null; picBlank = 0; } }
@@ -2548,7 +2601,7 @@ function ejsInput(index, value) {
 
 function bootEntry(g) {
   if (g.sys === 'psx' && g.ext === 'zip' && g.blob && !g.unpackTried) {
-    setSys('psx'); document.getElementById('ejs-host').hidden = false; showOverlay('Αποσυμπίεση δίσκου… 0%');
+    setSys('psx'); document.getElementById('ejs-host').hidden = false; showLoading(g); showOverlay('Αποσυμπίεση δίσκου… 0%');
     discFromZip(g.blob, pc => showOverlay('Αποσυμπίεση δίσκου… ' + pc + '%')).then(async r => {
       if (!r) { bootEntry({ ...g, unpackTried: true }); return; }
       const ng = { ...discEntryFiles(r, g.name), id: g.id, added: g.added };
@@ -4062,8 +4115,37 @@ function caseArt(g) {
   if (known && known !== 'none') show(known); else if (!known && !g.cart) findCover(g).then(show);
   return art;
 }
-function playGame(g) {
-  unlockAudio(); setMenu(false);
+// the cover grows into the game screen, then the game (or its loading screen) takes over
+function zoomCover(art) {
+  return new Promise(done => {
+    const scr = document.getElementById('screenWrap');
+    if (!art || !scr || matchMedia('(prefers-reduced-motion: reduce)').matches) { done(null); return; }
+    const a = art.getBoundingClientRect(), t = scr.getBoundingClientRect();
+    if (!a.width || !t.width) { done(null); return; }
+    const c = art.cloneNode(true);
+    c.classList.add('zoom-clone'); c.querySelectorAll('.hap-sw, .case-tag, .case-fav').forEach(x => x.remove());
+    Object.assign(c.style, { left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px', aspectRatio: 'auto' });
+    document.body.appendChild(c);
+    const anim = c.animate([
+      { left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px', borderRadius: '14px' },
+      { left: t.left + 'px', top: t.top + 'px', width: t.width + 'px', height: t.height + 'px', borderRadius: '0px' }
+    ], { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+    anim.onfinish = () => done(c);
+  });
+}
+const fadeClone = c => { if (!c) return; c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).onfinish = () => c.remove(); };
+async function playGame(g, art) {
+  unlockAudio();
+  if (art) {
+    // the menu fades while the cover flies to the screen
+    lib.classList.add('leaving');
+    const clone = await zoomCover(art);
+    lib.classList.remove('leaving');
+    setMenu(false);
+    if (!g.cart && (g.sys || 'gb') !== 'gb') showLoading(g); // under the fading cover, until the game starts
+    setTimeout(() => fadeClone(clone), clone ? 120 : 0);
+  }
+  setMenu(false);
   if (g.cart) { bootCart(g.id); return; }
   dbGet(g.id).then(full => { if (full) bootEntry(full); else { toast('Δεν βρέθηκε το αρχείο του παιχνιδιού. Φόρτωσέ το ξανά.', 3500); renderMine(); } });
 }
@@ -4342,7 +4424,7 @@ async function renderMine() {
     const go = document.createElement('button'); go.className = 'key3d';
     go.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
     go.append(lastG.id === current ? 'Συνέχισε' : 'Παίξε');
-    go.addEventListener('click', () => { if (lastG.id === current && (gb || ejsStarted)) setMenu(false); else playGame(lastG); });
+    go.addEventListener('click', () => { if (lastG.id === current && (gb || ejsStarted)) setMenu(false); else playGame(lastG, card.querySelector('.case-art')); });
     btns.appendChild(go);
     if (lastG.id === current) {
       const sv = document.createElement('button'); sv.className = 'key3d dark'; sv.textContent = 'Θέσεις αποθήκευσης';
@@ -4380,7 +4462,7 @@ async function renderMine() {
     const card = document.createElement('div'); card.className = 'case-card' + (g.id === current ? ' active' : '');
     const btn = document.createElement('button'); btn.className = 'case'; btn.setAttribute('aria-label', 'Παίξε ' + displayName(g));
     btn.appendChild(caseArt(g));
-    btn.addEventListener('click', () => { if (!lib.classList.contains('editing')) playGame(g); });
+    btn.addEventListener('click', () => { if (!lib.classList.contains('editing')) playGame(g, btn.querySelector('.case-art')); });
     const name = document.createElement('span'); name.className = 'case-name'; name.textContent = displayName(g);
     card.dataset.q = searchNorm(displayName(g) + ' ' + g.name + ' ' + (g.fileName || '') + ' ' + SYS_SHORT[g.sys]);
     card.append(btn, name);
