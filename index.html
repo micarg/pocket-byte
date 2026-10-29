@@ -895,7 +895,7 @@ svg.star-ic { overflow: visible; display: block; }
     <div class="pad-row">
       <div class="tpad" id="tpad" aria-label="Επιφάνεια αφής για κατευθύνσεις">
         <i class="ta u"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i><i class="ta d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></i>
-        <span class="tp-hint">Σύρε το δάχτυλο οπουδήποτε εδώ</span>
+        <span class="tp-hint">Πάτα προς μια πλευρά ή σύρε</span>
       </div>
       <div class="dpad" id="dpad" aria-label="Joystick">
         <div class="ring"></div>
@@ -3776,6 +3776,14 @@ tpad.addEventListener('pointerdown', e => {
   e.preventDefault(); unlockAudio();
   try { tpad.setPointerCapture(e.pointerId); } catch (_) {}
   tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch');
+  // a press toward a side (outside the middle) turns that way at once, like the arms of a d-pad;
+  // the middle is left to swipes
+  const r = tpad.getBoundingClientRect();
+  const nx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2), ny = (e.clientY - (r.top + r.height * 0.42)) / (r.height / 2);
+  if (Math.hypot(nx, ny) > 0.38) {
+    const m = Math.abs(nx) > Math.abs(ny) ? (nx > 0 ? K.RIGHT : K.LEFT) : (ny > 0 ? K.DOWN : K.UP);
+    if (m !== tpM) { tpSet(m); haptic(); }
+  }
 });
 tpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', e => {
   if (!tpStart || e.pointerId !== tpStart.id) return;
@@ -5141,7 +5149,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
-  'Σύρε το δάχτυλο οπουδήποτε εδώ': 'Swipe anywhere here', 'Επιφάνεια αφής για κατευθύνσεις': 'Swipe pad for directions',
+  'Πάτα προς μια πλευρά ή σύρε': 'Tap a side or swipe', 'Επιφάνεια αφής για κατευθύνσεις': 'Swipe pad for directions',
   'Δεξί κουμπί': 'Right key', 'Αριστερό κουμπί': 'Left key',
   'Κουμπιά ειδικών κινήσεων': 'Special move keys', 'Ναι': 'Yes', 'Ειδική κίνηση 1': 'Special move 1', 'Ειδική κίνηση 2': 'Special move 2',
   'Για παιχνίδια μάχης. Κράτα τον μοχλό προς τον αντίπαλο και πάτα το κουμπί: η κίνηση γίνεται μόνη της προς τα εκεί. Αν δεν κρατάς τον μοχλό, γίνεται προς την τελευταία πλευρά που διάλεξες.': "For fighting games. Hold the stick toward your opponent and tap the key: the move is done for you in that direction. Without the stick, it goes the last way you chose.",
