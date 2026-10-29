@@ -279,6 +279,12 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib { position: fixed; inset: 0; z-index: 22; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
   background: radial-gradient(ellipse at 50% 0%, #2a2d33 0%, #131417 55%, #0b0c0e 100%) fixed; color: #e9ebee; font-family: var(--body);
   padding: calc(14px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); box-sizing: border-box; }
+/* covers: arrive one after another when the library opens; sink slightly while pressed */
+.lib-grid.enter .case-card { animation: case-in .42s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 35ms); }
+@keyframes case-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+.case .case-art { transition: transform .16s ease, box-shadow .16s ease; }
+.case:active .case-art, .case.pressing .case-art { transform: scale(.95); }
+@media (prefers-reduced-motion: reduce) { .lib-grid.enter .case-card { animation: none; } }
 /* the status bar area stays solid while the library scrolls under it */
 .lib::before { content: ""; position: sticky; top: calc(-14px - env(safe-area-inset-top, 0px)); display: block; z-index: 8; pointer-events: none;
   height: calc(env(safe-area-inset-top, 0px) + 6px); margin: calc(-14px - env(safe-area-inset-top, 0px)) calc(-1 * max(18px, env(safe-area-inset-left, 0px))) calc(8px);
@@ -292,9 +298,15 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib-key svg { width: 18px; height: 18px; }
 .lib-key:active { transform: translateY(2px); box-shadow: 0 1px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.14); }
 .lib-cont { max-width: 720px; margin: 18px auto 0; }
-.cont-card { padding: 14px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.12);
-  box-shadow: 0 18px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.15); display: flex; gap: 14px; align-items: center; }
-.cont-card .case-art { width: 78px; flex: none; transform: perspective(300px) rotateY(-14deg); }
+.cont-card { position: relative; overflow: hidden; isolation: isolate; padding: 16px; border-radius: 24px; background: #1a1c20; border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.2); display: flex; gap: 16px; align-items: center; }
+/* "Now Playing": the cover fills the card, blurred and darkened, under the sharp cover */
+.cont-bg { position: absolute; inset: -30px; z-index: -1; background-size: cover; background-position: center; filter: blur(26px) saturate(1.5) brightness(.6); transform: scale(1.15); }
+.cont-card::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.35) 60%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 40%); }
+.cont-card .cont-kicker { color: rgba(255,255,255,.75); } .cont-card .cont-meta { color: rgba(255,255,255,.72); }
+.cont-card .cont-name { text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+.cont-card .case-art { width: 92px; flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); }
 .cont-info { flex: 1; min-width: 0; }
 .cont-kicker { font: 800 11px var(--body); letter-spacing: .1em; color: var(--accent); }
 .cont-name { font: 800 18px var(--body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -478,6 +490,41 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .hap-sw.tap { touch-action: manipulation; border-radius: inherit; -webkit-appearance: none; appearance: none; display: block; background: none; }
 .hap-hidden { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; visibility: hidden; }
 .sys .b-wrap { position: relative; }
+/* a game's card, sliding up from the bottom */
+.game-sheet { position: fixed; inset: 0; z-index: 45; }
+.game-sheet[hidden] { display: none; }
+.gs-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); opacity: 0; transition: opacity .3s ease; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.game-sheet.open .gs-scrim { opacity: 1; }
+.gs-panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; overflow: hidden; isolation: isolate; border-radius: 28px 28px 0 0;
+  padding: 26px max(20px, env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  background: #17181c; box-shadow: 0 -20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.18); transform: translateY(100%); transition: transform .34s cubic-bezier(.2,.8,.2,1); color: #fff; }
+.game-sheet.open .gs-panel { transform: none; }
+.gs-bg { position: absolute; inset: -40px; z-index: -1; background-size: cover; background-position: center; filter: blur(34px) saturate(1.5) brightness(.45); transform: scale(1.2); }
+.gs-grab { position: absolute; left: 50%; top: 9px; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: rgba(255,255,255,.35); }
+.gs-close { position: absolute; right: 16px; top: 16px; width: 34px; height: 34px; border-radius: 50%; border: 0; display: grid; place-items: center; color: #fff; cursor: pointer;
+  background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.gs-close svg { width: 15px; height: 15px; }
+.gs-top { display: flex; gap: 18px; align-items: flex-end; }
+.gs-cover { width: 128px; flex: none; }
+.gs-cover .case-art { width: 100%; box-shadow: 0 18px 36px rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.4); }
+.gs-info { min-width: 0; flex: 1; padding-bottom: 4px; }
+.gs-name { font: 800 21px/1.2 var(--body); text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+.gs-sys { margin-top: 4px; color: rgba(255,255,255,.7); font: 600 13px var(--body); }
+.gs-stats { display: flex; gap: 18px; margin-top: 14px; }
+.gs-stats div { display: flex; flex-direction: column; gap: 2px; } .gs-stats b { font: 800 15px var(--body); } .gs-stats span { font: 600 11px var(--body); color: rgba(255,255,255,.6); }
+.gs-play { width: 100%; height: 50px; margin-top: 20px; border: 0; border-radius: 25px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  font: 800 16px var(--body); color: #15171a; background: #f2f3f5; box-shadow: 0 4px 0 #9a9ea5, 0 10px 24px rgba(0,0,0,.4); }
+.gs-play svg { width: 15px; height: 15px; }
+.gs-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #9a9ea5; }
+.gs-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.gs-acts button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px 10px; border: 0; border-radius: 16px; cursor: pointer; color: #fff; font: 700 11px var(--body);
+  background: rgba(255,255,255,.1); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.25); }
+.gs-acts button[hidden] { display: none; }
+.gs-acts svg { width: 22px; height: 22px; }
+.gs-acts #gsFav svg { fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; }
+.gs-acts #gsFav.on svg { fill: #ffd34d; stroke: #ffd34d; }
+.gs-acts .danger { color: #ff8a8a; }
+.gs-acts button:active { transform: scale(.96); }
 /* button layout editor: a panel over the game screen; the controls below show what can be moved */
 .lay-bar { position: fixed; z-index: 30; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); max-width: 460px; margin: 0 auto; box-sizing: border-box;
   padding: 14px 16px; border-radius: 20px; background: rgba(26,28,32,.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid #4a505a;
@@ -728,6 +775,24 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="dock-wrap" id="dockWrap"><button class="dock-menu" id="dockMenu" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button></div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
+  <div class="game-sheet" id="gameSheet" hidden role="dialog" aria-label="Παιχνίδι">
+    <div class="gs-scrim" id="gsScrim"></div>
+    <div class="gs-panel" id="gsPanel">
+      <div class="gs-bg" id="gsBg"></div>
+      <div class="gs-grab"></div>
+      <button class="gs-close" id="gsClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="gs-top"><div class="gs-cover" id="gsCover"></div>
+        <div class="gs-info"><div class="gs-name" id="gsName"></div><div class="gs-sys" id="gsSys"></div>
+          <div class="gs-stats"><div><b id="gsTime"></b><span>Χρόνος παιχνιδιού</span></div><div><b id="gsLast"></b><span>Τελευταία φορά</span></div></div></div></div>
+      <button class="gs-play" id="gsPlay"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Παίξε</button>
+      <div class="gs-acts">
+        <button id="gsFav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span>Στα αγαπημένα</span></button>
+        <button id="gsCov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg><span>Εξώφυλλο</span></button>
+        <button id="gsEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Επεξεργασία</span></button>
+        <button id="gsDel" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Σβήσε</span></button>
+      </div>
+    </div>
+  </div>
   <div class="lay-bar" id="layBar" hidden role="dialog" aria-label="Διάταξη κουμπιών">
     <div class="sa-head"><b>Διάταξη κουμπιών</b><span id="layGame"></span></div>
     <div class="lay-hint" id="layHint">Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.</div>
@@ -3062,7 +3127,7 @@ if (isApple) {
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
 // (no tick) and the closing click is swallowed, so nothing gets pressed by a scroll.
-const HAP_MENU = '#lib button, #coverSheet button, #scrAdj button, #dockMenu';
+const HAP_MENU = '#lib button, #coverSheet button, #scrAdj button, #layBar button, #gameSheet button, #dockMenu';
 function hapTap(host) {
   if (host.querySelector(':scope > .hap-sw')) return;
   if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -3843,7 +3908,7 @@ const menu = document.getElementById('menu'), scrim = document.getElementById('s
 function setMenu(open) {
   lib.hidden = !open; menuBtn.setAttribute('aria-expanded', open);
   if (!open) { lib.classList.remove('editing'); libEditBtn.textContent = 'Επεξεργασία'; }
-  else { setPane('lib'); renderMine(); }
+  else { setPane('lib'); renderMine.enter = true; renderMine(); }
   if (open && !paused) { pausedByMenu = true; setPaused(true); }
   if (!open && pausedByMenu) { pausedByMenu = false; setPaused(false); }
 }
@@ -3880,19 +3945,67 @@ document.getElementById('libClose').addEventListener('click', () => setMenu(fals
 
 document.getElementById('libAdd').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 const libEditBtn = document.getElementById('libEdit');
-// holding a finger on a game starts edit mode (the cases wiggle), like the iPhone home screen
+// holding a finger on a game opens its card (cover, time, favourite, cover change, delete)
 {
   const grid = document.getElementById('libGrid');
-  let t = null, x0 = 0, y0 = 0;
-  const cancel = () => { clearTimeout(t); t = null; };
+  let t = null, x0 = 0, y0 = 0, pc = null;
+  const cancel = () => { clearTimeout(t); t = null; if (pc) pc.classList.remove('pressing'); pc = null; };
   grid.addEventListener('pointerdown', e => {
-    if (lib.classList.contains('editing') || !e.target.closest('.case')) return;
-    x0 = e.clientX; y0 = e.clientY; cancel();
-    t = setTimeout(() => { t = null; lib.classList.add('editing'); libEditBtn.textContent = 'Τέλος'; grid.dataset.justEdited = '1'; setTimeout(() => delete grid.dataset.justEdited, 600); }, 500);
+    const c = e.target.closest('.case');
+    if (lib.classList.contains('editing') || !c) return;
+    x0 = e.clientX; y0 = e.clientY; cancel(); pc = c; c.classList.add('pressing');
+    t = setTimeout(() => { t = null; c.classList.remove('pressing'); pc = null; grid.dataset.lp = '1'; setTimeout(() => delete grid.dataset.lp, 900); openGameSheet(c._g, c.querySelector('.case-art')); }, 480);
   });
   grid.addEventListener('pointermove', e => { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) cancel(); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => grid.addEventListener(ev, cancel));
   grid.addEventListener('contextmenu', e => e.preventDefault());
+}
+const gameSheet = document.getElementById('gameSheet');
+let gsGame = null;
+function openGameSheet(g, art) {
+  if (!g) return;
+  gsGame = g;
+  let u = null; try { u = coverKnown(g.id); } catch (e) {}
+  const bg = document.getElementById('gsBg'), cv = document.getElementById('gsCover');
+  bg.style.backgroundImage = u && u !== 'none' ? `url("${u.replace(/"/g, '%22')}")` : '';
+  bg.style.backgroundColor = g.cart ? g.bg : `hsl(${hueOf(g.id)} 45% 30%)`;
+  cv.innerHTML = ''; const a = caseArt(g); cv.appendChild(a);
+  document.getElementById('gsName').textContent = displayName(g);
+  let played = {}; try { played = JSON.parse(localStorage.getItem('pb-played') || '{}'); } catch (e) {}
+  document.getElementById('gsSys').textContent = SYSTEMS[g.sys || 'gb'].name;
+  const pt = fmtTime(playTimes()[g.id] || 0);
+  document.getElementById('gsTime').textContent = pt || '—';
+  document.getElementById('gsLast').textContent = played[g.id] ? whenText(played[g.id]) : '—';
+  gsFavBtn();
+  document.getElementById('gsCov').hidden = !!g.cart;
+  const del = document.getElementById('gsDel'); delete del.dataset.sure; del.querySelector('span').textContent = 'Σβήσε';
+  gameSheet.hidden = false; requestAnimationFrame(() => gameSheet.classList.add('open'));
+}
+function gsFavBtn() {
+  const on = favs().includes(gsGame.id), b = document.getElementById('gsFav');
+  b.classList.toggle('on', on); b.querySelector('span').textContent = on ? 'Αγαπημένο' : 'Στα αγαπημένα';
+}
+function closeGameSheet() { gameSheet.classList.remove('open'); setTimeout(() => { if (!gameSheet.classList.contains('open')) gameSheet.hidden = true; }, 300); }
+document.getElementById('gsScrim').addEventListener('click', closeGameSheet);
+document.getElementById('gsClose').addEventListener('click', closeGameSheet);
+document.getElementById('gsPlay').addEventListener('click', () => { const g = gsGame, art = document.querySelector('#gsCover .case-art'); gameSheet.classList.remove('open'); gameSheet.hidden = true; playGame(g, art); });
+document.getElementById('gsFav').addEventListener('click', () => { toggleFav(gsGame.id); gsFavBtn(); });
+document.getElementById('gsCov').addEventListener('click', () => { closeGameSheet(); openCoverSheet(gsGame); });
+document.getElementById('gsEdit').addEventListener('click', () => { closeGameSheet(); lib.classList.add('editing'); libEditBtn.textContent = 'Τέλος'; });
+document.getElementById('gsDel').addEventListener('click', async () => {
+  const del = document.getElementById('gsDel'), g = gsGame;
+  if (!del.dataset.sure) { del.dataset.sure = '1'; del.querySelector('span').textContent = 'Σίγουρα;'; setTimeout(() => { if (del.dataset.sure) { delete del.dataset.sure; del.querySelector('span').textContent = 'Σβήσε'; } }, 3000); return; }
+  if (g.cart) setHiddenCarts([...hiddenCarts(), g.id]);
+  else { await dbDel(g.id); try { localStorage.removeItem(coverKey(g.id)); } catch (e) {} }
+  closeGameSheet(); toast('Σβήστηκε: ' + displayName(g)); renderMine();
+});
+// swipe the card down to close it
+{
+  let y0 = null, dy = 0;
+  const panel = document.getElementById('gsPanel');
+  panel.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; panel.style.transition = 'none'; });
+  addEventListener('pointermove', e => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); panel.style.transform = `translateY(${dy}px)`; });
+  addEventListener('pointerup', () => { if (y0 === null) return; y0 = null; panel.style.transition = ''; panel.style.transform = ''; if (dy > 80) closeGameSheet(); });
 }
 libEditBtn.addEventListener('click', () => { const on = lib.classList.toggle('editing'); libEditBtn.textContent = on ? 'Τέλος' : 'Επεξεργασία'; });
 addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!coverSheet.hidden) closeCoverSheet(); else if (!lib.hidden) setMenu(false); });
@@ -4402,6 +4515,12 @@ async function renderMine() {
   const lastG = all.find(g => g.id === lastId);
   if (lastG) {
     const card = document.createElement('div'); card.className = 'cont-card';
+    const cbg = document.createElement('div'); cbg.className = 'cont-bg'; card.appendChild(cbg);
+    { let u = null; try { u = coverKnown(lastG.id); } catch (e) {}
+      if (u && u !== 'none') cbg.style.backgroundImage = `url("${u.replace(/"/g, '%22')}")`;
+      cbg.style.backgroundColor = lastG.cart ? lastG.bg : `hsl(${hueOf(lastG.id)} 45% 32%)`;
+      // a cover still being looked up: use it as soon as it arrives
+      if (!u) setTimeout(() => { const v = coverKnown(lastG.id); if (v && v !== 'none' && cbg.isConnected) cbg.style.backgroundImage = `url("${v.replace(/"/g, '%22')}")`; }, 1500); }
     card.appendChild(caseArt(lastG));
     const info = document.createElement('div'); info.className = 'cont-info';
     const k = document.createElement('div'); k.className = 'cont-kicker'; k.textContent = lastG.id === current ? 'ΠΑΙΖΕΙΣ ΤΩΡΑ' : 'ΣΥΝΕΧΙΣΕ';
@@ -4447,11 +4566,20 @@ async function renderMine() {
   grid.classList.toggle('sys', libFilter !== 'all' && libFilter !== 'fav');
   if (metas === null) { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.'; grid.appendChild(e); }
   else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα το + για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
+  // the entrance animation only when the library has just been opened
+  grid.classList.toggle('enter', !!renderMine.enter); renderMine.enter = false;
+  let ci = 0;
   for (const g of list) {
     const card = document.createElement('div'); card.className = 'case-card' + (g.id === current ? ' active' : '');
+    card.style.setProperty('--i', Math.min(ci++, 14));
     const btn = document.createElement('button'); btn.className = 'case'; btn.setAttribute('aria-label', 'Παίξε ' + displayName(g));
     btn.appendChild(caseArt(g));
-    btn.addEventListener('click', () => { if (!lib.classList.contains('editing')) playGame(g, btn.querySelector('.case-art')); });
+    btn._g = g;
+    btn.addEventListener('click', () => {
+      const gr = document.getElementById('libGrid');
+      if (gr.dataset.lp) { delete gr.dataset.lp; return; } // the long press opened the game's card
+      if (!lib.classList.contains('editing')) playGame(g, btn.querySelector('.case-art'));
+    });
     const name = document.createElement('span'); name.className = 'case-name'; name.textContent = displayName(g);
     card.dataset.q = searchNorm(displayName(g) + ' ' + g.name + ' ' + (g.fileName || '') + ' ' + SYS_SHORT[g.sys]);
     card.append(btn, name);
@@ -4520,6 +4648,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Χρόνος παιχνιδιού': 'Play time', 'Τελευταία φορά': 'Last played', 'Στα αγαπημένα': 'Favourite', 'Αγαπημένο': 'Favourite ★', 'Εξώφυλλο': 'Cover', 'Σβήσε': 'Delete', 'Σίγουρα;': 'Sure?',
   'Πρόσθεσε παιχνίδια': 'Add games',
   'Διάταξη κουμπιών (θέση / μέγεθος)': 'Button layout (position / size)', 'Διάταξη κουμπιών': 'Button layout', 'Μέγεθος': 'Size', 'Μικρότερο': 'Smaller', 'Μεγαλύτερο': 'Bigger',
   'Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.': 'Drag the stick or a button to move it. Tap one to change its size.',
