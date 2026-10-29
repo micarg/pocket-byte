@@ -247,8 +247,8 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.land .sys .pill::after { color: #e9ebee; }
 /* GBA in MODERN: L and R are shoulder keys at the top corners of the panel, like on the real console */
 .shoulders { display: none; }
-.console.modern .sys.only-gba .b-wrap.lr { display: none; }
-.console.modern[data-sys="gba"] .shoulders { display: block; position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 3; margin: 0; }
+.console.modern .sys .b-wrap.lr { display: none; }
+.console.modern[data-sys="gba"] .shoulders.only-gba, .console.modern[data-sys="psx"] .shoulders.only-psx, .console.modern[data-sys="n64"] .shoulders.only-n64 { display: block; position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 3; margin: 0; }
 .console.modern .shoulders .b-wrap { position: absolute; top: 0; width: 31%; max-width: 150px; height: 44px; transform: none; display: block; }
 .console.modern .shoulders .sh-l { left: 0; } .console.modern .shoulders .sh-r { right: 0; }
 .console.modern .shoulders .pill { width: 100%; height: 100%; border-radius: 0 0 24px 0;
@@ -257,9 +257,22 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.modern .shoulders .sh-r .pill { border-radius: 0 0 0 24px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.3), inset 1px 0 0 rgba(255,255,255,.12), 0 6px 12px rgba(0,0,0,.35); }
 .console.modern .shoulders .pill::after { font-size: 16px; letter-spacing: 0; text-indent: 0; }
 .console.modern .shoulders .pill.down { transform: translateY(2px); }
-.console.modern[data-sys="gba"]:not(.land) .pad-row { margin-top: calc(52px / var(--ctl-z, 1)); }
-.console.land[data-sys="gba"] .shoulders .b-wrap { width: 22%; height: 40px; }
-.console.land[data-sys="gba"] .sys:not(.shoulders) { padding-top: calc(54px / var(--ctl-z, 1)); }
+.console.modern:is([data-sys="gba"], [data-sys="psx"], [data-sys="n64"]):not(.land) .pad-row { margin-top: calc(52px / var(--ctl-z, 1)); }
+/* PS1: L2 at the outer corner, L1 next to it (R1, R2 mirrored) */
+.console.modern .shoulders .sh-out, .console.modern .shoulders .sh-in { width: 21%; max-width: 100px; }
+.console.modern .shoulders .sh-l.sh-in { left: calc(min(21%, 100px) + 5px); }
+.console.modern .shoulders .sh-r.sh-in { right: calc(min(21%, 100px) + 5px); }
+.console.modern .shoulders .sh-in .pill { border-radius: 0 0 16px 16px !important; }
+.console.modern .shoulders .sh-out .pill::after, .console.modern .shoulders .sh-in .pill::after { font-size: 14px; }
+.console.modern .shoulders .pill.named::after { font-size: 13px; letter-spacing: .04em; }
+/* PS1 bottom row now holds only SELECT · menu · START: full-size keys */
+.console.modern .sys.only-psx .b-wrap:not(.lr) { max-width: 104px; }
+.console.modern .sys.only-psx .b-wrap:not(.lr) .pill::after { font-size: 11px; letter-spacing: .12em; text-indent: .12em; }
+.console.land .shoulders .b-wrap { width: 160px; max-width: none; height: 40px; }
+.console.land .shoulders .sh-out, .console.land .shoulders .sh-in { width: 84px; max-width: none; }
+.console.land .shoulders .sh-l.sh-in { left: 89px; } .console.land .shoulders .sh-r.sh-in { right: 89px; }
+.console.land .sys.only-psx .b-wrap:not(.lr) { width: 72px; }
+.console.land:is([data-sys="gba"], [data-sys="psx"], [data-sys="n64"]) .sys:not(.shoulders) { padding-top: calc(54px / var(--ctl-z, 1)); }
 .dock-wrap { flex: none; display: none; }
 .console.modern .dock-wrap { display: block; }
 .dock-menu { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; color: #fff; cursor: pointer; touch-action: manipulation;
@@ -750,6 +763,16 @@ svg.star-ic { overflow: visible; display: block; }
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
 
     <div class="controls-panel" id="controlsPanel">
+    <div class="sys shoulders only-psx">
+      <div class="b-wrap sh-l sh-out"><button class="pill" data-ej="12" aria-label="L2"></button><span class="lbl">L2</span></div>
+      <div class="b-wrap sh-l sh-in"><button class="pill" data-ej="10" aria-label="L1"></button><span class="lbl">L1</span></div>
+      <div class="b-wrap sh-r sh-in"><button class="pill" data-ej="11" aria-label="R1"></button><span class="lbl">R1</span></div>
+      <div class="b-wrap sh-r sh-out"><button class="pill" data-ej="13" aria-label="R2"></button><span class="lbl">R2</span></div>
+    </div>
+    <div class="sys shoulders only-n64">
+      <div class="b-wrap sh-l"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap sh-r"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+    </div>
     <div class="sys shoulders only-gba">
       <div class="b-wrap sh-l"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
       <div class="b-wrap sh-r"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
@@ -843,18 +866,18 @@ svg.star-ic { overflow: visible; display: block; }
       <div class="b-wrap lr"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     <div class="sys only-psx">
-      <div class="b-wrap"><button class="pill" data-ej="12" aria-label="L2"></button><span class="lbl">L2</span></div>
-      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L1"></button><span class="lbl">L1</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="12" aria-label="L2"></button><span class="lbl">L2</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="10" aria-label="L1"></button><span class="lbl">L1</span></div>
       <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Select"></button><span class="lbl">SELECT</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
-      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R1"></button><span class="lbl">R1</span></div>
-      <div class="b-wrap"><button class="pill" data-ej="13" aria-label="R2"></button><span class="lbl">R2</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="11" aria-label="R1"></button><span class="lbl">R1</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="13" aria-label="R2"></button><span class="lbl">R2</span></div>
     </div>
     <div class="sys only-n64">
-      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
       <div class="b-wrap"><button class="pill" data-ej="12" aria-label="Z"></button><span class="lbl">Z</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
-      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     </div>
     </div>
@@ -2131,8 +2154,7 @@ function applyN64Labels(name) {
   }
   const cl = document.querySelector('.n64-c-label'); cl.textContent = m.C ? 'C · ' + m.C : 'C'; cl.classList.toggle('named', !!m.C);
   for (const [ej, key] of [[10, 'L'], [12, 'Z'], [3, 'START'], [11, 'R']]) {
-    const b = document.querySelector('.sys.only-n64 .pill[data-ej="' + ej + '"]');
-    set(b && b.parentElement.querySelector('.lbl'), key, key === 'START' ? '' : key);
+    document.querySelectorAll('.sys.only-n64 .pill[data-ej="' + ej + '"]').forEach(b => set(b.parentElement.querySelector('.lbl'), key, key === 'START' ? '' : key));
   }
   syncPillLabels();
 }
