@@ -611,6 +611,13 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .lay-hint { color: #9aa1ab; font-size: 12.5px; font-weight: 500; line-height: 1.4; }
 .lay-bar .sa-step:disabled, .lay-bar input:disabled { opacity: .35; }
 .lay-edit .hap-sw { pointer-events: none; }
+/* two-finger vibration test (settings) */
+.ht-row { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 8px; align-items: center; margin-top: 8px; }
+.ht-lbl { font: 800 12.5px var(--body); color: rgba(255,255,255,.75); }
+.ht-pad { position: relative; height: 84px; border-radius: 18px; display: flex; align-items: center; justify-content: center; text-align: center;
+  font: 800 14px var(--body); color: #fff; background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); touch-action: none; user-select: none; -webkit-user-select: none; }
+.ht-pad.plain { background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
+.ht-pad.on { background: rgba(255,214,10,.35); }
 #layGuides { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 60; overflow: visible; }
 #layGuides line { stroke: #ffd60a; stroke-width: 1.5; stroke-dasharray: 6 5; filter: drop-shadow(0 0 2px rgba(0,0,0,.6)); }
 #layGuides circle { fill: #ffd60a; }
@@ -1143,6 +1150,10 @@ svg.star-ic { overflow: visible; display: block; }
       <button class="tool" id="soundBtn">Ήχος: κλειστός</button>
       <button class="tool" id="hapticBtn">Δόνηση: ανοιχτή</button>
     </div>
+    <h2>Δοκιμή δόνησης με δύο δάχτυλα</h2>
+    <div class="set-note">Δοκιμή 1: κράτα πατημένο το Α με τον έναν αντίχειρα και, χωρίς να το αφήσεις, πάτα το Β με τον άλλον. Μετά το ίδιο στη Δοκιμή 2. Πες μου σε ποια νιώθεις δόνηση στο Β.</div>
+    <div class="ht-row"><span class="ht-lbl">Δοκιμή 1</span><div class="ht-pad" data-ht="hold-sw">Α · κράτα</div><div class="ht-pad" data-ht="tap">Β · πάτα</div></div>
+    <div class="ht-row"><span class="ht-lbl">Δοκιμή 2</span><div class="ht-pad plain" data-ht="hold">Α · κράτα</div><div class="ht-pad" data-ht="tap">Β · πάτα</div></div>
   </section>
 
   <section class="set-card">
@@ -3494,6 +3505,13 @@ function stickHapBack(host) {
   clearTimeout(stickHapT.get(host)); stickHapT.delete(host);
   const sw = host.querySelector(':scope > .hap-sw'); if (sw) sw.style.display = '';
 }
+// two-finger vibration test: A held (on a switch, or plain), B tapped (on a switch, like a game button)
+document.querySelectorAll('.ht-pad').forEach(el => {
+  if (isApple && el.dataset.ht !== 'hold') hapAttach(el);
+  el.addEventListener('pointerdown', e => { e.preventDefault(); el.classList.add('on'); if (el.dataset.ht === 'tap') { el.dataset.n = (+el.dataset.n || 0) + 1; el.firstChild.nodeValue = el.firstChild.nodeValue.replace(/ ✓\d*$/, '') + ' ✓' + el.dataset.n; } });
+  const off = () => el.classList.remove('on');
+  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
+});
 function hapMid() { const now = performance.now(); for (const st of hapActive) if (now >= st.armedAt) { st.pend = 1; st.moves = Math.max(st.moves, 1); } }
 // iPhone shows its text magnifier after a long press, even on non-selectable controls; cancelling the touch's
 // default action on the control panel stops that (the buttons themselves run on pointer events, which still fire).
@@ -5339,6 +5357,9 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Δοκιμή δόνησης με δύο δάχτυλα': 'Two-finger vibration test',
+  'Δοκιμή 1: κράτα πατημένο το Α με τον έναν αντίχειρα και, χωρίς να το αφήσεις, πάτα το Β με τον άλλον. Μετά το ίδιο στη Δοκιμή 2. Πες μου σε ποια νιώθεις δόνηση στο Β.': 'Test 1: hold A with one thumb and, without letting go, tap B with the other. Then the same in Test 2. Tell me in which one B vibrates.',
+  'Α · κράτα': 'A · hold', 'Β · πάτα': 'B · tap',
   'Υπάρχει νέα έκδοση.': 'A new version is out.', 'Ανανέωση': 'Update',
   'Πάτα προς μια πλευρά ή σύρε': 'Tap a side or swipe', 'Επιφάνεια αφής για κατευθύνσεις': 'Swipe pad for directions',
   'Δεξί κουμπί': 'Right key', 'Αριστερό κουμπί': 'Left key',
