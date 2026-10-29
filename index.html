@@ -2888,18 +2888,33 @@ function applyState(rec, strict) {
 // Periodic snapshot of whatever is playing, so closing the app or a reload never loses progress
 let autoStateTimer = null;
 let snapBusy = false;
-function snapshotState(force) {
+// A snapshot is a burst of memory (the emulator's copy, then the database's). For a few heavy games (NBA Jam) that
+// burst made iOS close the page every time, so the app reopened every 20 s. A mark is left while one is being taken:
+// if the app starts again and finds it, that snapshot took the app down, and that game gets no automatic ones again.
+const SNAP_MAX = 32 * 1024 * 1024;
+const noSnap = id => { try { return !!localStorage.getItem('pb-nosnap:' + id); } catch (e) { return false; } };
+const setNoSnap = (id, why) => { try { localStorage.setItem('pb-nosnap:' + id, why); } catch (e) {} };
+const clearSnapMark = () => { try { localStorage.removeItem('pb-snap'); } catch (e) {} };
+function snapshotState(force, mark) {
   if ((paused && !force) || !current || restoring) return;
-  const rec = captureState();
-  if (!rec) return;
-  // one write at a time: on a slow phone, queued snapshots would pile up in memory
+  // one at a time: on a slow phone, queued snapshots would pile up in memory
   if (snapBusy) return;
+  const id = current;
+  if (noSnap(id)) return;
+  // known to fill the memory with each snapshot on iPhone: spared the first crash
+  if (sys === 'arcade' && /^nbajam/.test(arcSet || mameSet || '')) { setNoSnap(id, 'big'); return; }
+  // (only the timed ones leave the mark: one taken as the app is closed may never finish, and that is no crash)
+  if (mark) try { localStorage.setItem('pb-snap', JSON.stringify({ id, t: Date.now() })); } catch (e) {}
+  const rec = captureState();
+  if (!rec) { if (mark) clearSnapMark(); return; }
+  const size = (rec.state && (rec.state.byteLength || rec.state.length)) || 0;
+  if (size > SNAP_MAX) setNoSnap(id, 'big'); // this one is kept, but no more: each is too big a burst
   snapBusy = true;
-  dbPutState(current, rec).finally(() => { snapBusy = false; });
+  dbPutState(id, rec).finally(() => { snapBusy = false; if (mark) clearSnapMark(); });
 }
 function startAutoState(s) {
   clearInterval(autoStateTimer);
-  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(); }, s === 'n64' ? 40000 : 20000);
+  autoStateTimer = setInterval(() => { if (!document.hidden) snapshotState(false, true); }, s === 'n64' ? 40000 : 20000);
 }
 function resumeAuto(id, check) {
   dbGetState(id).then(r => {
@@ -4930,7 +4945,7 @@ async function makeBackup(withGames) {
   try { storeAll(); } catch (e) {}
   await new Promise(r => setTimeout(r, 700)); // let the emulator write its save file first
   const E = bkEncoder(), ls = {};
-  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== 'pb-boot' && k !== 'pb-run') ls[k] = localStorage.getItem(k); }
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== 'pb-boot' && k !== 'pb-run' && k !== 'pb-snap') ls[k] = localStorage.getItem(k); }
   const big = v => v && (v.sys === 'psx' || v.blob || v.discFiles);
   const dbs = [await dumpDb('pocket-byte', E, (sn, v) => sn === 'states' || (withGames && (sn === 'meta' || sn === 'roms') && !big(v)))];
   if (await idbExists(IDBFS_DB)) { const x = await dumpDb(IDBFS_DB, E); if (x.stores.length) dbs.push(x); }
@@ -5210,6 +5225,10 @@ try {
   if (localStorage.getItem('pb-sound') === '1') { soundOn = true; document.getElementById('soundBtn').textContent = 'Ήχος: ανοιχτός'; document.getElementById('soundBtn').classList.add('primary'); }
 } catch (e) { applyShell('persimmon'); applyStyle('modern'); setHaptics(true); }
 let lastId = null; try { lastId = localStorage.getItem('pb-last'); } catch (e) {}
+// the app closed while taking an automatic snapshot of a game: no more automatic snapshots for that game
+let snapCrash = null;
+try { snapCrash = JSON.parse(localStorage.getItem('pb-snap') || 'null'); localStorage.removeItem('pb-snap'); } catch (e) {}
+if (snapCrash && snapCrash.id && Date.now() - snapCrash.t < 30 * 60000) setNoSnap(snapCrash.id, 'crash'); else snapCrash = null;
 if (lastId && lastId.startsWith('user:')) {
   // show this game's controls straight away, while its file is still being read
   const u = uiCache(lastId);
@@ -5225,6 +5244,7 @@ if (lastId && lastId.startsWith('user:')) {
   let crashed = null;
   try { crashed = JSON.parse(localStorage.getItem('pb-boot') || 'null'); localStorage.removeItem('pb-boot'); } catch (e) {}
   dbGet(lastId).then(g => {
+    if (g && snapCrash && snapCrash.id === g.id) setTimeout(() => toast('Το «' + g.name + '» γέμιζε τη μνήμη όταν κρατούσε αυτόματα την πρόοδο, κι η εφαρμογή ξανάνοιγε. Το σταμάτησα γι\' αυτό το παιχνίδι: για να κρατήσεις την πρόοδο, σώσε σε μια θέση από την παύση.', 9000), 2500);
     if (g && crashed && crashed.id === g.id) {
       bootCart('libbet');
       setTimeout(() => toast('Το «' + g.name + '» έκλεισε την εφαρμογή την προηγούμενη φορά, οπότε δεν το άνοιξα μόνο του.' +
@@ -5318,6 +5338,7 @@ const EN = {
   'Οι αποθηκεύσεις': 'Saves',
 };
 const EN_RE = [
+  [/^Το «(.*)» γέμιζε τη μνήμη όταν κρατούσε αυτόματα την πρόοδο, κι η εφαρμογή ξανάνοιγε\. Το σταμάτησα γι' αυτό το παιχνίδι: για να κρατήσεις την πρόοδο, σώσε σε μια θέση από την παύση\.$/s, "«$1» filled the memory while saving your progress automatically, so the app kept reopening. I turned that off for this game: to keep your progress, save to a slot from the pause menu."],
   [/^Θέση (\d+)$/, 'Slot $1'],
   [/^(\d+) λεπ\.$/, '$1 min'], [/^(\d+) ώρ\. (\d+) λεπ\.$/, '$1 h $2 min'], [/^(\d+) ώρ\.$/, '$1 h'],
   [/^Βάλε στα αγαπημένα: (.*)$/s, 'Add to favourites: $1'], [/^Βγάλε από τα αγαπημένα: (.*)$/s, 'Remove from favourites: $1'],
