@@ -753,8 +753,6 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <button class="tool" id="soundBtn">Ήχος: κλειστός</button>
       <button class="tool" id="hapticBtn">Δόνηση: ανοιχτή</button>
     </div>
-    <label class="hap-test"><input type="checkbox" switch id="hapTest"> Δοκιμή δόνησης: πάτα τον διακόπτη</label>
-    <div class="toolbar hap-tries"><button class="tool" id="hapT1">Δοκιμή 1</button><button class="tool" id="hapT2">Δοκιμή 2</button><button class="tool" id="hapT3">Δοκιμή 3</button></div>
   </section>
 
   <section class="set-card">
@@ -2926,7 +2924,7 @@ const ctlPanel = document.getElementById('controlsPanel');
 ctlPanel.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
-if (isApple) {
+if (false) {
   const HAP_SEL = '.btn, .pill, #dpad, #menuBtn, .dock-menu, .tool, .style-pick button, .lib-key, .key3d, .lib-add, .case, .face, .sa-step, .sa-btns button';
   // every finger that lifts off a control ticks (the buttons themselves are touched with pointer events, which
   // iPhone doesn't count as taps, so this listens for the touch ending wherever it ended)
@@ -2936,10 +2934,8 @@ if (isApple) {
     if ((el && el.closest && el.closest(HAP_SEL)) || (e.target.closest && e.target.closest(HAP_SEL))) iosTick();
   }, { capture: true, passive: true });
 }
-// three ways of asking for the tick, to find the one this iPhone accepts
-document.getElementById('hapT1').addEventListener('click', () => { lastTick = 0; iosTick(); });
-document.getElementById('hapT2').addEventListener('click', () => { try { hapLabel.click(); } catch (e) {} });
-document.getElementById('hapT3').addEventListener('click', () => { try { document.getElementById('hapTest').click(); } catch (e) {} });
+// iPhone: web pages can't make it vibrate (only a finger on a real system switch does), so the option is hidden there
+if (isApple) { const hb = document.getElementById('hapticBtn'); hb.hidden = true; const k = hb.closest('section').querySelector('.set-kicker'); if (k) k.textContent = 'ΗΧΟΣ'; }
 function setHaptics(on) {
   hapticsOn = on;
   if (on) iosTick();
@@ -4197,6 +4193,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'ΗΧΟΣ': 'SOUND',
   'Δοκιμή 1': 'Test 1', 'Δοκιμή 2': 'Test 2', 'Δοκιμή 3': 'Test 3',
   'Δοκιμή δόνησης: πάτα τον διακόπτη': 'Vibration test: tap the switch',
   'Παύση · πάτα START για να συνεχίσεις': 'Paused · tap START to resume',
