@@ -352,7 +352,12 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
   background: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.35) 60%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 40%); }
 .cont-card .cont-kicker { color: rgba(255,255,255,.75); } .cont-card .cont-meta { color: rgba(255,255,255,.72); }
 .cont-card .cont-name { text-shadow: 0 1px 6px rgba(0,0,0,.35); }
-.cont-card .case-art { flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); transform: perspective(300px) rotateY(-14deg); }
+.cont-card .case-art { flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); border-radius: 10px; }
+/* the playing game as a cartridge: tilted, with a visible side (its thickness) on the near edge */
+.cont-card .cont-cover { transform: perspective(300px) rotateY(-14deg); transform-style: preserve-3d; }
+.cont-edge { position: absolute; top: 3px; bottom: 3px; right: 0; width: 14px; transform-origin: 100% 50%; transform: rotateY(68deg);
+  border-radius: 3px; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 18%, rgba(0,0,0,0) 82%, rgba(0,0,0,.35)),
+  linear-gradient(90deg, #2a2d33, #6a6e77 55%, #4a4e56); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 /* the cover as tall as the text beside it: its top at "Now playing", its bottom at the last key */
 .cont-card .cont-cover { display: flex; }
 .cont-card .case-art { width: auto !important; height: 150px; }
@@ -3695,6 +3700,20 @@ function fitModern() {
   consoleEl.style.setProperty('--scr-w', vw + 'px');
   consoleEl.style.setProperty('--scr-h', Math.max(160, availH) + 'px');
   setTimeout(fitGameScreen, 0);
+  requestAnimationFrame(dropSysRow);
+}
+// the bottom row (Select/Coin, menu, Start) sits just above the footer label; nothing else moves
+function dropSysRow() {
+  document.querySelectorAll('.controls .sys').forEach(r => { r.style.transform = ''; r.style.zIndex = ''; });
+  if (!consoleEl.classList.contains('modern') || consoleEl.classList.contains('land')) return;
+  const row = [...document.querySelectorAll('.controls .sys')].find(r => getComputedStyle(r).display !== 'none');
+  if (!row) return;
+  const foot = document.getElementById('footLbl'), panel = document.getElementById('controlsPanel');
+  const footVisible = foot && getComputedStyle(foot).display !== 'none';
+  const limit = footVisible ? foot.getBoundingClientRect().top - 8 : panel.getBoundingClientRect().bottom - 14;
+  const gap = limit - row.getBoundingClientRect().bottom;
+  const z = parseFloat(getComputedStyle(consoleEl).getPropertyValue('--ctl-z')) || 1;
+  if (gap > 2) { row.style.transform = `translateY(${(gap / z).toFixed(1)}px)`; row.style.position = 'relative'; row.style.zIndex = '2'; }
 }
 // phone on its side: always the full-screen style, in its landscape layout
 let landForced = false;
@@ -4670,7 +4689,8 @@ async function renderMine() {
       cbg.style.backgroundColor = lastG.cart ? lastG.bg : `hsl(${hueOf(lastG.id)} 45% 32%)`;
       // a cover still being looked up: use it as soon as it arrives
       if (!u) setTimeout(() => { const v = coverKnown(lastG.id); if (v && v !== 'none' && cbg.isConnected) cbg.style.backgroundImage = `url("${v.replace(/"/g, '%22')}")`; }, 1500); }
-    const cc = document.createElement('div'); cc.className = 'cont-cover'; cc.appendChild(caseArt(lastG)); card.appendChild(cc);
+    const cc = document.createElement('div'); cc.className = 'cont-cover'; cc.appendChild(caseArt(lastG));
+    const edge = document.createElement('div'); edge.className = 'cont-edge'; cc.appendChild(edge); card.appendChild(cc);
     const info = document.createElement('div'); info.className = 'cont-info';
     const k = document.createElement('div'); k.className = 'cont-kicker'; k.textContent = lastG.id === current ? 'ΠΑΙΖΕΙΣ ΤΩΡΑ' : 'ΣΥΝΕΧΙΣΕ';
     const n = document.createElement('div'); n.className = 'cont-name'; n.textContent = displayName(lastG);
@@ -4698,7 +4718,19 @@ async function renderMine() {
     const fitCover = () => {
       const a = cc.querySelector('.case-art'); if (!a || !card.isConnected) return;
       const kt = k.getBoundingClientRect().top, bb = Math.max(...[...btns.children].map(x => x.getBoundingClientRect().bottom));
-      if (bb > kt) a.style.height = Math.round(bb - kt) + 'px';
+      if (!(bb > kt)) return;
+      // the tilt makes the near (right) edge look taller: size it so THAT edge spans the text exactly
+      let h = bb - kt; cc.style.marginTop = '0px';
+      const boxOf = () => { const r1 = a.getBoundingClientRect(), e = cc.querySelector('.cont-edge'), r2 = e ? e.getBoundingClientRect() : r1;
+        const top = Math.min(r1.top, r2.top); return { top, height: Math.max(r1.bottom, r2.bottom) - top }; };
+      for (let i = 0; i < 3; i++) {
+        a.style.height = h.toFixed(1) + 'px';
+        const r = boxOf();
+        if (r.height > 0) h *= (bb - kt) / r.height;
+      }
+      a.style.height = h.toFixed(1) + 'px';
+      const r = boxOf();
+      cc.style.marginTop = (kt - r.top).toFixed(1) + 'px';
     };
     requestAnimationFrame(fitCover); setTimeout(fitCover, 300);
   }
