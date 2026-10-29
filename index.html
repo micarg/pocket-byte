@@ -815,7 +815,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
           <div class="gs-stats"><div><b id="gsTime"></b><span>Χρόνος παιχνιδιού</span></div><div><b id="gsLast"></b><span>Τελευταία φορά</span></div></div></div></div>
       <button class="gs-play" id="gsPlay"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Παίξε</button>
       <div class="gs-acts">
-        <button id="gsFav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.25l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.65l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span>Στα αγαπημένα</span></button>
+        <button id="gsFav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.72l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.12l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg><span>Στα αγαπημένα</span></button>
         <button id="gsCov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg><span>Εξώφυλλο</span></button>
         <button id="gsEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Επεξεργασία</span></button>
         <button id="gsDel" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span>Σβήσε</span></button>
@@ -4508,7 +4508,7 @@ function toggleFav(id) {
   toast(on ? 'Μπήκε στα αγαπημένα.' : 'Βγήκε από τα αγαπημένα.');
   renderMine();
 }
-const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.25l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.65l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
+const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.72l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.12l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
 // ---- search: filters the cases on the shelf as you type (accents and case don't matter) ----
 const searchNorm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9α-ως\u00b5]+/g, ' ');
 const libSearch = document.getElementById('libSearch'), libSearchX = document.getElementById('libSearchX');
