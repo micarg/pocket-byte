@@ -647,6 +647,31 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .toast.dragging { transition: none; }
 .toast.leave { --ty: 120px; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ---------- liquid glass across the menu ---------- */
+/* the cover of the game you're playing glows softly behind the menu, so the glass has colour to bend */
+.lib-amb { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-size: cover; background-position: center 20%;
+  filter: blur(60px) saturate(1.6) brightness(.55); transform: scale(1.3); opacity: .7;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.6) 45%, transparent 85%); mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.6) 45%, transparent 85%); }
+.lib-search, .lib-tabs, .pane .set-card, .lib-key, .lib-nav {
+  background: rgba(255,255,255,.07); border: 0;
+  -webkit-backdrop-filter: blur(22px) saturate(1.7); backdrop-filter: blur(22px) saturate(1.7);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.22), 0 10px 26px rgba(0,0,0,.32); }
+.lib-search:focus-within { box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), inset 0 1px 0 rgba(255,255,255,.3), 0 10px 26px rgba(0,0,0,.32); }
+.lib-key:active { transform: scale(.95); }
+/* the tabs Library / Game / Settings: a glass capsule with a lit pill on the open one */
+.lib-nav { padding: 4px; gap: 4px; border-radius: 18px; border-bottom: 0; }
+.lib-nav button { min-height: 38px; border-radius: 14px; font-size: 14px; transition: background .25s ease, color .25s ease; }
+.lib-nav button[aria-current="page"] { background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px rgba(0,0,0,.25); }
+.lib-nav button[aria-current="page"]::after { display: none; }
+/* pills that are on: lit glass instead of dark plastic */
+.lib-tab[aria-selected="true"], .pane .style-pick button[aria-pressed="true"] {
+  background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px rgba(0,0,0,.25); }
+.pane .style-pick, .pane .slot { background: rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 3px rgba(0,0,0,.35); }
+/* plain keys inside the cards: clear glass */
+.pane .tool:not(.primary), .key3d.dark, .pane .slot button:not(.save):not(.confirm) {
+  background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.25), 0 4px 10px rgba(0,0,0,.25); }
+.pane .tool:not(.primary):active, .key3d.dark:active { transform: scale(.97); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 1px 0 rgba(255,255,255,.3); }
+.cont-card { box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.3), 0 18px 34px rgba(0,0,0,.45); border: 0; }
 </style>
 </head>
 <body>
@@ -822,6 +847,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 </main>
 
 <div class="lib" id="lib" role="dialog" aria-label="Βιβλιοθήκη" hidden>
+  <div class="lib-amb" id="libAmb" aria-hidden="true"></div>
   <div class="lib-head">
     <span class="lib-logo">POCKET BYTE</span>
     <button class="lib-key" id="libClose" aria-label="Κλείσιμο"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -4516,8 +4542,11 @@ async function renderMine() {
   if (lastG) {
     const card = document.createElement('div'); card.className = 'cont-card';
     const cbg = document.createElement('div'); cbg.className = 'cont-bg'; card.appendChild(cbg);
+    const amb = document.getElementById('libAmb');
     { let u = null; try { u = coverKnown(lastG.id); } catch (e) {}
-      if (u && u !== 'none') cbg.style.backgroundImage = `url("${u.replace(/"/g, '%22')}")`;
+      if (u && u !== 'none') cbg.style.backgroundImage = amb.style.backgroundImage = `url("${u.replace(/"/g, '%22')}")`;
+      else amb.style.backgroundImage = '';
+      amb.style.backgroundColor = lastG.cart ? lastG.bg : `hsl(${hueOf(lastG.id)} 45% 32%)`;
       cbg.style.backgroundColor = lastG.cart ? lastG.bg : `hsl(${hueOf(lastG.id)} 45% 32%)`;
       // a cover still being looked up: use it as soon as it arrives
       if (!u) setTimeout(() => { const v = coverKnown(lastG.id); if (v && v !== 'none' && cbg.isConnected) cbg.style.backgroundImage = `url("${v.replace(/"/g, '%22')}")`; }, 1500); }
