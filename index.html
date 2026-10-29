@@ -245,6 +245,12 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.modern .sys .pill.named::after { font-size: 10.5px; letter-spacing: .04em; text-indent: .04em; }
 .console.modern .sys.only-psx .pill::after { font-size: 9px; letter-spacing: .04em; text-indent: .04em; }
 .console.land .sys .pill::after { color: #e9ebee; }
+/* the bottom row (Select/Coin, menu, Start): a size smaller, so the play keys stand out */
+.console.modern:not(.land) .controls .sys .b-wrap { max-width: 86px; }
+.console.modern:not(.land) .controls .sys .pill { height: 30px; border-radius: 9px; }
+.console.modern:not(.land) .controls .sys .pill::after { font-size: 10px; }
+.console.modern:not(.land) .dock-menu { width: 40px; height: 40px; }
+.console.modern:not(.land) .dock-menu svg { width: 16px; height: 16px; }
 /* GBA in MODERN: L and R are shoulder keys at the top corners of the panel, like on the real console */
 .shoulders { display: none; }
 .console.modern .sys .b-wrap.lr { display: none; }
@@ -266,9 +272,9 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.modern .shoulders .sh-out .pill::after, .console.modern .shoulders .sh-in .pill::after { font-size: 14px; }
 .console.modern .shoulders .pill.named::after { font-size: 13px; letter-spacing: .04em; }
 /* PS1 bottom row now holds only SELECT · menu · START: full-size keys */
-.console.modern .sys.only-psx .b-wrap:not(.lr) { max-width: 104px; }
-.console.modern .sys.only-gba .pill, .console.modern .sys.only-n64 .pill, .console.modern.tall .sys.only-gba .pill, .console.modern.tall .sys.only-n64 .pill { width: 100%; height: 36px; }
-.console.modern .sys.only-gba .b-wrap, .console.modern .sys.only-n64 .b-wrap { max-width: 104px; }
+.console.modern .sys.only-psx .b-wrap:not(.lr) { max-width: 86px; }
+.console.modern .sys.only-gba .pill, .console.modern .sys.only-n64 .pill, .console.modern.tall .sys.only-gba .pill, .console.modern.tall .sys.only-n64 .pill { width: 100%; height: 30px; }
+.console.modern .sys.only-gba .b-wrap, .console.modern .sys.only-n64 .b-wrap { max-width: 86px; }
 .console.modern .sys.only-psx .b-wrap:not(.lr) .pill::after { font-size: 11px; letter-spacing: .12em; text-indent: .12em; }
 .console.land .shoulders .b-wrap { width: 160px; max-width: none; height: 40px; }
 .console.land .shoulders .sh-out, .console.land .shoulders .sh-in { width: 84px; max-width: none; }
@@ -346,7 +352,7 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
   background: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.35) 60%), linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 40%); }
 .cont-card .cont-kicker { color: rgba(255,255,255,.75); } .cont-card .cont-meta { color: rgba(255,255,255,.72); }
 .cont-card .cont-name { text-shadow: 0 1px 6px rgba(0,0,0,.35); }
-.cont-card .case-art { width: 92px; flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); }
+.cont-card .case-art { width: 92px; flex: none; box-shadow: 0 14px 28px rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.4); transform: perspective(420px) rotateY(16deg) rotateZ(-1.5deg); transform-origin: 60% 50%; }
 .cont-info { flex: 1; min-width: 0; }
 .cont-kicker { font: 800 11px var(--body); letter-spacing: .1em; color: var(--accent); }
 .cont-name { font: 800 18px var(--body); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
