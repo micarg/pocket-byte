@@ -3915,8 +3915,21 @@ function fitModern() {
   setTimeout(fitGameScreen, 0);
   requestAnimationFrame(dropSysRow);
 }
+// a game with no buttons (Pac-Man): the stick alone, in the middle of the panel. Measured, not left to flexbox,
+// because Safari places a zoomed child inside a zoomed row differently than other browsers
+function centreLoneStick() {
+  const dp = document.getElementById('dpad'); dp.style.transform = '';
+  if (sys !== 'arcade' || consoleEl.dataset.btns !== '0' || consoleEl.dataset.prof === 'drive' || consoleEl.classList.contains('land') || layData().dpad) return;
+  const want = () => { const p = document.getElementById('controlsPanel').getBoundingClientRect(), r = dp.getBoundingClientRect(); return (p.left + p.width / 2) - (r.left + r.width / 2); };
+  const off = want(); if (Math.abs(off) < 1) return;
+  // try a guess, then correct it by how far the guess really moved it (whatever the zoom does to the units)
+  const t1 = off; dp.style.transform = `translateX(${t1}px)`;
+  const moved = off - want();
+  if (Math.abs(moved) > 0.5) dp.style.transform = `translateX(${(t1 * off / moved).toFixed(1)}px)`;
+}
 // the bottom row (Select/Coin, menu, Start) sits just above the footer label; nothing else moves
 function dropSysRow() {
+  centreLoneStick();
   document.querySelectorAll('.controls .sys').forEach(r => { r.style.transform = ''; r.style.zIndex = ''; });
   if (!consoleEl.classList.contains('modern') || consoleEl.classList.contains('land')) return;
   const row = [...document.querySelectorAll('.controls .sys')].find(r => getComputedStyle(r).display !== 'none');
