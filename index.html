@@ -453,6 +453,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   display: flex; align-items: center; justify-content: center; gap: 12px; }
 .pause-ic[hidden] { display: none; }
 .hap-test { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+.hap-tries { margin-top: 10px; }
 .hap-test input { width: 46px; height: 26px; accent-color: #34c759; }
 .pause-ic span { width: 10px; height: 32px; border-radius: 4px; background: #f2f3f5; }
 /* face buttons, translucent and lit from inside (MODERN): like illuminated arcade buttons */
@@ -753,6 +754,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <button class="tool" id="hapticBtn">Δόνηση: ανοιχτή</button>
     </div>
     <label class="hap-test"><input type="checkbox" switch id="hapTest"> Δοκιμή δόνησης: πάτα τον διακόπτη</label>
+    <div class="toolbar hap-tries"><button class="tool" id="hapT1">Δοκιμή 1</button><button class="tool" id="hapT2">Δοκιμή 2</button><button class="tool" id="hapT3">Δοκιμή 3</button></div>
   </section>
 
   <section class="set-card">
@@ -2934,6 +2936,10 @@ if (isApple) {
     if ((el && el.closest && el.closest(HAP_SEL)) || (e.target.closest && e.target.closest(HAP_SEL))) iosTick();
   }, { capture: true, passive: true });
 }
+// three ways of asking for the tick, to find the one this iPhone accepts
+document.getElementById('hapT1').addEventListener('click', () => { lastTick = 0; iosTick(); });
+document.getElementById('hapT2').addEventListener('click', () => { try { hapLabel.click(); } catch (e) {} });
+document.getElementById('hapT3').addEventListener('click', () => { try { document.getElementById('hapTest').click(); } catch (e) {} });
 function setHaptics(on) {
   hapticsOn = on;
   if (on) iosTick();
@@ -4191,6 +4197,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Δοκιμή 1': 'Test 1', 'Δοκιμή 2': 'Test 2', 'Δοκιμή 3': 'Test 3',
   'Δοκιμή δόνησης: πάτα τον διακόπτη': 'Vibration test: tap the switch',
   'Παύση · πάτα START για να συνεχίσεις': 'Paused · tap START to resume',
   'Μέγεθος εικόνας (πλάτος / ύψος)': 'Picture size (width / height)', 'Μέγεθος εικόνας': 'Picture size', 'Πλάτος': 'Width', 'Ύψος': 'Height',
