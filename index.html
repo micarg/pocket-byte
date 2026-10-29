@@ -330,6 +330,19 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .lib-grid.sys .case-art, .cont-card .case-art { aspect-ratio: var(--ar, 3 / 4); }
 .case-card { justify-content: flex-end; }
 .case-card[hidden], .lib-search button[hidden] { display: none; }
+.case-time { margin-top: -5px; font: 600 11px var(--body); color: #7d848e; }
+.cont-time { display: inline; color: #c9ced5; font-weight: 700; }
+.case-fav { position: absolute; right: 6px; bottom: 6px; z-index: 1; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.55); display: grid; place-items: center; }
+.case-fav svg { width: 13px; height: 13px; fill: #ffd34d; }
+.case-star { position: absolute; left: -8px; top: 34px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #0b0c0e; background: #3a3f47; color: #fff;
+  display: none; place-items: center; padding: 0; cursor: pointer; }
+.case-star svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; }
+.case-star.on { background: #ffd34d; } .case-star.on svg { fill: #15171a; stroke: #15171a; }
+.lib.editing .case-star { display: grid; }
+.key3d.star { width: 38px; padding: 0; justify-content: center; }
+.key3d.star svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; }
+.key3d.star.on svg { fill: #ffd34d; stroke: #ffd34d; }
+.lib-tab.fav svg { width: 16px; height: 16px; fill: #ffd34d; vertical-align: -3px; }
 .case-name { min-height: 2.5em; }
 .case-art::after { content: ""; position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(115deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
   box-shadow: inset 5px 0 0 rgba(0,0,0,.25); pointer-events: none; }
@@ -432,11 +445,11 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .sa-step { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; background: linear-gradient(180deg, #3a3f47, #262a30); box-shadow: 0 3px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.18);
   color: #fff; font: 800 20px/1 var(--body); padding: 0; cursor: pointer; }
 .sa-step:active { transform: translateY(2px); box-shadow: 0 1px 0 #08090a; }
-.scr-adj input[type=range] { flex: 1; min-width: 0; height: 40px; -webkit-appearance: none; appearance: none; background: none; margin: 0; }
-.scr-adj input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #0c0d0f; box-shadow: inset 0 1px 2px rgba(0,0,0,.8); }
-.scr-adj input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #f2f3f5; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
-.scr-adj input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #0c0d0f; }
-.scr-adj input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #f2f3f5; }
+:is(.scr-adj, .lay-bar) input[type=range] { flex: 1; min-width: 0; height: 40px; -webkit-appearance: none; appearance: none; background: none; margin: 0; }
+:is(.scr-adj, .lay-bar) input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #0c0d0f; box-shadow: inset 0 1px 2px rgba(0,0,0,.8); }
+:is(.scr-adj, .lay-bar) input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #f2f3f5; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
+:is(.scr-adj, .lay-bar) input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #0c0d0f; }
+:is(.scr-adj, .lay-bar) input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #f2f3f5; }
 .sa-btns { display: flex; gap: 10px; }
 .sa-btns button { flex: 1; height: 44px; border-radius: 22px; border: 0; font: 800 14px var(--body); cursor: pointer; }
 .sa-reset { background: linear-gradient(180deg, #3a3f47, #262a30); color: #fff; box-shadow: 0 4px 0 #08090a, inset 0 1px 0 rgba(255,255,255,.18); }
@@ -453,6 +466,18 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .hap-off .hap-sw, :disabled > .hap-sw { pointer-events: none; }
 .hap-sw.tap { touch-action: manipulation; border-radius: inherit; }
 .sys .b-wrap { position: relative; }
+/* button layout editor: a panel over the game screen; the controls below show what can be moved */
+.lay-bar { position: fixed; z-index: 30; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); max-width: 460px; margin: 0 auto; box-sizing: border-box;
+  padding: 14px 16px; border-radius: 20px; background: rgba(26,28,32,.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid #4a505a;
+  box-shadow: 0 16px 36px rgba(0,0,0,.5); color: #e9ebee; font: 600 14px var(--body); display: flex; flex-direction: column; gap: 10px; }
+.lay-bar[hidden] { display: none; }
+.lay-hint { color: #9aa1ab; font-size: 12.5px; font-weight: 500; line-height: 1.4; }
+.lay-bar .sa-step:disabled, .lay-bar input:disabled { opacity: .35; }
+.lay-edit .hap-sw { pointer-events: none; }
+.console.lay-edit .controls .face .btn[id]:not([hidden]), .console.lay-edit #dpad { outline: 2px dashed rgba(255,255,255,.45); outline-offset: 4px; }
+.console.lay-edit #dpad { border-radius: 50%; }
+.console.lay-edit .controls .lay-sel { outline: 3px solid #ffd34d !important; outline-offset: 4px; }
+.console.lay-edit .pause-ic { display: none; }
 /* paused: just the pause symbol in the middle of the game screen */
 .pause-ic { position: absolute; left: 50%; top: 50%; z-index: 5; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; pointer-events: none;
   background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
@@ -668,6 +693,15 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
     <div class="dock-wrap" id="dockWrap"><button class="dock-menu" id="dockMenu" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg></button></div>
     <div class="speaker" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
   </section>
+  <div class="lay-bar" id="layBar" hidden role="dialog" aria-label="Διάταξη κουμπιών">
+    <div class="sa-head"><b>Διάταξη κουμπιών</b><span id="layGame"></span></div>
+    <div class="lay-hint" id="layHint">Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.</div>
+    <div class="sa-row"><span class="sa-lbl">Μέγεθος</span>
+      <button class="sa-step" id="layMinus" aria-label="Μικρότερο">−</button>
+      <input type="range" id="laySize" min="60" max="160" step="1" aria-label="Μέγεθος">
+      <button class="sa-step" id="layPlus" aria-label="Μεγαλύτερο">+</button><output id="laySizeV"></output></div>
+    <div class="sa-btns"><button class="sa-reset" id="layReset">Επαναφορά</button><button class="sa-done" id="layDone">Έτοιμο</button></div>
+  </div>
   <div class="scr-adj" id="scrAdj" hidden role="dialog" aria-label="Μέγεθος εικόνας">
     <div class="sa-head"><b>Μέγεθος εικόνας</b><span id="saGame"></span></div>
     <div class="sa-row"><span class="sa-lbl">Πλάτος</span>
@@ -738,6 +772,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <button class="tool" id="resetBtn">Επανεκκίνηση</button>
       <button class="tool wide" id="arcCoreBtn">Arcade: MAME 2003-Plus</button>
       <button class="tool wide" id="scrAdjBtn">Μέγεθος εικόνας (πλάτος / ύψος)</button>
+      <button class="tool wide" id="layBtn">Διάταξη κουμπιών (θέση / μέγεθος)</button>
     </div>
     <h2>Θέσεις αποθήκευσης</h2>
     <div class="slots" id="slots"></div>
@@ -1853,7 +1888,7 @@ function setLast(id) {
   } catch (e) {}
 }
 function showOverlay(text) { overlay.dataset.raw = text; overlay.textContent = text; overlay.hidden = !text; }
-function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); if (typeof applyRunMode === 'function') applyRunMode(); requestAnimationFrame(fit); }
+function setSys(s) { sys = s; consoleEl.dataset.sys = s; applyPadMode(); placeDock(); if (typeof applyCustomLayout === 'function') applyCustomLayout(); if (typeof applyRunMode === 'function') applyRunMode(); requestAnimationFrame(fit); }
 /* ---- N64: what each button does, for games where that is well known (in English) ---- */
 const N64_LABELS = [
   [/super mario 64/i, { A: 'JUMP', B: 'PUNCH', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
@@ -3330,6 +3365,7 @@ function applyArcadeButtons(n0, sf0, core) {
     const t = b.querySelector('.t'); t.textContent = labels[i - 1]; t.classList.toggle('in', n >= 4);
   }
   consoleEl.dataset.btns = String(n);
+  applyCustomLayout();
   fit();
 }
 const safeProbe = document.createElement('div');
@@ -3443,6 +3479,98 @@ function fit() {
 /* ---- "full" game screen: stretch the picture over the black bars (only when that distorts it modestly) ---- */
 let fillOn = true;
 try { fillOn = localStorage.getItem('pb-fill') !== '0'; } catch (e) {}
+// ---- per-game button layout: the stick and each face button can be moved and resized (kept per game) ----
+const layKey = () => 'pb-lay:' + (current || 'none');
+function layData() { try { return JSON.parse(localStorage.getItem(layKey()) || '{}') || {}; } catch (e) { return {}; } }
+function laySave(d) { try { if (Object.keys(d).length) localStorage.setItem(layKey(), JSON.stringify(d)); else localStorage.removeItem(layKey()); } catch (e) {} }
+const layItems = () => [document.getElementById('dpad'), ...document.querySelectorAll('.controls .face .btn[id]')];
+function applyCustomLayout() {
+  let d; try { d = layData(); } catch (e) { return; } // (can run before this part of the script has loaded)
+  for (const el of layItems()) {
+    const v = d[el.id];
+    el.style.translate = v ? `${v[0]}px ${v[1]}px` : '';
+    el.style.scale = v && v[2] !== 1 ? String(v[2]) : '';
+  }
+}
+const layBar = document.getElementById('layBar'), laySize = document.getElementById('laySize');
+let laySel = null, layDrag = null;
+function layVisible() { return layItems().filter(el => el.offsetParent && !el.hidden); }
+function layShowSel() {
+  layVisible().forEach(el => el.classList.toggle('lay-sel', el === laySel));
+  const v = laySel ? (layData()[laySel.id] || [0, 0, 1]) : null;
+  laySize.disabled = !laySel; document.getElementById('layMinus').disabled = document.getElementById('layPlus').disabled = !laySel;
+  laySize.value = v ? Math.round(v[2] * 100) : 100;
+  document.getElementById('laySizeV').textContent = laySel ? laySize.value + '%' : '—';
+}
+function laySet(el, tx, ty, sc) {
+  const d = layData();
+  if (Math.abs(tx) < 0.5 && Math.abs(ty) < 0.5 && Math.abs(sc - 1) < 0.005) delete d[el.id];
+  else d[el.id] = [Math.round(tx * 10) / 10, Math.round(ty * 10) / 10, Math.round(sc * 100) / 100];
+  laySave(d); applyCustomLayout();
+}
+// how far an item may go: a face button keeps its centre inside the button area (touches only reach it there),
+// the stick stays in its corner of the panel
+function layClamp(el, tx, ty) {
+  if (el.id === 'dpad') return [Math.max(-50, Math.min(70, tx)), Math.max(-60, Math.min(50, ty))];
+  const f = el.parentElement, cx = el.offsetLeft + el.offsetWidth / 2, cy = el.offsetTop + el.offsetHeight / 2;
+  return [Math.max(-cx, Math.min(f.offsetWidth - cx, tx)), Math.max(-cy, Math.min(f.offsetHeight - cy, ty))];
+}
+function layHit(x, y) {
+  let best = null, bd = Infinity;
+  for (const el of layVisible()) {
+    const r = el.getBoundingClientRect(), pad = el.id === 'dpad' ? 0 : 10;
+    if (x < r.left - pad || x > r.right + pad || y < r.top - pad || y > r.bottom + pad) continue;
+    const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) / (el.id === 'dpad' ? 2 : 1);
+    if (d < bd) { bd = d; best = el; }
+  }
+  return best;
+}
+const ctlRoot = document.getElementById('controls');
+ctlRoot.addEventListener('pointerdown', e => {
+  if (!consoleEl.classList.contains('lay-edit')) return;
+  e.preventDefault(); e.stopPropagation();
+  const el = layHit(e.clientX, e.clientY); if (!el) return;
+  laySel = el; layShowSel();
+  const v = layData()[el.id] || [0, 0, 1], r = el.getBoundingClientRect();
+  // screen pixels per layout pixel of this item (the panel and the stick are zoomed)
+  const k = r.width / (el.offsetWidth * v[2]) || 1;
+  layDrag = { id: e.pointerId, el, x0: e.clientX, y0: e.clientY, tx: v[0], ty: v[1], s: v[2], k };
+  try { ctlRoot.setPointerCapture(e.pointerId); } catch (_) {}
+}, true);
+ctlRoot.addEventListener('pointermove', e => {
+  if (!layDrag || e.pointerId !== layDrag.id) return;
+  e.stopPropagation();
+  const g = layDrag, [tx, ty] = layClamp(g.el, g.tx + (e.clientX - g.x0) / g.k, g.ty + (e.clientY - g.y0) / g.k);
+  g.el.style.translate = `${tx}px ${ty}px`; g.cur = [tx, ty];
+}, true);
+const layUp = e => {
+  if (!layDrag || e.pointerId !== layDrag.id) return;
+  e.stopPropagation();
+  const g = layDrag; layDrag = null;
+  if (g.cur) laySet(g.el, g.cur[0], g.cur[1], g.s);
+};
+ctlRoot.addEventListener('pointerup', layUp, true); ctlRoot.addEventListener('pointercancel', layUp, true);
+function laySizeTo(pct) {
+  if (!laySel) return;
+  const v = layData()[laySel.id] || [0, 0, 1];
+  laySet(laySel, v[0], v[1], Math.max(60, Math.min(160, Math.round(pct))) / 100); layShowSel();
+}
+laySize.addEventListener('input', () => laySizeTo(+laySize.value));
+document.getElementById('layMinus').addEventListener('click', () => laySizeTo(+laySize.value - 5));
+document.getElementById('layPlus').addEventListener('click', () => laySizeTo(+laySize.value + 5));
+document.getElementById('layReset').addEventListener('click', () => { laySave({}); applyCustomLayout(); layShowSel(); });
+function openLayEdit() {
+  if (!current || !(gb || ejsStarted)) { toast('Ξεκίνα πρώτα ένα παιχνίδι.'); return; }
+  document.getElementById('layGame').textContent = document.getElementById('now').textContent;
+  setMenu(false); laySel = null; consoleEl.classList.add('lay-edit'); layBar.hidden = false; layShowSel();
+  if (!paused) { layPaused = true; setPaused(true); }
+}
+let layPaused = false;
+document.getElementById('layBtn').addEventListener('click', openLayEdit);
+document.getElementById('layDone').addEventListener('click', () => {
+  consoleEl.classList.remove('lay-edit'); layBar.hidden = true; laySel = null; layVisible().forEach(el => el.classList.remove('lay-sel'));
+  if (layPaused) { layPaused = false; setPaused(false); }
+});
 // ---- per-game picture size, on top of the automatic fit (1 = as fitted) ----
 const scrAdjEl = document.getElementById('scrAdj'), saW = document.getElementById('saW'), saH = document.getElementById('saH');
 const saY = document.getElementById('saY');
@@ -4117,6 +4245,27 @@ bkFile.addEventListener('change', async () => {
     if (restoring) setTimeout(() => location.reload(), 2500);
   }
 });
+// ---- play time (seconds per game, counted while the game is on screen and running) and favourites ----
+function playTimes() { try { return JSON.parse(localStorage.getItem('pb-time') || '{}') || {}; } catch (e) { return {}; } }
+setInterval(() => {
+  if (!current || !(gb || ejsStarted) || paused || document.hidden || !lib.hidden) return;
+  const t = playTimes(); t[current] = (t[current] || 0) + 5;
+  try { localStorage.setItem('pb-time', JSON.stringify(t)); } catch (e) {}
+}, 5000);
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60); if (m < 1) return '';
+  if (m < 60) return m + ' λεπ.';
+  const h = Math.floor(m / 60), r = m % 60;
+  return r ? h + ' ώρ. ' + r + ' λεπ.' : h + ' ώρ.';
+}
+function favs() { try { const v = JSON.parse(localStorage.getItem('pb-favs') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+function toggleFav(id) {
+  const f = favs(), on = !f.includes(id);
+  try { localStorage.setItem('pb-favs', JSON.stringify(on ? [...f, id] : f.filter(x => x !== id))); } catch (e) {}
+  toast(on ? 'Μπήκε στα αγαπημένα.' : 'Βγήκε από τα αγαπημένα.');
+  renderMine();
+}
+const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
 // ---- search: filters the cases on the shelf as you type (accents and case don't matter) ----
 const searchNorm = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9α-ως\u00b5]+/g, ' ');
 const libSearch = document.getElementById('libSearch'), libSearchX = document.getElementById('libSearchX');
@@ -4160,6 +4309,8 @@ async function renderMine() {
     const k = document.createElement('div'); k.className = 'cont-kicker'; k.textContent = lastG.id === current ? 'ΠΑΙΖΕΙΣ ΤΩΡΑ' : 'ΣΥΝΕΧΙΣΕ';
     const n = document.createElement('div'); n.className = 'cont-name'; n.textContent = displayName(lastG);
     const m = document.createElement('div'); m.className = 'cont-meta'; m.textContent = SYSTEMS[lastG.sys].name + (played[lastG.id] ? ' · ' + whenText(played[lastG.id]) : '');
+    const pt = fmtTime(playTimes()[lastG.id] || 0);
+    if (pt) { const ts = document.createElement('div'); ts.className = 'cont-time'; ts.textContent = pt; m.appendChild(document.createElement('br')); m.appendChild(ts); }
     const btns = document.createElement('div'); btns.className = 'cont-btns';
     const go = document.createElement('button'); go.className = 'key3d';
     go.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
@@ -4171,25 +4322,31 @@ async function renderMine() {
       sv.addEventListener('click', () => setSettings(true));
       btns.appendChild(sv);
     }
+    const star = document.createElement('button'); star.className = 'key3d dark star' + (favs().includes(lastG.id) ? ' on' : '');
+    star.setAttribute('aria-label', favs().includes(lastG.id) ? 'Βγάλε από τα αγαπημένα' : 'Βάλε στα αγαπημένα'); star.innerHTML = STAR_SVG;
+    star.addEventListener('click', () => toggleFav(lastG.id));
+    btns.appendChild(star);
     info.append(k, n, m, btns); card.appendChild(info); contEl.appendChild(card);
   }
   // console tabs: only the systems in the library
   const present = SYS_ORDER.filter(k => all.some(g => g.sys === k));
+  const fv = favs(), hasFav = all.some(g => fv.includes(g.id));
+  if (hasFav) present.unshift('fav');
   if (libFilter !== 'all' && !present.includes(libFilter)) libFilter = 'all';
   const tabs = document.getElementById('libTabs'); tabs.innerHTML = '';
   for (const k of ['all', ...present]) {
     const t = document.createElement('button'); t.className = 'lib-tab'; t.setAttribute('role', 'tab');
-    t.textContent = k === 'all' ? 'Όλα' : SYS_SHORT[k]; t.setAttribute('aria-selected', String(k === libFilter));
+    if (k === 'fav') { t.innerHTML = STAR_SVG; t.classList.add('fav'); t.setAttribute('aria-label', 'Αγαπημένα'); } else t.textContent = k === 'all' ? 'Όλα' : SYS_SHORT[k]; t.setAttribute('aria-selected', String(k === libFilter));
     t.addEventListener('click', () => { libFilter = k; renderMine(); });
     tabs.appendChild(t);
   }
-  const list = all.filter(g => libFilter === 'all' || g.sys === libFilter)
-    .sort((a, b) => (played[b.id] || 0) - (played[a.id] || 0) || (!!a.cart - !!b.cart) || displayName(a).localeCompare(displayName(b), 'el'));
+  const list = all.filter(g => libFilter === 'all' || (libFilter === 'fav' ? fv.includes(g.id) : g.sys === libFilter))
+    .sort((a, b) => (fv.includes(b.id) - fv.includes(a.id)) || (played[b.id] || 0) - (played[a.id] || 0) || (!!a.cart - !!b.cart) || displayName(a).localeCompare(displayName(b), 'el'));
   const mine = list.filter(g => !g.cart).length;
   document.getElementById('libCount').textContent = mine === 1 ? '1 παιχνίδι' : mine + ' παιχνίδια';
   const grid = document.getElementById('libGrid'); grid.innerHTML = '';
   // "All": every case the same size; one system: each cover in its own shape
-  grid.classList.toggle('sys', libFilter !== 'all');
+  grid.classList.toggle('sys', libFilter !== 'all' && libFilter !== 'fav');
   if (metas === null) { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Αυτός ο browser δεν επιτρέπει αποθήκευση παιχνιδιών. Τα ROM θα παίζουν, αλλά θα πρέπει να τα φορτώνεις κάθε φορά.'; grid.appendChild(e); }
   else if (!metas.length && libFilter === 'all') { const e = document.createElement('div'); e.className = 'lib-empty'; e.textContent = 'Πάτα «Πρόσθεσε» για να βάλεις τα δικά σου παιχνίδια. Μέχρι τότε, δοκίμασε τις δωρεάν κασέτες Game Boy.'; grid.appendChild(e); }
   for (const g of list) {
@@ -4200,6 +4357,15 @@ async function renderMine() {
     const name = document.createElement('span'); name.className = 'case-name'; name.textContent = displayName(g);
     card.dataset.q = searchNorm(displayName(g) + ' ' + g.name + ' ' + (g.fileName || '') + ' ' + SYS_SHORT[g.sys]);
     card.append(btn, name);
+    const pt = fmtTime(playTimes()[g.id] || 0);
+    if (pt) { const ts = document.createElement('span'); ts.className = 'case-time'; ts.textContent = pt; card.appendChild(ts); }
+    const isFav = fv.includes(g.id);
+    if (isFav) { const b = document.createElement('span'); b.className = 'case-fav'; b.innerHTML = STAR_SVG; btn.querySelector('.case-art').appendChild(b); }
+    // edit mode: star / unstar
+    const st = document.createElement('button'); st.className = 'case-star' + (isFav ? ' on' : '');
+    st.setAttribute('aria-label', (isFav ? 'Βγάλε από τα αγαπημένα: ' : 'Βάλε στα αγαπημένα: ') + displayName(g)); st.innerHTML = STAR_SVG;
+    st.addEventListener('click', () => toggleFav(g.id));
+    card.appendChild(st);
     {
       const del = document.createElement('button'); del.className = 'case-del'; del.setAttribute('aria-label', 'Σβήσε το ' + displayName(g));
       del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -4257,6 +4423,10 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Διάταξη κουμπιών (θέση / μέγεθος)': 'Button layout (position / size)', 'Διάταξη κουμπιών': 'Button layout', 'Μέγεθος': 'Size', 'Μικρότερο': 'Smaller', 'Μεγαλύτερο': 'Bigger',
+  'Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.': 'Drag the stick or a button to move it. Tap one to change its size.',
+  'Μπήκε στα αγαπημένα.': 'Added to favourites.', 'Βγήκε από τα αγαπημένα.': 'Removed from favourites.', 'Αγαπημένα': 'Favourites',
+  'Βάλε στα αγαπημένα': 'Add to favourites', 'Βγάλε από τα αγαπημένα': 'Remove from favourites',
   'ΗΧΟΣ': 'SOUND',
   'Δοκιμή 1': 'Test 1', 'Δοκιμή 2': 'Test 2', 'Δοκιμή 3': 'Test 3',
   'Δοκιμή δόνησης: πάτα τον διακόπτη': 'Vibration test: tap the switch',
@@ -4326,6 +4496,8 @@ const EN = {
   'Οι αποθηκεύσεις': 'Saves',
 };
 const EN_RE = [
+  [/^(\d+) λεπ\.$/, '$1 min'], [/^(\d+) ώρ\. (\d+) λεπ\.$/, '$1 h $2 min'], [/^(\d+) ώρ\.$/, '$1 h'],
+  [/^Βάλε στα αγαπημένα: (.*)$/s, 'Add to favourites: $1'], [/^Βγάλε από τα αγαπημένα: (.*)$/s, 'Remove from favourites: $1'],
   [/^Δεν βρέθηκε παιχνίδι για «(.*)»\.$/s, 'No game found for “$1”.'], [/^Αποθήκευσε το αρχείο \((.*)\)$/, 'Save the file ($1)'],
   [/^Αποθηκεύτηκε στα παιχνίδια σου \((.+?)\): (.*)$/s, 'Saved to your games ($1): $2'],
   [/^Φορτώθηκε: (.*) \(δεν αποθηκεύτηκε σε αυτόν τον browser\)$/s, "Loaded: $1 (not stored in this browser)"],
