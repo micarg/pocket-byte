@@ -238,6 +238,28 @@ html.modern-on, html.modern-on body { background: var(--shell-lo); }
 .console.modern .sys .lbl { position: absolute; left: 0; right: 0; top: 0; height: 36px; display: flex; align-items: center; justify-content: center;
   pointer-events: none; font: 800 11px var(--body); letter-spacing: .12em; color: var(--print); text-shadow: 0 1px 0 rgba(0,0,0,.35); }
 .console.modern .sys.only-psx .b-wrap { max-width: 50px; } .console.modern .sys.only-psx .lbl { font-size: 9px; letter-spacing: .04em; }
+/* MODERN: the key's name is drawn inside the key (centred by the key itself, so it can't drift on any phone) */
+.console.modern .sys .lbl { display: none; }
+.console.modern .sys .pill { display: flex; align-items: center; justify-content: center; padding: 0; }
+.console.modern .sys .pill::after { content: attr(data-lbl); font: 800 11px/1 var(--body); letter-spacing: .12em; text-indent: .12em; color: var(--print); text-shadow: 0 1px 0 rgba(0,0,0,.35); white-space: nowrap; pointer-events: none; }
+.console.modern .sys .pill.named::after { font-size: 9px; letter-spacing: .02em; text-indent: .02em; }
+.console.modern .sys.only-psx .pill::after { font-size: 9px; letter-spacing: .04em; text-indent: .04em; }
+.console.land .sys .pill::after { color: #e9ebee; }
+/* GBA in MODERN: L and R are shoulder keys at the top corners of the panel, like on the real console */
+.shoulders { display: none; }
+.console.modern .sys.only-gba .b-wrap.lr { display: none; }
+.console.modern[data-sys="gba"] .shoulders { display: block; position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 3; margin: 0; }
+.console.modern .shoulders .b-wrap { position: absolute; top: 0; width: 31%; max-width: 150px; height: 44px; transform: none; display: block; }
+.console.modern .shoulders .sh-l { left: 0; } .console.modern .shoulders .sh-r { right: 0; }
+.console.modern .shoulders .pill { width: 100%; height: 100%; border-radius: 0 0 24px 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pill) 70%, #fff 12%), var(--pill));
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.3), inset -1px 0 0 rgba(255,255,255,.12), 0 6px 12px rgba(0,0,0,.35); }
+.console.modern .shoulders .sh-r .pill { border-radius: 0 0 0 24px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.3), inset 1px 0 0 rgba(255,255,255,.12), 0 6px 12px rgba(0,0,0,.35); }
+.console.modern .shoulders .pill::after { font-size: 16px; letter-spacing: 0; text-indent: 0; }
+.console.modern .shoulders .pill.down { transform: translateY(2px); }
+.console.modern[data-sys="gba"]:not(.land) .pad-row { margin-top: calc(52px / var(--ctl-z, 1)); }
+.console.land[data-sys="gba"] .shoulders .b-wrap { width: 22%; height: 40px; }
+.console.land[data-sys="gba"] .sys:not(.shoulders) { padding-top: calc(54px / var(--ctl-z, 1)); }
 .dock-wrap { flex: none; display: none; }
 .console.modern .dock-wrap { display: block; }
 .dock-menu { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; color: #fff; cursor: pointer; touch-action: manipulation;
@@ -728,6 +750,10 @@ svg.star-ic { overflow: visible; display: block; }
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
 
     <div class="controls-panel" id="controlsPanel">
+    <div class="sys shoulders only-gba">
+      <div class="b-wrap sh-l"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap sh-r"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+    </div>
     <div class="controls" id="controls">
     <div class="pad-row">
       <div class="dpad" id="dpad" aria-label="Joystick">
@@ -811,10 +837,10 @@ svg.star-ic { overflow: visible; display: block; }
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
     </div>
     <div class="sys only-gba">
-      <div class="b-wrap"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="10" aria-label="L"></button><span class="lbl">L</span></div>
       <div class="b-wrap"><button class="pill" data-ej="2" aria-label="Select"></button><span class="lbl">SELECT</span></div>
       <div class="b-wrap"><button class="pill" data-ej="3" aria-label="Start"></button><span class="lbl">START</span></div>
-      <div class="b-wrap"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
+      <div class="b-wrap lr"><button class="pill" data-ej="11" aria-label="R"></button><span class="lbl">R</span></div>
     </div>
     <div class="sys only-psx">
       <div class="b-wrap"><button class="pill" data-ej="12" aria-label="L2"></button><span class="lbl">L2</span></div>
@@ -2089,6 +2115,12 @@ const N64_LABELS = [
   [/banjo/i, { A: 'JUMP', B: 'ATTACK', Z: 'CROUCH', R: 'CAMERA', C: 'CAMERA' }],
   [/smash ?bro/i, { A: 'ATTACK', B: 'SPECIAL', Z: 'SHIELD', R: 'SHIELD', L: 'TAUNT', C: 'JUMP' }],
 ];
+function syncPillLabels() {
+  document.querySelectorAll('.sys .b-wrap').forEach(w => {
+    const p = w.querySelector('.pill'), l = w.querySelector('.lbl');
+    if (p && l) { p.dataset.lbl = l.textContent; p.classList.toggle('named', l.classList.contains('named')); }
+  });
+}
 function applyN64Labels(name) {
   const hit = N64_LABELS.find(([re]) => re.test(name));
   const m = hit ? hit[1] : {};
@@ -2102,7 +2134,9 @@ function applyN64Labels(name) {
     const b = document.querySelector('.sys.only-n64 .pill[data-ej="' + ej + '"]');
     set(b && b.parentElement.querySelector('.lbl'), key, key === 'START' ? '' : key);
   }
+  syncPillLabels();
 }
+syncPillLabels();
 
 /* ---- joystick or cross-shaped D-pad, remembered per game (driving games always use the stick) ---- */
 let crossOn = false, currentName = '', currentFile = '';
@@ -3186,7 +3220,7 @@ ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.cl
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) {
-  document.querySelectorAll('.controls .face, #dpad, .controls .sys .b-wrap').forEach(hapAttach);
+  document.querySelectorAll('.controls .face, #dpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
 }
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
