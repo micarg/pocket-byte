@@ -447,6 +447,14 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   .scr-adj { left: 50%; right: auto; width: min(420px, 60vw); transform: translateX(-50%); border-radius: 18px 18px 0 0; border: 1px solid #4a505a; gap: 8px; padding-top: 10px; background: rgba(26,28,32,.92); }
   .sa-note { display: none; }
 }
+/* paused: just the pause symbol in the middle of the game screen */
+.pause-ic { position: absolute; left: 50%; top: 50%; z-index: 5; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; pointer-events: none;
+  background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center; gap: 12px; }
+.pause-ic[hidden] { display: none; }
+.hap-test { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+.hap-test input { width: 46px; height: 26px; accent-color: #34c759; }
+.pause-ic span { width: 10px; height: 32px; border-radius: 4px; background: #f2f3f5; }
 /* face buttons, translucent and lit from inside (MODERN): like illuminated arcade buttons */
 .console.modern.glow .round:not(.psb) {
   background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.85) 0%, color-mix(in srgb, var(--ab-1) 45%, #fff) 16%, color-mix(in srgb, var(--ab-1) 80%, transparent) 52%, color-mix(in srgb, var(--ab-1) 70%, #000) 100%);
@@ -539,6 +547,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
         <canvas id="lcd" width="160" height="144" aria-label="Οθόνη παιχνιδιού"></canvas>
         <div id="ejs-host" hidden><div id="ejs"></div></div>
         <div class="overlay" id="overlay" hidden></div>
+        <div class="pause-ic" id="pauseIc" hidden aria-label="Παύση"><span></span><span></span></div>
       </div>
     </div>
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
@@ -743,6 +752,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
       <button class="tool" id="soundBtn">Ήχος: κλειστός</button>
       <button class="tool" id="hapticBtn">Δόνηση: ανοιχτή</button>
     </div>
+    <label class="hap-test"><input type="checkbox" switch id="hapTest"> Δοκιμή δόνησης: πάτα τον διακόπτη</label>
   </section>
 
   <section class="set-card">
@@ -2873,8 +2883,7 @@ function setPaused(p) {
 }
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
-  if (paused && !pausedByMenu) showOverlay(PAUSE_TXT);
-  else if (overlay.dataset.raw === PAUSE_TXT) showOverlay('');
+  document.getElementById('pauseIc').hidden = !(paused && !pausedByMenu);
 }
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -4182,6 +4191,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Δοκιμή δόνησης: πάτα τον διακόπτη': 'Vibration test: tap the switch',
   'Παύση · πάτα START για να συνεχίσεις': 'Paused · tap START to resume',
   'Μέγεθος εικόνας (πλάτος / ύψος)': 'Picture size (width / height)', 'Μέγεθος εικόνας': 'Picture size', 'Πλάτος': 'Width', 'Ύψος': 'Height',
   'Πιο στενό': 'Narrower', 'Πιο φαρδύ': 'Wider', 'Πιο κοντό': 'Shorter', 'Πιο ψηλό': 'Taller', 'Επαναφορά': 'Reset', 'Έτοιμο': 'Done',
