@@ -564,6 +564,13 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .face .btn > .hap-sw { pointer-events: auto; left: -12%; top: -12%; width: 124%; height: 124%; right: auto; bottom: auto; }
 .face .btn.round > .hap-sw { clip-path: circle(50%); border-radius: 50%; }
 .lay-edit .face .btn > .hap-sw, .hap-off .face .btn > .hap-sw { pointer-events: none; }
+/* while a finger holds the stick, iOS ignores a second finger's tap on a small switch; one big switch over the whole
+   button area took those presses before, so it comes back for as long as the stick is held */
+.face > .hap-sw { pointer-events: none; top: var(--ft, 0px); left: var(--fl, 0px); right: auto; bottom: auto;
+  width: calc(100% - var(--fl, 0px) - var(--fr, 0px)); height: calc(100% - var(--ft, 0px) - var(--fb, 0px)); }
+.console.stick-held:not(.lay-edit) .face > .hap-sw { pointer-events: auto; }
+.console.stick-held .face .btn > .hap-sw { pointer-events: none; }
+.hap-off .face > .hap-sw { pointer-events: none !important; }
 .hap-sw.tap { touch-action: manipulation; border-radius: inherit; -webkit-appearance: none; appearance: none; display: block; background: none; }
 .hap-hidden { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; visibility: hidden; }
 .sys .b-wrap { position: relative; }
@@ -3465,7 +3472,7 @@ ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.cl
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) {
-  document.querySelectorAll('.controls .face .btn, #dpad, #tpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
+  document.querySelectorAll('.controls .face .btn, .controls .face, #dpad, #tpad, .controls .sys .b-wrap, .shoulders .b-wrap').forEach(hapAttach);
 }
 // Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
 // button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
@@ -3786,7 +3793,7 @@ function dpadUpdate() {
     ejsInput(18, ay > 0 ? v(ay) : 0); ejsInput(19, ay < 0 ? v(-ay) : 0);
   }
 }
-dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e, null); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
+dpad.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); consoleEl.classList.add('stick-held'); dpad.setPointerCapture(e.pointerId); const v = dpadFrom(e, null); if (v.m) haptic(); dpadPointers.set(e.pointerId, v); dpadUpdate(); });
 function dpadMove(e) {
   const prev = dpadPointers.get(e.pointerId); if (!prev) return;
   e.preventDefault();
@@ -3796,7 +3803,7 @@ function dpadMove(e) {
 }
 // pointerrawupdate (where supported) delivers moves without waiting for the next frame
 dpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', dpadMove);
-const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); };
+const dEnd = e => { dpadPointers.delete(e.pointerId); dpadUpdate(); if (![...dpadPointers.keys()].some(k => k !== 'tp')) consoleEl.classList.remove('stick-held'); };
 dpad.addEventListener('pointerup', dEnd); dpad.addEventListener('pointercancel', dEnd); dpad.addEventListener('lostpointercapture', dEnd);
 dpad.addEventListener('contextmenu', e => e.preventDefault());
 // Swipe pad (joystick-only games): drag ~16px in a direction to turn; another drag (without lifting) turns again.
@@ -3815,7 +3822,7 @@ function tpSet(m) {
 tpad.addEventListener('pointerdown', e => {
   e.preventDefault(); unlockAudio();
   try { tpad.setPointerCapture(e.pointerId); } catch (_) {}
-  tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch');
+  tpStart = { id: e.pointerId, x: e.clientX, y: e.clientY }; tpad.classList.add('touch'); consoleEl.classList.add('stick-held');
   // a press toward a side (outside the middle) turns that way at once, like the arms of a d-pad;
   // the middle is left to swipes
   const r = tpad.getBoundingClientRect();
@@ -3835,7 +3842,7 @@ tpad.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'poi
 });
 const tpEnd = e => {
   if (!tpStart || e.pointerId !== tpStart.id) return;
-  tpStart = null; tpad.classList.remove('touch');
+  tpStart = null; tpad.classList.remove('touch'); if (![...dpadPointers.keys()].some(k => k !== 'tp')) consoleEl.classList.remove('stick-held');
   if (!TP_LATCH.test(arcSet || mameSet || '')) tpSet(0);
 };
 tpad.addEventListener('pointerup', tpEnd); tpad.addEventListener('pointercancel', tpEnd); tpad.addEventListener('lostpointercapture', tpEnd);
