@@ -450,7 +450,8 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 /* iPhone haptics: the invisible native switch over each control (see hapAttach) */
 .hap-sw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; -webkit-appearance: auto; appearance: auto;
   touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; cursor: inherit; }
-.hap-off .hap-sw { pointer-events: none; }
+.hap-off .hap-sw, :disabled > .hap-sw { pointer-events: none; }
+.hap-sw.tap { touch-action: manipulation; border-radius: inherit; }
 .sys .b-wrap { position: relative; }
 /* paused: just the pause symbol in the middle of the game screen */
 .pause-ic { position: absolute; left: 50%; top: 50%; z-index: 5; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; pointer-events: none;
@@ -2949,11 +2950,44 @@ function hapMid() { const now = performance.now(); for (const st of hapActive) i
 // default action on the control panel stops that (the buttons themselves run on pointer events, which still fire).
 // Touches on a haptic switch are left alone: WebKit needs them to track and flip it.
 const ctlPanel = document.getElementById('controlsPanel');
-ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.classList && e.target.classList.contains('hap-sw'))) e.preventDefault(); }, { passive: false });
+ctlPanel.addEventListener('touchstart', e => { if (e.cancelable && !(e.target.classList && e.target.classList.contains('hap-sw')) && !(isApple && e.target.closest && e.target.closest('#dockMenu'))) e.preventDefault(); }, { passive: false });
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
 if (isApple) {
   document.querySelectorAll('.controls .face, #dpad, .controls .sys .b-wrap').forEach(hapAttach);
+}
+// Menu buttons: a switch inside each one takes the tap, ticks as it flips, and lets the click carry on to the
+// button. A finger that moves more than 10px is scrolling, not tapping: the switch is moved out of its reach
+// (no tick) and the closing click is swallowed, so nothing gets pressed by a scroll.
+const HAP_MENU = '#lib button, #coverSheet button, #scrAdj button, #dockMenu';
+function hapTap(host) {
+  if (host.querySelector(':scope > .hap-sw')) return;
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  const sw = document.createElement('input');
+  sw.type = 'checkbox'; sw.setAttribute('switch', ''); sw.className = 'hap-sw tap'; sw.tabIndex = -1; sw.setAttribute('aria-hidden', 'true');
+  let x0 = 0, y0 = 0, swiped = false, unwatch = null;
+  const finish = () => { if (unwatch) unwatch(); unwatch = null; sw.style.transform = ''; };
+  sw.addEventListener('pointerdown', e => {
+    finish(); x0 = e.clientX; y0 = e.clientY; swiped = false;
+    const id = e.pointerId;
+    const mv = ev => { if (ev.pointerId === id && !swiped && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) { swiped = true; sw.style.transform = `translateX(${sw.checked ? -HAP_PARK : HAP_PARK}px)`; } };
+    const end = ev => { if (ev.pointerId !== id) return; if (ev.type === 'pointercancel') swiped = true; setTimeout(finish, 0); };
+    addEventListener('pointermove', mv, { capture: true, passive: true });
+    addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
+    unwatch = () => { removeEventListener('pointermove', mv, { capture: true }); removeEventListener('pointerup', end, true); removeEventListener('pointercancel', end, true); };
+  });
+  sw.addEventListener('click', e => {
+    if (swiped) { e.preventDefault(); e.stopPropagation(); }
+    swiped = false;
+  });
+  host.appendChild(sw);
+}
+if (isApple) {
+  const scan = root => { if (root.matches && root.matches(HAP_MENU)) hapTap(root); if (root.querySelectorAll) root.querySelectorAll(HAP_MENU).forEach(hapTap); };
+  scan(document.body);
+  // buttons come and go (library cases, tabs) and some get their text replaced, which removes the switch too
+  new MutationObserver(ms => { for (const m of ms) { if (m.target.matches && m.target.matches(HAP_MENU)) hapTap(m.target); m.addedNodes.forEach(n => n.nodeType === 1 && scan(n)); } })
+    .observe(document.body, { childList: true, subtree: true });
 }
 function setHaptics(on) {
   hapticsOn = on;
@@ -3649,7 +3683,10 @@ function setSettings(open) {
 const toggleMenu = () => { unlockAudio(); haptic(); setMenu(lib.hidden); };
 menuBtn.addEventListener('click', toggleMenu);
 // the dock key lives on the control panel, where taps don't produce clicks (see ctlPanel): use pointerup
-document.getElementById('dockMenu').addEventListener('pointerup', toggleMenu);
+// (on iPhone the dock's touch isn't cancelled, so it gets a real click, which also lets its haptic switch tick;
+// opening on pointerup there would let that click land on whatever the menu put under the finger)
+if (isApple) document.getElementById('dockMenu').addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+else document.getElementById('dockMenu').addEventListener('pointerup', toggleMenu);
 document.getElementById('closeMenu').addEventListener('click', () => setSettings(false));
 scrim.addEventListener('click', () => setSettings(false));
 document.getElementById('libClose').addEventListener('click', () => setMenu(false));
