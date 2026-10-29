@@ -337,7 +337,7 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
 .case-star { position: absolute; left: -8px; top: 34px; z-index: 2; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #0b0c0e; background: #3a3f47; color: #fff;
   display: none; place-items: center; padding: 0; cursor: pointer; }
 .case-star svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; }
-.case-star.on { background: #ffd34d; } .case-star.on svg { fill: #15171a; stroke: #15171a; }
+.case-star.on svg { fill: #ffd34d; stroke: #ffd34d; }
 .lib.editing .case-star { display: grid; }
 .key3d.star { width: 38px; padding: 0; justify-content: center; }
 .key3d.star svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; }
@@ -3827,6 +3827,20 @@ document.getElementById('libClose').addEventListener('click', () => setMenu(fals
 
 document.getElementById('libAdd').addEventListener('click', () => { unlockAudio(); document.getElementById('romFile').click(); });
 const libEditBtn = document.getElementById('libEdit');
+// holding a finger on a game starts edit mode (the cases wiggle), like the iPhone home screen
+{
+  const grid = document.getElementById('libGrid');
+  let t = null, x0 = 0, y0 = 0;
+  const cancel = () => { clearTimeout(t); t = null; };
+  grid.addEventListener('pointerdown', e => {
+    if (lib.classList.contains('editing') || !e.target.closest('.case')) return;
+    x0 = e.clientX; y0 = e.clientY; cancel();
+    t = setTimeout(() => { t = null; lib.classList.add('editing'); libEditBtn.textContent = 'Τέλος'; grid.dataset.justEdited = '1'; setTimeout(() => delete grid.dataset.justEdited, 600); }, 500);
+  });
+  grid.addEventListener('pointermove', e => { if (t && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) cancel(); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => grid.addEventListener(ev, cancel));
+  grid.addEventListener('contextmenu', e => e.preventDefault());
+}
 libEditBtn.addEventListener('click', () => { const on = lib.classList.toggle('editing'); libEditBtn.textContent = on ? 'Τέλος' : 'Επεξεργασία'; });
 addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!coverSheet.hidden) closeCoverSheet(); else if (!lib.hidden) setMenu(false); });
 
@@ -4260,6 +4274,8 @@ function fmtTime(sec) {
 }
 function favs() { try { const v = JSON.parse(localStorage.getItem('pb-favs') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
 function toggleFav(id) {
+  if (toggleFav.last === id && performance.now() - toggleFav.t < 450) return; // one tap, one change
+  toggleFav.last = id; toggleFav.t = performance.now();
   const f = favs(), on = !f.includes(id);
   try { localStorage.setItem('pb-favs', JSON.stringify(on ? [...f, id] : f.filter(x => x !== id))); } catch (e) {}
   toast(on ? 'Μπήκε στα αγαπημένα.' : 'Βγήκε από τα αγαπημένα.');
