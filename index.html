@@ -603,6 +603,10 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .lay-hint { color: #9aa1ab; font-size: 12.5px; font-weight: 500; line-height: 1.4; }
 .lay-bar .sa-step:disabled, .lay-bar input:disabled { opacity: .35; }
 .lay-edit .hap-sw { pointer-events: none; }
+#layGuides { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 60; overflow: visible; }
+#layGuides line { stroke: #ffd60a; stroke-width: 1.5; stroke-dasharray: 6 5; filter: drop-shadow(0 0 2px rgba(0,0,0,.6)); }
+#layGuides circle { fill: #ffd60a; }
+.lay-match { outline: 2px solid #ffd60a !important; outline-offset: 4px; border-radius: 50%; }
 .console.lay-edit .controls .face .btn[id]:not([hidden]), .console.lay-edit #dpad { outline: 2px dashed rgba(255,255,255,.45); outline-offset: 4px; }
 .console.lay-edit #dpad { border-radius: 50%; }
 .console.lay-edit .controls .lay-sel { outline: 3px solid #ffd34d !important; outline-offset: 4px; }
@@ -1023,7 +1027,7 @@ svg.star-ic { overflow: visible; display: block; }
   </div>
   <div class="lay-bar" id="layBar" hidden role="dialog" aria-label="Διάταξη κουμπιών">
     <div class="sa-head"><b>Διάταξη κουμπιών</b><span id="layGame"></span></div>
-    <div class="lay-hint" id="layHint">Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.</div>
+    <div class="lay-hint" id="layHint">Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Όταν μπει στην ίδια ευθεία με άλλο (οριζόντια, κάθετα ή διαγώνια), βγαίνει κίτρινη γραμμή και «κουμπώνει». Πάτα ένα για να αλλάξεις μέγεθος.</div>
     <div class="sa-row"><span class="sa-lbl">Μέγεθος</span>
       <button class="sa-step" id="layMinus" aria-label="Μικρότερο">−</button>
       <input type="range" id="laySize" min="60" max="160" step="1" aria-label="Μέγεθος">
@@ -4090,20 +4094,75 @@ ctlRoot.addEventListener('pointerdown', e => {
   laySel = el; layShowSel();
   const v = layData()[el.id] || [0, 0, 1], r = el.getBoundingClientRect();
   // screen pixels per layout pixel of this item (the panel and the stick are zoomed)
-  const k = r.width / (el.offsetWidth * v[2]) || 1;
-  layDrag = { id: e.pointerId, el, x0: e.clientX, y0: e.clientY, tx: v[0], ty: v[1], s: v[2], k };
+  // screen px per translate px, measured (zoom on the panel, the face or the button itself all change it)
+  let k = r.width / (el.offsetWidth * v[2]) || 1;
+  el.style.translate = `${v[0] + 20}px ${v[1]}px`;
+  const kk = (el.getBoundingClientRect().left - r.left) / 20; if (kk > 0.2 && kk < 5) k = kk;
+  el.style.translate = `${v[0]}px ${v[1]}px`;
+  // the other controls' centres (screen px), to line this one up with them while dragging
+  const others = layVisible().filter(o => o !== el).map(o => { const q = o.getBoundingClientRect(); return { el: o, x: q.left + q.width / 2, y: q.top + q.height / 2 }; });
+  layDrag = { id: e.pointerId, el, x0: e.clientX, y0: e.clientY, tx: v[0], ty: v[1], s: v[2], k, cx0: r.left + r.width / 2, cy0: r.top + r.height / 2, others, snapKey: '' };
   try { ctlRoot.setPointerCapture(e.pointerId); } catch (_) {}
 }, true);
 ctlRoot.addEventListener('pointermove', e => {
   if (!layDrag || e.pointerId !== layDrag.id) return;
   e.stopPropagation();
-  const g = layDrag, [tx, ty] = layClamp(g.el, g.tx + (e.clientX - g.x0) / g.k, g.ty + (e.clientY - g.y0) / g.k);
+  const g = layDrag;
+  let [tx, ty] = layClamp(g.el, g.tx + (e.clientX - g.x0) / g.k, g.ty + (e.clientY - g.y0) / g.k);
+  // smart guides: snap the centre onto the same vertical / horizontal line as another control, or onto a 45° diagonal
+  let cx = g.cx0 + (tx - g.tx) * g.k, cy = g.cy0 + (ty - g.ty) * g.k;
+  const TH = 8, guides = [];
+  let bx = null, by = null;
+  for (const o of g.others) {
+    if (Math.abs(cx - o.x) < TH && (!bx || Math.abs(cx - o.x) < Math.abs(cx - bx.x))) bx = o;
+    if (Math.abs(cy - o.y) < TH && (!by || Math.abs(cy - o.y) < Math.abs(cy - by.y))) by = o;
+  }
+  if (bx) { cx = bx.x; guides.push({ t: 'v', o: bx }); }
+  if (by) { cy = by.y; guides.push({ t: 'h', o: by }); }
+  if (!bx && !by) {
+    let bd = null, best = TH * 1.3;
+    for (const o of g.others) {
+      const dx = cx - o.x, dy = cy - o.y;
+      if (Math.abs(dx) < 24 || Math.abs(dy) < 24) continue;
+      const off = Math.abs(Math.abs(dx) - Math.abs(dy)) / Math.SQRT2; // distance from the 45° line through o
+      if (off < best) { best = off; bd = o; }
+    }
+    if (bd) {
+      const dx = cx - bd.x, dy = cy - bd.y, t = (Math.abs(dx) + Math.abs(dy)) / 2;
+      cx = bd.x + Math.sign(dx) * t; cy = bd.y + Math.sign(dy) * t;
+      guides.push({ t: Math.sign(dx) === Math.sign(dy) ? 'd1' : 'd2', o: bd });
+    }
+  }
+  if (guides.length) [tx, ty] = layClamp(g.el, g.tx + (cx - g.cx0) / g.k, g.ty + (cy - g.cy0) / g.k);
   g.el.style.translate = `${tx}px ${ty}px`; g.cur = [tx, ty];
+  const key = guides.map(q => q.t + g.others.indexOf(q.o)).join();
+  if (key && key !== g.snapKey) haptic();
+  g.snapKey = key;
+  layGuides(guides, cx, cy);
 }, true);
+// the guide lines while dragging in the layout editor
+const layGuideSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+layGuideSvg.id = 'layGuides'; layGuideSvg.setAttribute('aria-hidden', 'true'); document.body.appendChild(layGuideSvg);
+function layGuides(list, cx, cy) {
+  document.querySelectorAll('.lay-match').forEach(x => x.classList.remove('lay-match'));
+  if (!list || !list.length) { layGuideSvg.innerHTML = ''; return; }
+  const W = innerWidth, H = innerHeight, p = document.getElementById('controlsPanel').getBoundingClientRect();
+  let out = '';
+  for (const q of list) {
+    q.o.el.classList.add('lay-match');
+    let x1, y1, x2, y2;
+    if (q.t === 'v') { x1 = x2 = q.o.x; y1 = p.top; y2 = p.bottom; }
+    else if (q.t === 'h') { y1 = y2 = q.o.y; x1 = 0; x2 = W; }
+    else { const sg = q.t === 'd1' ? 1 : -1, L = Math.max(W, H); x1 = q.o.x - L; y1 = q.o.y - sg * L; x2 = q.o.x + L; y2 = q.o.y + sg * L; }
+    out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }
+  out += `<circle cx="${cx}" cy="${cy}" r="4"/>` + list.map(q => `<circle cx="${q.o.x}" cy="${q.o.y}" r="4"/>`).join('');
+  layGuideSvg.innerHTML = out;
+}
 const layUp = e => {
   if (!layDrag || e.pointerId !== layDrag.id) return;
   e.stopPropagation();
-  const g = layDrag; layDrag = null;
+  const g = layDrag; layDrag = null; layGuides(null);
   if (g.cur) laySet(g.el, g.cur[0], g.cur[1], g.s);
 };
 ctlRoot.addEventListener('pointerup', layUp, true); ctlRoot.addEventListener('pointercancel', layUp, true);
@@ -5157,7 +5216,7 @@ const EN = {
   'Χρόνος παιχνιδιού': 'Play time', 'Τελευταία φορά': 'Last played', 'Στα αγαπημένα': 'Favourite', 'Αγαπημένο': 'Favourite ★', 'Εξώφυλλο': 'Cover', 'Σβήσε': 'Delete', 'Σίγουρα;': 'Sure?',
   'Πρόσθεσε παιχνίδια': 'Add games',
   'Διάταξη κουμπιών (θέση / μέγεθος)': 'Button layout (position / size)', 'Διάταξη κουμπιών': 'Button layout', 'Μέγεθος': 'Size', 'Μικρότερο': 'Smaller', 'Μεγαλύτερο': 'Bigger',
-  'Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Πάτα ένα για να αλλάξεις το μέγεθός του.': 'Drag the stick or a button to move it. Tap one to change its size.',
+  'Σύρε το joystick ή ένα κουμπί για να το μετακινήσεις. Όταν μπει στην ίδια ευθεία με άλλο (οριζόντια, κάθετα ή διαγώνια), βγαίνει κίτρινη γραμμή και «κουμπώνει». Πάτα ένα για να αλλάξεις μέγεθος.': 'Drag the stick or a button to move it. When it lines up with another (across, up-down or diagonal) a yellow line shows and it snaps there. Tap one to resize.',
   'Μπήκε στα αγαπημένα.': 'Added to favourites.', 'Βγήκε από τα αγαπημένα.': 'Removed from favourites.', 'Αγαπημένα': 'Favourites',
   'Βάλε στα αγαπημένα': 'Add to favourites', 'Βγάλε από τα αγαπημένα': 'Remove from favourites',
   'ΗΧΟΣ': 'SOUND',
