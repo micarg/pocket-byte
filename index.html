@@ -2865,6 +2865,7 @@ arcCoreBtn.addEventListener('click', () => {
 showArcCore();
 
 /* ---- pause / reset ---- */
+const PAUSE_TXT = 'Παύση · πάτα START για να συνεχίσεις';
 function setPaused(p) {
   paused = p;
   try { if (ejsStarted) p ? EJS_emulator.pause() : EJS_emulator.play(); } catch (e) {}
@@ -2872,8 +2873,8 @@ function setPaused(p) {
 }
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
-  if (paused && !pausedByMenu) showOverlay('Παύση');
-  else if (overlay.dataset.raw === 'Παύση') showOverlay('');
+  if (paused && !pausedByMenu) showOverlay(PAUSE_TXT);
+  else if (overlay.dataset.raw === PAUSE_TXT) showOverlay('');
 }
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -2976,7 +2977,32 @@ document.querySelectorAll('.face').forEach(face => {
   face.addEventListener('contextmenu', e => e.preventDefault());
 });
 // Select / Start / Mode / L / Z / R pills: plain press and hold
+// START: a tap is the game's Start; held for half a second it pauses the game, and the next tap resumes it
+document.querySelectorAll('.sys [data-gb="START"], .sys [data-ej="3"]').forEach(btn => {
+  let timer = null, held = false, resume = false;
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    btn.classList.add('down'); haptic();
+    resume = paused && !pausedByMenu; held = false;
+    if (resume) return;
+    timer = setTimeout(() => { timer = null; held = true; haptic(); setPaused(true); }, 500);
+  });
+  const up = () => {
+    if (!btn.classList.contains('down')) return;
+    btn.classList.remove('down');
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (resume) { resume = false; setPaused(false); return; }
+    if (held) { held = false; return; }
+    // a short tap: send it to the game
+    pressBtn(btn); btn.classList.add('down'); setTimeout(() => releaseBtn(btn), 90);
+  };
+  btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', () => { if (timer) { clearTimeout(timer); timer = null; } btn.classList.remove('down'); resume = held = false; });
+  btn.addEventListener('lostpointercapture', up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
 document.querySelectorAll('.sys [data-gb], .sys [data-ej]').forEach(btn => {
+  if (btn.dataset.gb === 'START' || btn.dataset.ej === '3') return;
   let isDown = false;
   btn.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
@@ -4139,6 +4165,7 @@ renderMine();
 
 /* ---- language: Greek (as written) or English, translated on the fly ---- */
 const EN = {
+  'Παύση · πάτα START για να συνεχίσεις': 'Paused · tap START to resume',
   'Μέγεθος εικόνας (πλάτος / ύψος)': 'Picture size (width / height)', 'Μέγεθος εικόνας': 'Picture size', 'Πλάτος': 'Width', 'Ύψος': 'Height',
   'Πιο στενό': 'Narrower', 'Πιο φαρδύ': 'Wider', 'Πιο κοντό': 'Shorter', 'Πιο ψηλό': 'Taller', 'Επαναφορά': 'Reset', 'Έτοιμο': 'Done',
   'Κρατιέται μόνο για αυτό το παιχνίδι.': 'Kept for this game only.', 'Θέση': 'Position', 'Θέση πάνω ή κάτω': 'Position up or down', 'Πιο πάνω': 'Higher', 'Πιο κάτω': 'Lower', 'Ξεκίνα πρώτα ένα παιχνίδι.': 'Start a game first.',
