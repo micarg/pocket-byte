@@ -2893,9 +2893,19 @@ let lastTick = 0;
 function haptic() {
   if (!hapticsOn) return;
   if (!isApple && navigator.vibrate) { try { if (navigator.vibrate(12)) return; } catch (e) {} }
-  if (performance.now() - lastTick < 80) return; // the touchstart below already ticked for this press
+  // iPhone: ticks only come from a real tap (see the touchend listener below)
+}
+// iPhone has no vibration for web pages; toggling an iOS "switch" checkbox gives the system's haptic tick, but only
+// inside an event Safari treats as a real tap: the finger lifting (touchend) or a click, never touchstart/pointerdown
+function iosTick() {
+  if (!hapticsOn || performance.now() - lastTick < 60) return;
   lastTick = performance.now();
-  try { hapLabel.click(); } catch (e) {}
+  try {
+    const l = document.createElement('label'), i = document.createElement('input');
+    l.setAttribute('aria-hidden', 'true'); l.style.display = 'none';
+    i.type = 'checkbox'; i.setAttribute('switch', ''); l.appendChild(i);
+    document.head.appendChild(l); l.click(); l.remove();
+  } catch (e) {}
 }
 // iPhone only gives the switch tick when the click happens inside a touch event Safari counts as a real tap;
 // a pointerdown from a finger doesn't count, touchstart does, so tick there for every control on the console
@@ -2905,12 +2915,19 @@ const ctlPanel = document.getElementById('controlsPanel');
 ctlPanel.addEventListener('touchstart', e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
 ctlPanel.addEventListener('selectstart', e => e.preventDefault());
 ctlPanel.addEventListener('contextmenu', e => e.preventDefault());
-if (isApple) document.addEventListener('touchstart', e => {
-  if (!hapticsOn || !e.target.closest || !e.target.closest('.btn, .pill, #dpad, #menuBtn, .dock-menu, .tool, .style-pick button, .lib-key, .key3d, .lib-add, .case')) return;
-  lastTick = 0; haptic();
-}, { capture: true, passive: true });
+if (isApple) {
+  const HAP_SEL = '.btn, .pill, #dpad, #menuBtn, .dock-menu, .tool, .style-pick button, .lib-key, .key3d, .lib-add, .case, .face, .sa-step, .sa-btns button';
+  // every finger that lifts off a control ticks (the buttons themselves are touched with pointer events, which
+  // iPhone doesn't count as taps, so this listens for the touch ending wherever it ended)
+  document.addEventListener('touchend', e => {
+    const t = e.changedTouches && e.changedTouches[0];
+    const el = (t && document.elementFromPoint(t.clientX, t.clientY)) || e.target;
+    if ((el && el.closest && el.closest(HAP_SEL)) || (e.target.closest && e.target.closest(HAP_SEL))) iosTick();
+  }, { capture: true, passive: true });
+}
 function setHaptics(on) {
   hapticsOn = on;
+  if (on) iosTick();
   document.getElementById('hapticBtn').textContent = on ? 'Δόνηση: ανοιχτή' : 'Δόνηση: κλειστή';
   document.getElementById('hapticBtn').classList.toggle('primary', on);
   try { localStorage.setItem('pb-haptic', on ? '1' : '0'); } catch (e) {}
