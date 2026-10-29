@@ -559,7 +559,9 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .hap-off .hap-sw, :disabled > .hap-sw { pointer-events: none; }
 /* a face's touch area (and its haptic switch) grows to take in buttons moved or enlarged past its edges */
 .face::before { content: ""; position: absolute; top: var(--ft, 0px); right: var(--fr, 0px); bottom: var(--fb, 0px); left: var(--fl, 0px); }
-.face > .hap-sw { top: var(--ft, 0px); right: var(--fr, 0px); bottom: var(--fb, 0px); left: var(--fl, 0px); width: auto; height: auto; }
+/* (a switch is a form control: it keeps its own small size with width:auto, so the size is spelled out) */
+.face > .hap-sw { top: var(--ft, 0px); left: var(--fl, 0px); right: auto; bottom: auto;
+  width: calc(100% - var(--fl, 0px) - var(--fr, 0px)); height: calc(100% - var(--ft, 0px) - var(--fb, 0px)); }
 .hap-sw.tap { touch-action: manipulation; border-radius: inherit; -webkit-appearance: none; appearance: none; display: block; background: none; }
 .hap-hidden { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; visibility: hidden; }
 .sys .b-wrap { position: relative; }
