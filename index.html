@@ -3327,7 +3327,9 @@ let lastEjDigital = 0;
 // Cardinal directions get 60° sectors and diagonals 30°, so a slightly-off push still reads as a clean up/down/left/right;
 // hysteresis keeps a direction held until the thumb clearly leaves it, so the edges don't flicker.
 const DEAD_ON = 9, DEAD_OFF = 6;       // px of thumb travel (unscaled) to start / stop
-const AXIS_ON = 0.5, AXIS_OFF = 0.38;  // cos of the angle from an axis: 0.5 = 60°, 0.38 ≈ 67°
+// a thumb pushing right usually drifts a little down: up/down only join in past ~37° (0.6), so walking doesn't
+// turn into a slow crouch-walk (Metal Slug) by accident; once on, they hold until ~63° (0.45) so it doesn't flicker
+const AXIS_ON = 0.6, AXIS_OFF = 0.45;
 function dpadFrom(e, prev) {
   const r = dpad.getBoundingClientRect();
   const scale = r.width / 140;
@@ -3337,7 +3339,7 @@ function dpadFrom(e, prev) {
   let m = 0;
   if (d > (pm ? DEAD_OFF : DEAD_ON)) {
     const c = x / d, s = y / d;
-    const ax_on = crossOn ? 0.62 : AXIS_ON, ax_off = crossOn ? 0.5 : AXIS_OFF; // the cross: diagonals only in a narrow band
+    const ax_on = crossOn ? 0.66 : AXIS_ON, ax_off = crossOn ? 0.54 : AXIS_OFF; // the cross: diagonals only in a narrow band
     const on = (bit, v) => v > ((pm & bit) ? ax_off : ax_on);
     if (on(K.RIGHT, c)) m |= K.RIGHT; else if (on(K.LEFT, -c)) m |= K.LEFT;
     if (on(K.DOWN, s)) m |= K.DOWN; else if (on(K.UP, -s)) m |= K.UP;
@@ -3787,7 +3789,7 @@ document.getElementById('saDone').addEventListener('click', () => { scrAdjEl.hid
 function scrAdj() { try { const v = JSON.parse(localStorage.getItem('pb-scr:' + current) || 'null'); if (v && v.w > 0 && v.h > 0) return { w: v.w, h: v.h, y: +v.y || 0 }; } catch (e) {} return { w: 1, h: 1, y: 0 }; }
 // Where the picture really is on the emulator's canvas: sampled from the drawn frames (the black bars around it
 // differ per core and per screen shape, and what the core reports doesn't always match what it draws)
-let picBox = null, picKey = '', picBlank = 0, picNew = null;
+let picBox = null, picKey = '', picBlank = 0, picNew = null, picStable = 0, picSkip = 0;
 const picCv = document.createElement('canvas');
 function picKeyNow() { const c = document.querySelector('#ejs canvas'), h = document.getElementById('ejs-host'); return c ? [c.width, c.height, h.clientWidth, h.clientHeight].join('x') : ''; }
 function samplePicture() {
@@ -3814,7 +3816,7 @@ function samplePicture() {
       // frames add up (a dark scene shows less). When the canvas or the screen changes size, the picture keeps its
       // current fit until three frames at the new size agree, so it never jumps back to the small unfitted picture
       if (!picBox) { picKey = key; picBox = uni(b, b); }
-      else if (picKey === key) picBox = uni(picBox, b);
+      else if (picKey === key) { const nb = uni(picBox, b); picStable = String(nb) === String(picBox) ? picStable + 1 : 0; picBox = nb; if (picStable > 5) picStable = 5; }
       else {
         picNew = picNew && picNew.key === key ? { key, box: uni(picNew.box, b), n: picNew.n + 1 } : { key, box: uni(b, b), n: 1 };
         if (picNew.n < 3) return;
@@ -3909,7 +3911,7 @@ setInterval(() => {
   if (!ejsStarted || document.hidden) return;
   const was = fitAspect;
   if (consoleEl.classList.contains('modern') && !consoleEl.classList.contains('land') && Math.abs(gameAspect() - was) > 0.06) { fit(); setTimeout(samplePicture, 350); }
-  else { fitGameScreen(); samplePicture(); }
+  else { fitGameScreen(); if (picStable < 3 || ++picSkip % 6 === 0) samplePicture(); }
 }, 1500);
 addEventListener('resize', () => setTimeout(fitGameScreen, 50));
 addEventListener('resize', fit); if (window.visualViewport) visualViewport.addEventListener('resize', fit);
