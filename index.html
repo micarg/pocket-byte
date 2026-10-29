@@ -2104,6 +2104,9 @@ function bootEJS(entry) {
     },
     EJS_onGameStart: () => {
       ejsStarted = true; showOverlay('');
+      // the picture's place on the canvas as measured last time: fitted at once, then checked against real frames
+      { const u = uiCache(entry.id); if (fillOn && Array.isArray(u.pb) && u.pb.length === 4) { picBox = u.pb.slice(); picKey = u.pk || ''; picNew = null; picBlank = 0; } }
+      fitGameScreen(); [60, 250, 600, 1100].forEach(t => setTimeout(samplePicture, t));
       // the game is up: after a little while of running fine, stop treating a restart as a crash on start
       setTimeout(() => { try { localStorage.removeItem('pb-boot'); } catch (e) {} }, 15000);
       { const t0 = Date.now(); runBeat(t0); setInterval(() => { if (!document.hidden) runBeat(t0); }, 5000); }
@@ -3506,6 +3509,9 @@ function samplePicture() {
         if (picNew.n < 3) return;
         picKey = key; picBox = picNew.box; picNew = null;
       }
+      // remembered per game, so the next start is fitted from the first frame
+      const rb = picBox.map(v => +v.toFixed(4)), u = current ? uiCache(current) : {};
+      if (current && (u.pk !== picKey || String(u.pb) !== String(rb))) saveUi({ pb: rb, pk: picKey });
       fitGameScreen();
     } catch (e) { picBlank = 9; }
   });
