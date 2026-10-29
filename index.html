@@ -676,11 +676,21 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), inset 0 1px 0 rgba(255,255,255,.25), 0 4px 10px rgba(0,0,0,.25); }
 .pane .tool:not(.primary):active, .key3d.dark:active { transform: scale(.97); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 1px 0 rgba(255,255,255,.3); }
 .cont-card { box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.3), 0 18px 34px rgba(0,0,0,.45); border: 0; }
+/* the favourite star sits right on the Now Playing poster: no circle, just a soft shadow */
+.cont-cover { position: relative; flex: none; }
+.poster-star { position: absolute; right: -6px; bottom: -6px; z-index: 6; width: 40px; height: 40px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.poster-star svg.star-ic { width: 24px; height: 22.9px; fill: rgba(255,255,255,.12); stroke: #fff; stroke-width: 1.8; stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.75)) drop-shadow(0 0 7px rgba(0,0,0,.5)); }
+.poster-star.on svg.star-ic { fill: #ffd34d; stroke: #ffd34d; }
+.poster-star:active { transform: scale(.9); }
 /* the star's box is the star itself, so it sits in the middle of any round key; the outline is drawn round its edge */
 svg.star-ic { overflow: visible; display: block; }
 .lib-tab.fav { display: grid; place-items: center; }
 .key3d.star svg.star-ic { width: 17px; height: 16.2px; }
-.case-fav svg.star-ic { width: 13px; height: 12.4px; }
+.case-fav svg.star-ic { width: 18px; height: 17.2px; }
+/* favourite mark on the poster: just the star, with a soft shadow so it reads on any cover */
+.case-fav { background: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important; width: auto !important; height: auto !important; right: 8px !important; bottom: 8px !important; }
+.case-fav svg { filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.7)) drop-shadow(0 0 6px rgba(0,0,0,.45)); }
 .case-star svg.star-ic { width: 15px; height: 14.3px; }
 .lib-tab.fav svg.star-ic { width: 16px; height: 15.2px; }
 .gs-acts svg.star-ic { width: 22px; height: 21px; }
@@ -4578,7 +4588,7 @@ async function renderMine() {
       cbg.style.backgroundColor = lastG.cart ? lastG.bg : `hsl(${hueOf(lastG.id)} 45% 32%)`;
       // a cover still being looked up: use it as soon as it arrives
       if (!u) setTimeout(() => { const v = coverKnown(lastG.id); if (v && v !== 'none' && cbg.isConnected) cbg.style.backgroundImage = `url("${v.replace(/"/g, '%22')}")`; }, 1500); }
-    card.appendChild(caseArt(lastG));
+    const cc = document.createElement('div'); cc.className = 'cont-cover'; cc.appendChild(caseArt(lastG)); card.appendChild(cc);
     const info = document.createElement('div'); info.className = 'cont-info';
     const k = document.createElement('div'); k.className = 'cont-kicker'; k.textContent = lastG.id === current ? 'ΠΑΙΖΕΙΣ ΤΩΡΑ' : 'ΣΥΝΕΧΙΣΕ';
     const n = document.createElement('div'); n.className = 'cont-name'; n.textContent = displayName(lastG);
@@ -4596,10 +4606,10 @@ async function renderMine() {
       sv.addEventListener('click', () => setSettings(true));
       btns.appendChild(sv);
     }
-    const star = document.createElement('button'); star.className = 'key3d dark star' + (favs().includes(lastG.id) ? ' on' : '');
+    const star = document.createElement('button'); star.className = 'poster-star' + (favs().includes(lastG.id) ? ' on' : '');
     star.setAttribute('aria-label', favs().includes(lastG.id) ? 'Βγάλε από τα αγαπημένα' : 'Βάλε στα αγαπημένα'); star.innerHTML = STAR_SVG;
     star.addEventListener('click', () => toggleFav(lastG.id));
-    btns.appendChild(star);
+    cc.appendChild(star);
     info.append(k, n, m, btns); card.appendChild(info); contEl.appendChild(card);
   }
   // console tabs: only the systems in the library
