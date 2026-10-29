@@ -562,6 +562,10 @@ h3 .count { font-variant-numeric: tabular-nums; background: var(--desk-2); borde
   background: rgba(20, 21, 24, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
   display: flex; align-items: center; justify-content: center; gap: 12px; }
 .pause-ic[hidden] { display: none; }
+/* paused: the game behind the symbol goes soft */
+#ejs-host, #lcd { transition: filter .3s ease; }
+.paused-blur #ejs-host, .paused-blur #lcd { filter: blur(4px) brightness(.8); }
+.lay-edit .paused-blur #ejs-host, .lay-edit .paused-blur #lcd { filter: none; }
 .hap-test { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; }
 .hap-tries { margin-top: 10px; }
 .hap-test input { width: 46px; height: 26px; accent-color: #34c759; }
@@ -3083,7 +3087,9 @@ function setPaused(p) {
 }
 function updatePause() {
   document.getElementById('pauseBtn').textContent = (paused && !pausedByMenu) ? 'Συνέχεια' : 'Παύση';
-  document.getElementById('pauseIc').hidden = !(paused && !pausedByMenu);
+  const pz = paused && !pausedByMenu;
+  document.getElementById('pauseIc').hidden = !pz;
+  document.getElementById('screenWrap').classList.toggle('paused-blur', pz);
 }
 document.getElementById('pauseBtn').addEventListener('click', () => { if (pausedByMenu) { pausedByMenu = false; updatePause(); } else setPaused(!paused); });
 document.getElementById('resetBtn').addEventListener('click', () => {
