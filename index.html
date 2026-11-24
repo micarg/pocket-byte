@@ -2967,7 +2967,7 @@ function snapshotState(force, mark) {
   const id = current;
   if (noSnap(id)) return;
   // PSP states are tens of MB: no timed ones (the pause menu's slots still save)
-  if (mark && /^user:psp-/.test(id)) return;
+  if (mark && consoleEl.classList.contains('psp')) return;
   // known to fill the memory with each snapshot on iPhone: spared the first crash
   if (sys === 'arcade' && /^nbajam/.test(arcSet || mameSet || '')) { setNoSnap(id, 'big'); return; }
   // (only the timed ones leave the mark: one taken as the app is closed may never finish, and that is no crash)
@@ -3019,6 +3019,23 @@ function bootEntry(g) {
     g = { id: g.id, name: label.replace(/[_-]+/g, ' '), sys: 'psx', ext: 'zip', fileName: label.replace(/[#<$+%>!`&*'|{}/\\?"=@:^\r\n]/g, '') + '.zip',
       added: g.added || Date.now(), blob: new Blob([g.bytes]) };
     dbPut(g).then(renderMine);
+  }
+  // a disc filed under PlayStation that is really a PSP game (zipped, or added before PSP support): look at the
+  // image itself and move it to PSP
+  if (g.sys === 'psx' && !g.pspChecked && (g.blob || g.discFiles)) {
+    const main = g.blob || ((g.discFiles.find(f => f.name === g.fileName) || g.discFiles[0]) || {}).blob;
+    const name = g.blob ? (g.fileName || 'disc.iso') : (g.fileName || 'disc.iso');
+    if (main) {
+      psxCheck(new File([main], name)).catch(() => null).then(kind => {
+        if (kind === 'psp') {
+          try { localStorage.removeItem('pb-cover2:' + g.id); } catch (e) {}
+          g = { ...g, sys: 'psp' };
+          dbPut(g).then(renderMine);
+        }
+        bootEntry({ ...g, pspChecked: true });
+      });
+      return;
+    }
   }
   const s = g.sys || 'gb';
   if (s === 'gb') bootGB(new Uint8Array(g.bytes), g.name, g.id);
@@ -3218,7 +3235,7 @@ function zipListOfBytes(u) {
 // a CD image inside a zip: a cue sheet / disc image, or a big .bin made of whole 2352-byte sectors
 // (arcade chips are .bin too, but small and power-of-two sized)
 function isDiscList(list) {
-  return list.some(e => /\.(cue|chd|pbp|iso|m3u|ccd)$/.test(e.name) ||
+  return list.some(e => /\.(cue|chd|pbp|iso|cso|m3u|ccd)$/.test(e.name) ||
     (/\.(bin|img)$/.test(e.name) && (e.size >= 16e6 && e.size % 2352 === 0)));
 }
 // 'disc' for a PlayStation image, 'cue' for a lone cue sheet, null for anything else
@@ -3233,6 +3250,14 @@ async function psxCheck(f) {
   if (str(0, 8) === 'MComprHD') return 'disc';            // CHD
   if (str(0, 4) === 'CISO' || str(0, 4) === 'ZISO') return 'psp'; // compressed PSP UMD (.cso / .zso)
   if (str(0x8001, 5) === 'CD001' && /PSP GAME/.test(str(0x8008, 32))) return 'psp'; // PSP UMD image
+  if (str(0x8001, 5) === 'CD001' && !/PLAYSTATION/.test(str(0x8008, 32))) {
+    // an ISO without the usual name: a PSP game has PSP_GAME / UMD_DATA.BIN in its top folder
+    try {
+      const lba = new DataView(h.buffer, h.byteOffset).getUint32(0x8000 + 156 + 2, true);
+      const root = await readSlice(f, lba * 2048, lba * 2048 + 4096);
+      if (/PSP_GAME|UMD_DATA\.BIN/.test(String.fromCharCode(...root))) return 'psp';
+    } catch (e) {}
+  }
   if (str(0, 4) === '\0PBP') {                            // eboot: a PS1 game converted for the PSP, or a PSP game
     const psar = new DataView(h.buffer, h.byteOffset).getUint32(0x24, true);
     let tag = ''; try { tag = String.fromCharCode(...await readSlice(f, psar, psar + 12)); } catch (e) {}
@@ -3281,8 +3306,8 @@ async function unzipToStorage(src, e, tag, ids, onBytes) {
 }
 async function discFromZip(src, progress) {
   if (typeof DecompressionStream === 'undefined') return null;
-  const list = (await zipListOf(src)).filter(e => !e.name.endsWith('/') && /\.(bin|img|iso|chd|pbp|cue|ccd|sub)$/.test(e.name));
-  const imgs = list.filter(e => /\.(bin|img|iso|chd|pbp)$/.test(e.name));
+  const list = (await zipListOf(src)).filter(e => !e.name.endsWith('/') && /\.(bin|img|iso|cso|chd|pbp|cue|ccd|sub)$/.test(e.name));
+  const imgs = list.filter(e => /\.(bin|img|iso|cso|chd|pbp)$/.test(e.name));
   if (!imgs.length || list.some(e => ![0, 8].includes(e.method))) return null;
   const cue = list.find(e => e.name.endsWith('.cue'));
   if (imgs.length > 1 && !cue) return null;
