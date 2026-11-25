@@ -2499,6 +2499,8 @@ function bootEJS(entry) {
   }
   if (!wantCoi && /[?&]coi=1/.test(location.search)) { setLast(entry.id); try { storeAll(); } catch (e) {} location.replace('./'); return true; }
   if (ejsLoaded) { setLast(entry.id); location.reload(); return true; }
+  // PSP: settings EmulatorJS kept from earlier runs would win over the ones set below; start from ours each time
+  if (entry.sys === 'psp') try { Object.keys(localStorage).filter(k => /^ejs/i.test(k) && /psp|ppsspp/i.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
   if (gb) { storeSave(); gb = null; }
   ejsLoaded = true;
   current = entry.id;
@@ -2551,9 +2553,13 @@ function bootEJS(entry) {
     EJS_threads: entry.sys === 'psp',
     EJS_fixedSaveInterval: 10000,
     EJS_defaultOptions: { 'virtual-gamepad': 'disabled', 'menu-bar-button': 'hidden',
-      // PSP: the lightest settings (native resolution, frames skipped instead of slowing down)
-      'ppsspp_internal_resolution': '480x272', 'ppsspp_frameskip': '1', 'ppsspp_auto_frameskip': 'enabled',
-      'ppsspp_texture_scaling_level': 'disabled', 'ppsspp_texture_filtering': 'auto',
+      // PSP: the lightest settings. A web page gets no JIT, so the CPU runs on PPSSPP's IR interpreter (much faster
+      // than the plain one); native resolution, frames skipped instead of slowing down, GPU shortcuts on
+      'ppsspp_cpu_core': 'IR JIT', 'ppsspp_fast_memory': 'enabled', 'ppsspp_locked_cpu_speed': '222MHz',
+      'ppsspp_internal_resolution': '480x272', 'ppsspp_frameskip': '2', 'ppsspp_frameskiptype': 'Number of frames', 'ppsspp_auto_frameskip': 'enabled',
+      'ppsspp_texture_scaling_level': 'disabled', 'ppsspp_texture_filtering': 'auto', 'ppsspp_texture_deposterize': 'disabled',
+      'ppsspp_lazy_texture_caching': 'enabled', 'ppsspp_skip_gpu_readbacks': 'enabled', 'ppsspp_skip_buffer_effects': 'enabled',
+      'ppsspp_spline_quality': 'Low', 'ppsspp_lower_resolution_for_effects': 'Aggressive', 'ppsspp_gpu_hardware_transform': 'enabled',
       // MAME 2003-Plus: skip the copyright and known-issue screens (they wait for a left-then-right joystick move)
       'mame2003-plus_skip_disclaimer': 'enabled', 'mame2003-plus_skip_warnings': 'enabled' },
     EJS_Buttons: { playPause: false, restart: false, mute: false, settings: false, fullscreen: false, saveState: false, loadState: false,
