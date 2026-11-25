@@ -641,6 +641,7 @@ input[type="search"], input[type="text"], textarea { -webkit-user-select: text; 
 .la-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: #fff; transition: width .3s ease; }
 .la-bar.busy i { width: 34% !important; animation: la-busy 1.1s ease-in-out infinite; }
 @keyframes la-busy { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
+.la-diag { margin-top: 8px; font: 600 10.5px/1.35 ui-monospace, Menlo, monospace; color: rgba(255,255,255,.6); word-break: break-word; max-width: 280px; }
 .la-txt { color: rgba(255,255,255,.75); font: 600 12px var(--body); }
 /* cover flying into the screen */
 .zoom-clone { position: fixed !important; z-index: 80; margin: 0; overflow: hidden; pointer-events: none; }
@@ -889,7 +890,7 @@ svg.star-ic { overflow: visible; display: block; }
           </div>
         </div>
         <div class="load-art" id="loadArt" hidden aria-live="polite"><div class="la-bg" id="laBg"></div>
-          <div class="la-card"><img class="la-cover" id="laCover" alt=""><div class="la-name" id="laName"></div><div class="la-bar" id="laBar"><i></i></div><div class="la-txt" id="laTxt"></div></div></div>
+          <div class="la-card"><img class="la-cover" id="laCover" alt=""><div class="la-name" id="laName"></div><div class="la-bar" id="laBar"><i></i></div><div class="la-txt" id="laTxt"></div><div class="la-diag" id="laDiag" hidden></div></div></div>
       </div>
     </div>
     <div class="brand"><span class="led" id="led"></span><button class="brand-btn" id="menuBtn" aria-label="Μενού" aria-expanded="false" aria-controls="menu"><svg class="menu-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>POCKET BYTE</button><span id="now">—</span></div>
@@ -2280,6 +2281,22 @@ function showLoading(g) {
   let name = g.name || ''; try { name = displayName(g); } catch (e) {}
   document.getElementById('laName').textContent = name;
   el.classList.remove('gone'); el.hidden = false; loadingOn = true; setLoadText('Φορτώνει…');
+  loadDiag.t0 = Date.now(); loadDiag.err = ''; clearInterval(loadDiag.timer); loadDiag.timer = setInterval(loadDiagTick, 1000);
+}
+// When a game takes long to start, the loading card says where it is stuck (for a screenshot to read it from)
+const loadDiag = { err: '', t0: 0, timer: null };
+window.addEventListener('error', e => { const t = e.target; loadDiag.err = (e.message || (t && (t.src || t.href) ? 'failed: ' + (t.src || t.href).replace(/^https?:\/\//, '') : '')) || loadDiag.err; }, true);
+window.addEventListener('unhandledrejection', e => { loadDiag.err = String(e.reason && (e.reason.message || e.reason) || 'rejection').slice(0, 140); });
+{ const ce = console.error.bind(console); console.error = (...a) => { try { loadDiag.err = a.map(x => x && x.message || String(x)).join(' ').slice(0, 140); } catch (e) {} ce(...a); }; }
+function loadDiagTick() {
+  const el = document.getElementById('laDiag');
+  if (!loadingOn) { clearInterval(loadDiag.timer); loadDiag.timer = null; el.hidden = true; return; }
+  if (Date.now() - loadDiag.t0 < 12000) return;
+  let ejs = ''; try { const em = window.EJS_emulator; ejs = em ? ((em.textElem && em.textElem.innerText) || (em.started ? 'started' : 'created')) : (window.EmulatorJS ? 'loader ok' : 'no loader'); } catch (e) {}
+  el.textContent = [Math.round((Date.now() - loadDiag.t0) / 1000) + 's', 'iso ' + (window.crossOriginIsolated ? 'yes' : 'NO'),
+    'core ' + (window.EJS_core || '-'), (window.EJS_pathtodata || '').replace(/^.*emulatorjs\.org\//, '').replace(/\/data\/$/, ''),
+    'ejs: ' + (ejs || '-'), loadDiag.err && 'err: ' + loadDiag.err].filter(Boolean).join(' · ');
+  el.hidden = false;
 }
 function setLoadText(text) {
   const m = /(\d+)\s*%/.exec(text), bar = document.getElementById('laBar');
