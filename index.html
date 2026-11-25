@@ -2607,7 +2607,7 @@ function bootEJS(entry) {
       hideLoading();
       ejsStarted = true; showOverlay('');
       // the picture's place on the canvas as measured last time: fitted at once, then checked against real frames
-      { const u = uiCache(entry.id); if (fillOn && Array.isArray(u.pb) && u.pb.length === 4) { picBox = u.pb.slice(); picKey = u.pk || ''; picNew = null; picBlank = 0; } }
+      { const u = uiCache(entry.id); if (fillOn && entry.sys !== 'psp' && Array.isArray(u.pb) && u.pb.length === 4) { picBox = u.pb.slice(); picKey = u.pk || ''; picNew = null; picBlank = 0; } }
       fitGameScreen(); [60, 250, 600, 1100].forEach(t => setTimeout(samplePicture, t));
       // the game is up: after a little while of running fine, stop treating a restart as a crash on start
       setTimeout(() => { try { localStorage.removeItem('pb-boot'); } catch (e) {} }, 15000);
@@ -4388,6 +4388,8 @@ const picCv = document.createElement('canvas');
 function picKeyNow() { const c = document.querySelector('#ejs canvas'), h = document.getElementById('ejs-host'); return c ? [c.width, c.height, h.clientWidth, h.clientHeight].join('x') : ''; }
 function samplePicture() {
   const c = document.querySelector('#ejs canvas');
+  // PSP: always its full 480×272 picture (its own black backgrounds are not borders to cut away)
+  if (consoleEl.classList.contains('psp')) { picBox = null; return; }
   if (!fillOn || !ejsStarted || !c || !c.width || !c.height || document.hidden) return;
   // in the same frame the emulator drew in, before the canvas is cleared
   requestAnimationFrame(() => {
